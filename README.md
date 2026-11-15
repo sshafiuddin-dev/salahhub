@@ -1,0 +1,37 @@
+# Iqama Times
+
+Give an old tablet or iPad a new job. An installable web app that turns a spare Android, Fire or iPad tablet into an always-on
+prayer hub for the home: a large clock with adhan and iqama times, alerts, weather, daily duas, adhkar and a Quran player.
+No account, no tracking: settings stay on the device.
+
+- App: https://salahhub.pages.dev
+- Guide: https://salahhub.pages.dev/guide/
+- Made by [Shafiuddin Syed](https://sshafiuddin.pages.dev)
+
+## How it is built
+
+A static site with no build step (the output of the two small build scripts is committed), hosted on Cloudflare Pages.
+
+```
+/                  the app (index.html, app.js, styles.css, ...)
+/guide/            the user guide, built from scripts/guide/chapters by scripts/guide/build.mjs
+/functions/api/    /api/iqama (reads iscj.org, cached at the edge) and /api/csp-report (logs policy reports, stores nothing)
+/scripts/          selfcheck.mjs (tests), fetch-iqama.mjs and fetch-hisn.mjs (daily and monthly data jobs), daisy/ (CSS build)
+/_headers          security headers
+```
+
+Cloudflare Pages settings: connect this repo, leave the build command empty, output directory `/` (the repo root).
+
+## Tests
+
+`node scripts/selfcheck.mjs`
+
+## Data jobs (GitHub Actions)
+
+- `iqama.yml` copies today's ISCJ iqama times into `iqama.json` every day.
+- `hisn.yml` refreshes `hisn-text.json` (Hisn al-Muslim text) once a month.
+
+## Credits
+
+Every outside source (Quran recitations, Hisn al-Muslim, adhan recordings, prayer-time calculator, iqama times, weather data,
+libraries and fonts) is listed with its licence in [CREDITS.md](CREDITS.md).
