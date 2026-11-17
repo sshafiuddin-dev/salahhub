@@ -436,7 +436,9 @@ body { overflow: hidden; }
   .topbar { flex-wrap: nowrap; padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: .6rem; }
   .topbar-meta { font-size: .85rem; gap: .15rem .7rem; }
   .topbar-actions { flex-wrap: nowrap; }
-  .tb-btn span, #install { display: none; }
+  #install { display: none; }
+  /* the words leave the screen but stay as the buttons' names for screen readers */
+  .tb-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #help { display: none; } /* phones: Settings › About has Read the guide; the header keeps room for the date */
   .tb-btn { width: 2.75rem; height: 2.75rem; padding: 0; }
   .tb-btn svg { width: 1.3rem; height: 1.3rem; }
