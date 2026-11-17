@@ -7,7 +7,7 @@
 }
 /* Colours for each look and brightness level are in look.css */
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1.0625rem/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: transparent; color: var(--ink); font: 400 1.0625rem/1.6 var(--body); -webkit-font-smoothing: antialiased; }
 h1, h2, h3, p, ul, dl, dd, figure { margin: 0; }
 ul { padding: 0; list-style: none; }
 a { color: inherit; }
@@ -22,15 +22,13 @@ section { padding-block: clamp(4rem, 9vw, 7.5rem); border-top: 1px solid var(--l
 html, body { height: 100%; }
 body { overflow: hidden; }
 
-/* Weather backdrop: a tint fading into the page plus the canvas drawn by sky.js.
+/* Weather backdrop: a tint fading into the page plus the printed texture on .sky-print (see sky.js).
    Light-theme sky colours stay light and dark-theme ones stay dark, so muted text keeps AA contrast on them. */
 :root {
   --sky-l: #E7EDF0; --sky-d: #07212A; --sky-base: var(--sky-l); --night: #D6D9EA;
-  --sky-rain: 11,42,51,.22; --sky-flake: 80,110,130,.45; --sky-cloud: 255,255,255,.7; --sky-star: 70,80,140,.5; --sky-sun: 255,205,110,.4;
 }
 :root[data-theme="dark"] {
   --sky-base: var(--sky-d); --night: #0B1430;
-  --sky-rain: 200,225,235,.2; --sky-flake: 235,242,245,.55; --sky-cloud: 150,180,195,.1; --sky-star: 235,242,245,.7; --sky-sun: 255,200,110,.1;
 }
 :root[data-sky="clear"] { --sky-l: #D3E6F6; --sky-d: #1B4460; }
 :root[data-sky="cloudy"] { --sky-l: #DCE4EA; --sky-d: #22343F; }
@@ -40,9 +38,10 @@ body { overflow: hidden; }
 :root[data-sky="storm"] { --sky-l: #D2D8E0; --sky-d: #141C28; }
 :root[data-sky="snow"] { --sky-l: #EAF1F6; --sky-d: #2A3F52; }
 
-:root[data-palette="contrast"] .sky-tint, :root[data-palette="contrast"] #sky { display: none; }
+:root[data-palette="contrast"] .sky-tint, :root[data-palette="contrast"] .sky-print { display: none; }
 
-:root { --sky: var(--sky-base); --board-bg: var(--ink); --board-fg: var(--paper); }
+/* the paper is painted on the root (daisyUI's --d-root-bg) so the weather layers above it are not covered by the body */
+:root { --sky: var(--sky-base); --board-bg: var(--ink); --board-fg: var(--paper); --d-root-bg: var(--paper); }
 
 /* daisyUI components (daisy.css, prefixed d-) take their colours from the app's own tokens */
 :root {
@@ -64,10 +63,23 @@ body { overflow: hidden; }
 .d-btn[aria-pressed="true"] { background-color: var(--clear); border-color: var(--clear); color: var(--paper); }
 :root[data-night] { --sky: color-mix(in srgb, var(--sky-base) 45%, var(--night)); }
 .sky-tint { position: fixed; inset: 0; z-index: -2; pointer-events: none; background: linear-gradient(var(--sky), var(--paper) 85vh); transition: background 1s; }
-#sky {
-  position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none;
-  -webkit-mask-image: linear-gradient(#000 35%, transparent 95%); mask-image: linear-gradient(#000 35%, transparent 95%);
+.sky-print {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none; --tex: var(--ink); opacity: .14;
+  /* strongest along the top edge, gone well before the timetable */
+  -webkit-mask-image: linear-gradient(#000, transparent 42%); mask-image: linear-gradient(#000, transparent 42%);
 }
+/* Printed weather: one still texture per sky, in the ink colour at low strength */
+:root[data-sky="clear"]:not([data-night]) .sky-print { background: repeating-radial-gradient(circle at 104% -18%, transparent 0 13px, var(--tex) 13px 14px); opacity: .12;
+  -webkit-mask-image: radial-gradient(circle at 100% 0, #000, transparent 55%); mask-image: radial-gradient(circle at 100% 0, #000, transparent 55%); }
+:root[data-sky="clear"][data-night] .sky-print { background: radial-gradient(circle, var(--tex) 0 .9px, transparent 1.2px) 0 0 / 41px 37px, radial-gradient(circle, var(--tex) 0 .7px, transparent 1px) 17px 23px / 53px 47px; opacity: .3; }
+:root[data-sky="cloudy"] .sky-print { background: radial-gradient(circle, var(--tex) 0 1px, transparent 1.3px) 0 0 / 9px 9px; opacity: .14; }
+:root[data-sky="overcast"] .sky-print { background: radial-gradient(circle, var(--tex) 0 1.3px, transparent 1.6px) 0 0 / 7px 7px, radial-gradient(circle, var(--tex) 0 .9px, transparent 1.2px) 3.5px 3.5px / 7px 7px; opacity: .17; }
+:root[data-sky="fog"] .sky-print { background: repeating-linear-gradient(180deg, transparent 0 7px, var(--tex) 7px 8px); opacity: .12; }
+:root[data-sky="rain"] .sky-print { background: repeating-linear-gradient(104deg, transparent 0 6px, var(--tex) 6px 7px); opacity: .17; }
+:root[data-sky="storm"] .sky-print { background: repeating-linear-gradient(104deg, transparent 0 4px, var(--tex) 4px 5px), repeating-linear-gradient(14deg, transparent 0 11px, var(--tex) 11px 12px); opacity: .17; }
+:root[data-sky="snow"] .sky-print { background: radial-gradient(circle, var(--tex) 0 1.2px, transparent 1.5px) 0 0 / 19px 17px, radial-gradient(circle, var(--tex) 0 .8px, transparent 1.1px) 9px 8px / 23px 21px, radial-gradient(circle, var(--tex) 0 1px, transparent 1.3px) 5px 13px / 31px 29px; opacity: .26; }
+/* Settings › Display › Weather background off: plain paper everywhere */
+:root[data-plain] .sky-tint, :root[data-plain] .sky-print { display: none; }
 
 /* App shell */
 .app { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); height: 100vh; height: 100dvh; }
@@ -243,6 +255,13 @@ body { overflow: hidden; }
    tablet and the full screen display alike; on a phone, or with no container, the units fall back to the screen. */
 .sh { --u: min(1cqh, .62cqw); display: grid; grid-template-rows: minmax(0, 1fr) auto auto auto; min-height: 0; height: 100%; font-variant-numeric: lining-nums tabular-nums; }
 .sh p { margin: 0; }
+.sh-w { grid-template-rows: auto minmax(0, 1fr) auto auto auto; }
+/* National Weather Service line: only there while a warning, watch or advisory is in force */
+.sh-warn { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem 1rem; padding-block: calc(var(--u) * .9); border-bottom: 1px solid var(--clear); color: var(--clear); }
+.sh .sh-warn { margin-bottom: calc(var(--u) * 1.4); }
+.sh-warn b { font: 600 max(.8rem, calc(var(--u) * 2.2))/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; }
+.sh-warn span { font: italic 500 max(1rem, calc(var(--u) * 2.8))/1.2 var(--display); color: var(--ink); }
+.sh-warn small { margin-left: auto; font: 500 max(.72rem, calc(var(--u) * 1.8))/1.2 var(--body); letter-spacing: .06em; color: var(--muted); }
 .sh-mid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: center; gap: calc(var(--u) * 3); min-height: 0; padding-block: calc(var(--u) * 1.5); }
 .sh-time { display: flex; align-items: flex-start; gap: calc(var(--u) * 1.2); line-height: 1; }
 .sh-hm { font: 400 calc(var(--u) * 33)/1 var(--display); letter-spacing: -.045em; margin-block: -.08em -.12em; }
@@ -253,8 +272,21 @@ body { overflow: hidden; }
 .sh-n i { font-size: .48em; font-weight: 400; color: var(--muted); margin-left: .04em; }
 .sh-at { font: italic 400 max(1rem, calc(var(--u) * 3.2))/1.3 var(--display); color: var(--muted); }
 .sh-at b { font-style: normal; font-weight: 600; color: var(--ink); }
-.sh-bar { height: 2px; background: var(--line); margin-top: calc(var(--u) * .8); }
-.sh-bar span { display: block; height: 100%; background: var(--ink); }
+.sh-wxat { font: italic 400 max(1rem, calc(var(--u) * 3))/1.3 var(--display); color: var(--muted); }
+.sh-wxat b { font-style: normal; font-weight: 600; color: var(--ink); }
+/* The day ruler: a hairline from an hour before Fajr to an hour after Isha. The part of the day already gone is inked in,
+   hours are short marks, prayers are tall ticks lettered underneath, and a red ring marks now. */
+.sh-rule { --base: max(8px, calc(var(--u) * 2.4)); position: relative; height: calc(var(--base) + max(1.2rem, calc(var(--u) * 4.4))); margin-top: calc(var(--u) * .6); }
+.sh-rule::before { content: ""; position: absolute; inset-inline: 0; top: var(--base); border-top: 1px solid var(--line); }
+.sh-done { position: absolute; left: 0; top: calc(var(--base) - 1px); height: 3px; background: var(--ink); }
+.sh-hr { position: absolute; top: calc(var(--base) - max(4px, calc(var(--u) * .9))); height: max(4px, calc(var(--u) * .9)); border-left: 1px solid var(--muted); }
+.sh-tk { position: absolute; top: calc(var(--base) - max(9px, calc(var(--u) * 2))); height: max(16px, calc(var(--u) * 3.4)); margin-left: -1px; border-left: 2px solid var(--ink); }
+.sh-tk i { position: absolute; top: 100%; left: 0; transform: translateX(-50%); padding-top: 2px; font: 600 max(.8rem, calc(var(--u) * 2.4))/1 var(--body); font-style: normal; letter-spacing: .06em; color: var(--muted); }
+.sh-tk.sm { top: calc(var(--base) - max(5px, calc(var(--u) * 1.1))); height: max(10px, calc(var(--u) * 2.2)); margin-left: -.5px; border-left-width: 1px; }
+.sh-tk.sm i { font: italic 400 max(.88rem, calc(var(--u) * 2.6))/1 var(--display); letter-spacing: 0; }
+.sh-tk.nx { border-color: var(--clear); }
+.sh-tk.nx i { color: var(--clear); }
+.sh-now { position: absolute; top: var(--base); width: max(11px, calc(var(--u) * 2.2)); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: var(--paper); border: 2px solid var(--clear); }
 .sh .sh-tt { width: 100%; border-collapse: collapse; table-layout: fixed; border-top: var(--rule-w, 1px) solid var(--ink); border-bottom: 3px double var(--ink); }
 .sh .sh-tt th, .sh .sh-tt td { padding: 0; text-align: center; border: 0; background: none; white-space: normal; }
 .sh .sh-tt thead th { padding-top: calc(var(--u) * 1.1); font: 600 max(.7rem, calc(var(--u) * 1.85))/1.2 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); vertical-align: bottom; }
@@ -279,6 +311,7 @@ body { overflow: hidden; }
 .sh-has-dua .sh-n { font-size: calc(var(--u) * 8.5); }
 @media (max-width: 48rem) and (orientation: portrait) {
   .sh { --u: min(.8svh, 1.25svw); height: auto; }
+  .sh .sh-warn { margin-bottom: calc(var(--u) * 3); }
   .sh-mid { grid-template-columns: minmax(0, 1fr); justify-items: center; }
   .sh-hm { font-size: calc(var(--u) * 26); }
   .sh-side { padding-top: calc(var(--u) * 3.5); }
@@ -334,7 +367,7 @@ body { overflow: hidden; }
 .display {
   position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 1rem;
   padding: max(1.25rem, env(safe-area-inset-top, 0px)) max(clamp(1rem, 4vw, 3.5rem), env(safe-area-inset-right, 0px)) max(1.25rem, env(safe-area-inset-bottom, 0px)) max(clamp(1rem, 4vw, 3.5rem), env(safe-area-inset-left, 0px));
-  background: var(--paper); color: var(--ink); overflow: hidden;
+  background: var(--paper); color: var(--ink); overflow: hidden; isolation: isolate; /* its own weather layers sit just above this paper */
 }
 .display.idle, .display.idle * { cursor: none; }
 .dx-sound { animation: dx-sound-pulse 1.6s ease-in-out infinite; }

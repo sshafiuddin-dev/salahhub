@@ -119,3 +119,14 @@ export function weatherHtml(w, units, prayers) {
   }
   return html;
 }
+
+// Official warnings in force at a point, from this site's /api/alerts (National Weather Service, US only).
+// Returns [{ event, severity, until, sender }], or [] when there are none, the point is outside the US or the service is down.
+export async function fetchAlerts(lat, lng) {
+  try {
+    const r = await fetch(`/api/alerts?lat=${lat.toFixed(2)}&lng=${lng.toFixed(2)}`);
+    if (!r.ok) return [];
+    const j = await r.json();
+    return Array.isArray(j.alerts) ? j.alerts.filter(a => a && typeof a.event === 'string') : [];
+  } catch (e) { return []; }
+}

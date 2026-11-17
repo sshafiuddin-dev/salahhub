@@ -214,3 +214,29 @@ export function weatherKind(code) {
 // one step every 3 minutes, so no edge stays on the same pixels for long. Returns [x, y] in px.
 const SHIFT_PATH = [[0, 0], [2, 0], [2, 2], [0, 2], [-2, 2], [-2, 0], [-2, -2], [0, -2], [2, -2]];
 export const burnShift = (sec) => SHIFT_PATH[Math.floor(sec / 180) % SHIFT_PATH.length];
+
+// Weather at the next prayer, from the hourly forecast: hours are [{ today, min, temp, code, pop }] starting at the current hour.
+// at is minutes after today's midnight; 1440 and over is tomorrow (Fajr after Isha). Returns { temp, words, pop } or null.
+// Rain, snow or storms are named when the forecast shows them or their chance is 30% or more ("likely" at 60%); otherwise the sky.
+export function prayerWeather(hours, at) {
+  const tomorrow = at >= 1440, hr = Math.floor((at % 1440) / 60);
+  const h = (hours || []).find(x => x.today === !tomorrow && Math.floor(x.min / 60) === hr);
+  if (!h || h.temp == null) return null;
+  const { kind, label } = weatherKind(h.code), pop = h.pop;
+  const wet = ['rain', 'snow', 'storm'].includes(kind);
+  if (wet || pop >= 30) {
+    const word = kind === 'snow' ? 'snow' : kind === 'storm' ? 'storms' : 'rain';
+    return { temp: h.temp, words: pop == null ? (label || word).toLowerCase() : pop >= 60 ? `${word} likely` : `chance of ${word}`, pop };
+  }
+  return { temp: h.temp, words: (label || '').toLowerCase(), pop: null };
+}
+
+// When an official warning ends, in the place's time zone: "until 7:00 PM", "until 7:00 PM Wed" on a later day,
+// or "until further notice" when NWS gives no end. iso is an ISO time with offset; now is a Date.
+export function untilText(iso, now, zone) {
+  const t = Date.parse(iso || '');
+  if (!Number.isFinite(t)) return 'until further notice';
+  const end = clock(new Date(t), zone), today = clock(now, zone);
+  const later = end.y !== today.y || end.m !== today.m || end.d !== today.d;
+  return `until ${fmt(Math.floor(end.sec / 60))}${later ? ` ${end.weekday}` : ''}`;
+}

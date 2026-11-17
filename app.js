@@ -1,9 +1,9 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, esc, beepWav, alertLogText } from './logic.js';
+import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, esc, beepWav, alertLogText } from './logic.js';
 import { setSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
-import { fetchWeather, weatherHtml } from './weather.js';
+import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
 import { HISN, hisnUrl } from './hisn.js';
 import { initQuran } from './quran.js';
@@ -30,7 +30,7 @@ const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
   tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightLevel: 2, level: 0, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
-  adhkar: true, translit: true, arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
+  adhkar: true, translit: true, wxBack: true, arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -64,6 +64,8 @@ if (![0, 1, 2, 3].includes(settings.level)) settings.level = DEFAULTS.level;
 if (settings.units !== 'F' && settings.units !== 'C') settings.units = DEFAULTS.units;
 settings.muted = settings.muted === true;
 settings.adhkar = settings.adhkar !== false;
+settings.wxBack = settings.wxBack !== false;
+root.toggleAttribute('data-plain', !settings.wxBack);
 settings.translit = settings.translit !== false;
 if (!['s', 'm', 'l'].includes(settings.arSize)) settings.arSize = DEFAULTS.arSize;
 settings.awake = settings.awake === true;
@@ -175,6 +177,7 @@ function showHijri() {
 }
 
 let today = null, day = null, tomorrow = null, lastSec = null, weather = null;
+let alerts = []; // National Weather Service warnings in force here: [{ event, severity, until, sender }]
 
 function loadDay(c) {
   today = c;
@@ -235,13 +238,14 @@ function tick() {
   if (!today || c.d !== today.d) { const later = !!today; loadDay(c); if (later) sync(false, true); return; }
   const nowMin = c.sec / 60, rows = shownRows(), ev = nextEvent(rows, tomorrow.rows[0].adhan, nowMin, day.sunrise);
   $('now').textContent = fmt(Math.floor(nowMin));
-  const html = renderClock(settings.clock, { sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0] });
+  const at = wxAt(ev, rows);
+  const html = renderClock(settings.clock, { sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine() });
   $('clock').innerHTML = html;
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim) applyLook();
   if (displayOpen) {
-    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), card: dxCardFor(nowMin) });
+    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), card: dxCardFor(nowMin) });
     else {
       $('dx-clock').innerHTML = html;
       if (c.sec % 10 === 0) fitDisplay(); // re-fit after late font loads or a change in what the clock shows
@@ -745,9 +749,12 @@ let wxReq = 0;
 async function loadWeather() {
   const { lat, lng } = place(), n = ++wxReq;
   let w = null;
+  const warnReq = fetchAlerts(lat, lng); // official warnings, fetched alongside; [] outside the US or on any failure
   try { w = await fetchWeather(lat, lng, settings.units); } catch (e) {}
+  const a = await warnReq;
   if (n !== wxReq) return; // a newer request (new place or units) has started; this answer is stale
   weather = w;
+  alerts = a;
   renderWeather();
   tick();
 }
@@ -758,6 +765,20 @@ function prayerMarks() {
 }
 // Under the time in the times-only full screen: temperature, a line about the next two days, then one row of details.
 // One line of weather for the full screen sheet: now, today's high and low, and the chance of rain
+// The warning line at the top of the sheet: the most serious warning in force, when it ends, and how many more
+function warnLine() {
+  const [a, ...more] = alerts;
+  if (!a) return null;
+  return { event: a.event, until: untilText(a.until, new Date(), place().zone), more: more.length, sender: a.sender };
+}
+// The weather at the next prayer (or sunrise) for the countdown: { name, temp, words, pop } or null
+function wxAt(ev, rows) {
+  if (!weather || !weather.hours?.length) return null;
+  const w = prayerWeather(weather.hours, ev.at);
+  if (!w) return null;
+  const row = ev.at >= 1440 ? null : rows.find(r => r.key === ev.key);
+  return { ...w, name: ev.key === 'sunrise' ? 'sunrise' : row?.jumuah ? 'Jumu’ah' : NAMES[ev.key] };
+}
 function wxLine() {
   const w = weather;
   if (!w) return '';
@@ -854,11 +875,13 @@ $('dk-count').addEventListener('click', () => {
 $('dk-tr-toggle').addEventListener('click', () => { settings.translit = !settings.translit; $('set-translit').checked = settings.translit; save(); tick(); });
 $('dk-share').addEventListener('click', () => { const it = dkItem(); share(SETS[dk.key].title, [it.ar, it.tr, it.en, it.src].filter(Boolean).join('\n')); });
 $('set-adhkar').checked = settings.adhkar;
+$('set-wxback').checked = settings.wxBack;
 $('set-translit').checked = settings.translit;
 const AR_SIZES = ['s', 'm', 'l'], AR_NAMES = ['Small', 'Medium', 'Large'];
 $('set-arsize').value = AR_SIZES.indexOf(settings.arSize);
 $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[AR_SIZES.indexOf(settings.arSize)]);
 $('set-adhkar').addEventListener('change', () => { settings.adhkar = $('set-adhkar').checked; save(); tick(); });
+$('set-wxback').addEventListener('change', () => { settings.wxBack = $('set-wxback').checked; save(); root.toggleAttribute('data-plain', !settings.wxBack); });
 $('set-translit').addEventListener('change', () => { settings.translit = $('set-translit').checked; save(); tick(); });
 $('set-dxcard').value = settings.dxCard;
 $('set-dxcard').addEventListener('change', () => { settings.dxCard = $('set-dxcard').value; save(); tick(); });

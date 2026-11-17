@@ -22,7 +22,7 @@
 </head>
 <body>
     <div class="sky-tint" aria-hidden="true"></div>
-    <canvas id="sky" aria-hidden="true"></canvas>
+    <div class="sky-print" aria-hidden="true"></div>
 
     <div class="app iqama">
         <nav class="tabbar" aria-label="Sections">
@@ -256,6 +256,7 @@
                     <div class="iq-fields">
                         <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-adhkar"> Show duas and adhkar</label>
                         <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-translit"> Show transliteration</label>
+                        <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-wxback"> Weather background</label>
                     </div>
                     <div class="set-group">
                         <label class="iq-label" for="set-dxlayout">Full screen layout</label>
@@ -322,6 +323,7 @@
     <p class="toast" id="status" role="status"></p>
 
     <div class="display" id="display" hidden>
+        <div class="sky-tint" aria-hidden="true"></div><div class="sky-print" aria-hidden="true"></div>
         <div class="dx-top">
             <p class="dx-meta"><span id="dx-date"></span> <span id="dx-place"></span></p>
             <div class="dx-actions">
