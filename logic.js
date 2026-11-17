@@ -78,6 +78,9 @@ export function nextEvent(rows, tomorrowFajrAdhan, nowMin, sunrise) {
 
 // On a Friday with known khutbah times (minutes), the Dhuhr row becomes Jumu'ah: it carries the khutbahs and
 // counts down to the first one in place of the Dhuhr iqama. Any other day, or no khutbah times, leaves rows as they are.
+// May the page reload itself to update? Only when nothing is sounding, nobody has touched it for a minute, and no adhan or iqama is within 2 minutes.
+export const safeToReload = ({ audio, alert, idleMs, minToEvent }) => !audio && !alert && idleMs >= 60e3 && (minToEvent == null || minToEvent > 2);
+
 export function fridayRows(rows, weekday, khutbahs) {
   const k = (khutbahs || []).filter(v => v != null).sort((a, b) => a - b);
   if (weekday !== 'Fri' || !k.length) return rows;

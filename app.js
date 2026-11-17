@@ -1,6 +1,6 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, outlook, cardWindow, clock, esc, beepWav, alertLogText } from './logic.js';
+import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, outlook, cardWindow, clock, esc, beepWav, alertLogText } from './logic.js';
 import { setSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { fetchWeather, weatherHtml } from './weather.js';
@@ -936,8 +936,11 @@ function applyLayout() {
   $('display').dataset.layout = want;
   if (displayOpen) { tick(); requestAnimationFrame(fitDisplay); }
 }
+const DISPLAY_KEY = 'iqama-display'; // set while the full screen view is open, so a reload or restart puts it back
+const flagDisplay = (on) => { try { on ? localStorage.setItem(DISPLAY_KEY, '1') : localStorage.removeItem(DISPLAY_KEY); } catch (e) {} };
 async function openDisplay() {
   displayOpen = true;
+  flagDisplay(true);
   applyLayout();
   $('display').hidden = false;
   dkSig = '';
@@ -951,6 +954,7 @@ async function openDisplay() {
 function closeDisplay() {
   if (!displayOpen) return;
   displayOpen = false;
+  flagDisplay(false);
   $('display').hidden = true;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   updateLock();
@@ -971,8 +975,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 
 // Iqama times come from our own /api/iqama (which reads iscj.org live); the daily iqama.json is the fallback.
 // Returns true when ISCJ itself answered. fresh asks the server to skip its 5 minute cache.
-// ISCJ is read when the page opens, on a new day and on Sync now (and after a day away); the weather is refreshed every 15 minutes.
-const SYNC_EVERY = 15 * 60e3, IQAMA_EVERY = 24 * 3600e3;
+// The weather is refreshed every 15 minutes. ISCJ is read at start, on a new day, on Sync now, when the connection returns,
+// and about hourly (its times change only when ISCJ publishes, so this costs ISCJ almost nothing: the server keeps a copy for 5 minutes).
+const SYNC_EVERY = 15 * 60e3, IQAMA_EVERY = 55 * 60e3;
 let lastSync = 0, lastIqama = 0;
 async function loadIqama(fresh) {
   let j = null, live = false;
@@ -985,14 +990,14 @@ async function loadIqama(fresh) {
   masjid = { iqama: j.iqama, sunday: j.sunday && typeof j.sunday === 'object' ? j.sunday : {}, jumuah: Array.isArray(j.jumuah) ? j.jumuah : [], updated: /^\d{4}-\d{2}-\d{2}$/.test(j.updated) ? j.updated : '', checked: Number.isFinite(j.fetched) ? j.fetched : 0, stale: !!j.stale, failed: false };
   return live;
 }
-// Weather every time; iqama times only when asked: at start, on a new day (newDay), on Sync now (fresh), or when the last read is a day old.
+// Weather every time; iqama times when asked (fresh, newDay) or when the last good read is about an hour old, or none has succeeded yet.
 async function sync(fresh, newDay) {
   lastSync = Date.now();
-  const wantIqama = fresh || newDay || !lastIqama || lastSync - lastIqama > IQAMA_EVERY;
-  if (wantIqama) lastIqama = lastSync;
+  const wantIqama = fresh || newDay || lastSync - lastIqama > IQAMA_EVERY;
   // the Today tab's duas are entries of Hisn al-Muslim, read from the Adhkar tab's file; asked again until it has loaded once
   if (!SETS.adhan.items[0].ar) loadHisnText().then(fillSets).then(() => { dkSig = ''; tick(); }).catch((e) => console.warn('Iqama Times: adhkar text failed', e));
   const [live] = await Promise.all([wantIqama ? loadIqama(fresh) : null, loadWeather()]);
+  if (wantIqama && live) lastIqama = lastSync;
   if (today && wantIqama) loadDay(today);
   return wantIqama ? live : true;
 }
@@ -1009,6 +1014,46 @@ updateLock();
 setInterval(tick, 1000);
 sync();
 setInterval(sync, SYNC_EVERY);
+addEventListener('online', () => sync()); // the connection came back: bring everything up to date at once
+
+// Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server
+// whether any of its files changed since it loaded; if so, it reloads itself at a quiet moment: no sound playing, no alert,
+// nobody touching it for a minute, no adhan or iqama within 2 minutes. The full screen view is restored after the reload.
+const WATCHED = ['./', 'boot.js', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'motion.js'];
+let loadedVersion = '', updateWaiting = false, lastTouch = Date.now();
+for (const t of ['pointerdown', 'keydown', 'touchstart']) addEventListener(t, () => { lastTouch = Date.now(); }, { passive: true });
+// The server gives every file but the home page a version tag; the home page is fingerprinted from its text instead
+const fingerprint = (t) => { let h = 5381; for (let i = 0; i < t.length; i++) h = (h * 33 + t.charCodeAt(i)) | 0; return `${t.length}:${h}`; };
+async function siteVersion() {
+  try {
+    const sigs = await Promise.all(WATCHED.map(async (f) => {
+      if (f === './') { const r = await fetch(f, { cache: 'no-store' }); return r.ok ? fingerprint(await r.text()) : ''; }
+      const r = await fetch(f, { method: 'HEAD', cache: 'no-store' });
+      return r.ok ? r.headers.get('etag') || r.headers.get('last-modified') || '' : '';
+    }));
+    return sigs.every(Boolean) ? sigs.join('|') : ''; // empty: offline or the server gives no version, so no update is assumed
+  } catch (e) { return ''; }
+}
+async function checkUpdate() {
+  const v = await siteVersion();
+  if (!v) return;
+  if (!loadedVersion) loadedVersion = v;
+  else if (v !== loadedVersion) updateWaiting = true;
+}
+function updateIfQuiet() {
+  if (!updateWaiting || !today) return;
+  try { if (Date.now() - Number(sessionStorage.getItem('iqama-reloaded') || 0) < 3600e3) return; } catch (e) {} // never more than once an hour
+  const nowMin = clock(new Date(), place().zone).sec / 60;
+  const ev = nextEvent(shownRows(), tomorrow.rows[0].adhan, nowMin, day.sunrise);
+  if (!safeToReload({ audio: playing() || quran.isPlaying(), alert: !!pending || !!alertNow, idleMs: Date.now() - lastTouch, minToEvent: ev ? ev.at - nowMin : null })) return;
+  try { sessionStorage.setItem('iqama-reloaded', String(Date.now())); } catch (e) {}
+  location.reload();
+}
+checkUpdate();
+setInterval(checkUpdate, 30 * 60e3);
+addEventListener('online', checkUpdate);
+setInterval(updateIfQuiet, 30e3);
+try { if (localStorage.getItem(DISPLAY_KEY) === '1') openDisplay(); } catch (e) {} // after a reload or restart, the full screen view comes back
 $('sync').addEventListener('click', async () => {
   $('sync').disabled = true;
   say('Syncing iqama times, prayer times and weather…');

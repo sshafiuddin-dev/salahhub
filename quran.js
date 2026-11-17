@@ -593,6 +593,7 @@ export function initQuran({ say, stopOthers }) {
   paint(); paintTime();
 
   return {
+    isPlaying,
     // Another sound (an adhan, an alert, an adhkar recording) is about to play: step aside, and remember to come back
     interrupt() { if (isPlaying()) { interrupted = true; audio.pause(); } },
     resume() { if (interrupted) { interrupted = false; if (audio.getAttribute('src')) audio.play().catch(() => {}); } },

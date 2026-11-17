@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { parse, fromSchedule, read } from '../functions/_lib/parse.js';
 import { handle } from '../functions/api/iqama.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, esc, beepWav, alertLogText } from '../logic.js';
+import { safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, esc, beepWav, alertLogText } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -27,6 +27,13 @@ assert.throws(() => fromSchedule(script.replace('"6:00 AM"', '"9:00 AM"'), '2026
   assert.equal((await read(get, Date.parse('2026-11-16T03:00:00Z'))).iqama.fajr, '05:45', 'still the 15th in New York');
   assert.equal((await read(async (u) => (u.endsWith('.js') ? new Response('', { status: 404 }) : new Response(html)), 1e12)).iqama.fajr, '05:45', 'script unreachable: the HTML');
 }
+// Self-update only at a quiet moment
+assert.equal(safeToReload({ audio: false, alert: false, idleMs: 90e3, minToEvent: 40 }), true);
+assert.equal(safeToReload({ audio: true, alert: false, idleMs: 90e3, minToEvent: 40 }), false, 'sound playing');
+assert.equal(safeToReload({ audio: false, alert: true, idleMs: 90e3, minToEvent: 40 }), false, 'alert showing');
+assert.equal(safeToReload({ audio: false, alert: false, idleMs: 20e3, minToEvent: 40 }), false, 'someone just touched it');
+assert.equal(safeToReload({ audio: false, alert: false, idleMs: 90e3, minToEvent: 1.5 }), false, 'adhan or iqama about to start');
+assert.equal(safeToReload({ audio: false, alert: false, idleMs: 90e3, minToEvent: null }), true, 'no event ahead');
 // Live function: 5 minute cache, Sync now at most once a minute, last good copy when iscj.org fails
 {
   const store = new Map(), cache = { match: async (r) => (store.has(r.url) ? new Response(store.get(r.url)) : undefined), put: async (r, res) => { store.set(r.url, await res.text()); } };
