@@ -18,7 +18,7 @@ export const USER_AGENT = 'Mozilla/5.0 (iqama-times; +https://salahhub.pages.dev
 // So we read the schedule list from the page's own script, the way the browser does, and fall back to the HTML only if it is gone.
 // The script holds: periods:[{from:"2026-11-16",iqamah:{Fajr:"6:00 AM",...}}, ...],jumuah:["12:00 PM","1:10 PM"]
 const KEYS = { Fajr: 'fajr', Dhuhr: 'dhuhr', Asr: 'asr', Maghrib: 'maghrib', Isha: 'isha' };
-const newYorkDay = (ms) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(ms));
+export const newYorkDay = (ms) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(ms));
 function clock24(text) {
   const m = /^\s*(\d{1,2}):(\d{2})\s*([AP])M\s*$/i.exec(text);
   if (!m || +m[1] > 12 || +m[2] > 59) return null;

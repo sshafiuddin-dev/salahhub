@@ -232,7 +232,7 @@ function tick() {
   // over 100 s since the last tick (alerts skip anything over 90 s late): the page was asleep, frozen or discarded
   if (tickedAt && nowMs - tickedAt > 100e3) logAlert({ gaps: [{ from: stamp(tickedAt), to: stamp(nowMs) }, ...alertLog.gaps].slice(0, 3) });
   tickedAt = nowMs;
-  if (!today || c.d !== today.d) { const later = !!today; loadDay(c); if (later) sync(); return; }
+  if (!today || c.d !== today.d) { const later = !!today; loadDay(c); if (later) sync(false, true); return; }
   const nowMin = c.sec / 60, rows = shownRows(), ev = nextEvent(rows, tomorrow.rows[0].adhan, nowMin, day.sunrise);
   $('now').textContent = fmt(Math.floor(nowMin));
   const html = renderClock(settings.clock, { sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full });
@@ -971,8 +971,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 
 // Iqama times come from our own /api/iqama (which reads iscj.org live); the daily iqama.json is the fallback.
 // Returns true when ISCJ itself answered. fresh asks the server to skip its 5 minute cache.
-const SYNC_EVERY = 15 * 60e3;
-let lastSync = 0;
+// ISCJ is read when the page opens, on a new day and on Sync now (and after a day away); the weather is refreshed every 15 minutes.
+const SYNC_EVERY = 15 * 60e3, IQAMA_EVERY = 24 * 3600e3;
+let lastSync = 0, lastIqama = 0;
 async function loadIqama(fresh) {
   let j = null, live = false;
   try { const r = await fetch(`/api/iqama${fresh ? '?fresh=1' : ''}`); if (r.ok) { j = await r.json(); live = !j.stale; } } catch (e) { /* fall back below */ }
@@ -984,14 +985,16 @@ async function loadIqama(fresh) {
   masjid = { iqama: j.iqama, sunday: j.sunday && typeof j.sunday === 'object' ? j.sunday : {}, jumuah: Array.isArray(j.jumuah) ? j.jumuah : [], updated: /^\d{4}-\d{2}-\d{2}$/.test(j.updated) ? j.updated : '', checked: Number.isFinite(j.fetched) ? j.fetched : 0, stale: !!j.stale, failed: false };
   return live;
 }
-// Iqama times, prayer times and weather in one go: at start, every 15 minutes, on a new day, on waking, and on Sync now.
-async function sync(fresh) {
+// Weather every time; iqama times only when asked: at start, on a new day (newDay), on Sync now (fresh), or when the last read is a day old.
+async function sync(fresh, newDay) {
   lastSync = Date.now();
+  const wantIqama = fresh || newDay || !lastIqama || lastSync - lastIqama > IQAMA_EVERY;
+  if (wantIqama) lastIqama = lastSync;
   // the Today tab's duas are entries of Hisn al-Muslim, read from the Adhkar tab's file; asked again until it has loaded once
   if (!SETS.adhan.items[0].ar) loadHisnText().then(fillSets).then(() => { dkSig = ''; tick(); }).catch((e) => console.warn('Iqama Times: adhkar text failed', e));
-  const [live] = await Promise.all([loadIqama(fresh), loadWeather()]);
-  if (today) loadDay(today);
-  return live;
+  const [live] = await Promise.all([wantIqama ? loadIqama(fresh) : null, loadWeather()]);
+  if (today && wantIqama) loadDay(today);
+  return wantIqama ? live : true;
 }
 
 // Start with calculated times at once, then fill in ISCJ's iqama times and the weather when they arrive
