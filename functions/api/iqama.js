@@ -1,6 +1,6 @@
 // Live iqama times: GET /api/iqama reads iscj.org, keeps the answer 5 minutes at Cloudflare's edge and a last good copy for a day,
 // so a slow or blocked iscj.org never leaves the app empty. ?fresh=1 (the Sync now button) skips the 5 minutes, at most once a minute.
-import { parse, SOURCE, USER_AGENT } from '../_lib/parse.js';
+import { read, SOURCE } from '../_lib/parse.js';
 
 const FRESH_MS = 5 * 60e3, MIN_GAP_MS = 60e3, KEEP_S = 86400;
 const json = (body, status, extra = {}) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', ...extra } });
@@ -14,9 +14,7 @@ export async function handle(url, cache, get, now = Date.now()) {
   const wantFresh = new URL(url).searchParams.has('fresh');
   if (saved && (wantFresh ? age < MIN_GAP_MS : age < FRESH_MS)) return json(saved, 200, { 'cache-control': 'public, max-age=60' });
   try {
-    const res = await get(SOURCE, { headers: { 'user-agent': USER_AGENT }, signal: AbortSignal.timeout(6000) });
-    if (!res.ok) throw new Error(`iscj.org answered ${res.status}`);
-    const fresh = { source: SOURCE, fetched: now, ...parse(await res.text()) };
+    const fresh = { source: SOURCE, fetched: now, ...await read(get, now) };
     await cache.put(key, new Response(JSON.stringify(fresh), { headers: { 'cache-control': `max-age=${KEEP_S}` } }));
     return json(fresh, 200, { 'cache-control': 'public, max-age=60' });
   } catch (e) {

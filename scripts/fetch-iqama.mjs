@@ -2,15 +2,13 @@
 // Exits non-zero (leaving the file untouched) if the page no longer looks as expected, so a bad scrape never ships.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { parse, SOURCE, USER_AGENT } from '../functions/_lib/parse.js';
+import { read, SOURCE } from '../functions/_lib/parse.js';
 
 const FILE = fileURLToPath(new URL('../iqama.json', import.meta.url));
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const res = await fetch(SOURCE, { headers: { 'user-agent': USER_AGENT } });
-  if (!res.ok) throw new Error(`${SOURCE} answered ${res.status}`);
-  const fresh = parse(await res.text());
+  const fresh = await read(fetch);
   const old = JSON.parse(readFileSync(FILE, 'utf8'));
-  if (JSON.stringify(fresh) === JSON.stringify({ iqama: old.iqama, jumuah: old.jumuah })) {
+  if (JSON.stringify(fresh) === JSON.stringify({ iqama: old.iqama, jumuah: old.jumuah, sunday: old.sunday })) {
     console.log('Iqama times unchanged.');
   } else {
     const updated = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());

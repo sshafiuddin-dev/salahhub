@@ -1,6 +1,6 @@
 // Run with: node scripts/selfcheck.mjs
 import assert from 'node:assert/strict';
-import { parse } from '../functions/_lib/parse.js';
+import { parse, fromSchedule, read } from '../functions/_lib/parse.js';
 import { handle } from '../functions/api/iqama.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
 import { PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, esc, beepWav, alertLogText } from '../logic.js';
@@ -11,6 +11,22 @@ const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span>
   <div>Maghrib 7:58 PM Iqama <em>On Time</em></div><div>Isha 9:24 PM Iqama 8:00</div>
   <h3>Jumu'ah Khutbahs</h3><p>12:00 PM</p><p>1:10 PM</p>`;
 assert.deepEqual(parse(page), { iqama: { fajr: '05:45', dhuhr: '12:30', asr: '14:45', maghrib: '+0', isha: '20:00' }, jumuah: ['12:00', '13:10'] });
+// iscj.org's own dated schedule (copied from its page script): the HTML shows the old one until ISCJ rebuilds, the script switches by date
+const script = 'let n={periods:[{from:"2026-11-01",iqamah:{Fajr:"5:45 AM",Dhuhr:"12:30 PM",Asr:"2:45 PM",Maghrib:"On Time",Isha:"8:00 PM"},sunday:{Dhuhr:"1:10 PM"}},{from:"2026-11-16",iqamah:{Fajr:"6:00 AM",Dhuhr:"12:30 PM",Asr:"2:45 PM",Maghrib:"On Time",Isha:"8:00 PM"},sunday:{Dhuhr:"1:10 PM"}}],jumuah:["12:00 PM","1:10 PM"]},s="x"';
+assert.equal(fromSchedule(script, '2026-11-15').iqama.fajr, '05:45', 'the day before the change');
+assert.deepEqual(fromSchedule(script, '2026-11-16'), { iqama: { fajr: '06:00', dhuhr: '12:30', asr: '14:45', maghrib: '+0', isha: '20:00' }, jumuah: ['12:00', '13:10'], sunday: { dhuhr: '13:10' } }, 'the day of the change, with its Sunday Dhuhr');
+assert.deepEqual(fromSchedule(script.replaceAll('sunday:{Dhuhr:"1:10 PM"}', 'x:1'), '2026-11-16').sunday, undefined, 'no Sunday times: none returned');
+assert.throws(() => fromSchedule(script.replaceAll('sunday:{Dhuhr:"1:10 PM"}', 'sunday:{Dhuhr:"3:10 AM"}'), '2026-11-16'), /Implausible dhuhr/);
+assert.equal(fromSchedule('no schedule here', '2026-11-16'), null);
+assert.throws(() => fromSchedule(script, '2026-10-01'), /No ISCJ schedule/);
+assert.throws(() => fromSchedule(script.replace('"6:00 AM"', '"9:00 AM"'), '2026-11-16'), /Implausible fajr/);
+{ // the page's HTML still says 5:45, its script says 6:00: the script wins
+  const html = page + '<script src="/_next/static/chunks/app/page-abc.js"></script><script src="/_next/static/chunks/other.js"></script>';
+  const get = async (u) => new Response(u.endsWith('page-abc.js') ? script : u.endsWith('other.js') ? 'nothing' : html);
+  assert.equal((await read(get, Date.parse('2026-11-16T15:00:00Z'))).iqama.fajr, '06:00');
+  assert.equal((await read(get, Date.parse('2026-11-16T03:00:00Z'))).iqama.fajr, '05:45', 'still the 15th in New York');
+  assert.equal((await read(async (u) => (u.endsWith('.js') ? new Response('', { status: 404 }) : new Response(html)), 1e12)).iqama.fajr, '05:45', 'script unreachable: the HTML');
+}
 // Live function: 5 minute cache, Sync now at most once a minute, last good copy when iscj.org fails
 {
   const store = new Map(), cache = { match: async (r) => (store.has(r.url) ? new Response(store.get(r.url)) : undefined), put: async (r, res) => { store.set(r.url, await res.text()); } };

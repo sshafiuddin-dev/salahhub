@@ -111,7 +111,7 @@ function applyLook() {
 let nowMinute = 0;
 applyLook();
 
-let masjid = { iqama: {}, jumuah: [], updated: '', checked: 0, stale: false, failed: false };
+let masjid = { iqama: {}, sunday: {}, jumuah: [], updated: '', checked: 0, stale: false, failed: false };
 const place = () => settings.place || ISCJ;
 const near = () => km(place(), ISCJ) <= NEAR_KM;
 // Messages show as a toast above the tab bar and fade after a few seconds
@@ -150,11 +150,12 @@ function dayTimes(y, m, d) {
   // shortcut: one UTC offset per day (taken at midday), so times before 2 AM on a clock-change day are an hour off
   const t = pt.getTimes([y, m, d], [lat, lng], clock(new Date(Date.UTC(y, m - 1, d, 17)), zone).offset, 0, 'Float');
   const min = (k) => Math.round(t[k] * 60) + (settings.tune[k] || 0); // the visitor's own adjustment, Settings, Location
+  const sunday = new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 0; // ISCJ's Sunday times (Dhuhr is later) replace its weekday ones
   return {
     sunrise: min('sunrise'),
     rows: PRAYERS.map(key => {
       const adhan = min(key), own = settings.iqama[key] != null;
-      return { key, adhan, own, iqama: iqamaAt(own ? settings.iqama[key] : useMasjid ? masjid.iqama[key] : null, adhan) };
+      return { key, adhan, own, iqama: iqamaAt(own ? settings.iqama[key] : useMasjid ? (sunday && masjid.sunday[key]) || masjid.iqama[key] : null, adhan) };
     }),
   };
 }
@@ -980,7 +981,7 @@ async function loadIqama(fresh) {
     try { const r = await fetch('iqama.json', { cache: 'no-cache' }); if (r.ok) j = await r.json(); } catch (e) { j = null; }
   }
   if (!j || !j.iqama || typeof j.iqama !== 'object') { masjid.failed = !Object.keys(masjid.iqama).length; return false; }
-  masjid = { iqama: j.iqama, jumuah: Array.isArray(j.jumuah) ? j.jumuah : [], updated: /^\d{4}-\d{2}-\d{2}$/.test(j.updated) ? j.updated : '', checked: Number.isFinite(j.fetched) ? j.fetched : 0, stale: !!j.stale, failed: false };
+  masjid = { iqama: j.iqama, sunday: j.sunday && typeof j.sunday === 'object' ? j.sunday : {}, jumuah: Array.isArray(j.jumuah) ? j.jumuah : [], updated: /^\d{4}-\d{2}-\d{2}$/.test(j.updated) ? j.updated : '', checked: Number.isFinite(j.fetched) ? j.fetched : 0, stale: !!j.stale, failed: false };
   return live;
 }
 // Iqama times, prayer times and weather in one go: at start, every 15 minutes, on a new day, on waking, and on Sync now.
