@@ -206,30 +206,7 @@ body { overflow: hidden; }
 .ck-mark-ink { fill: var(--ink); }
 .ck-sunball { fill: #E3A21A; stroke: var(--paper); stroke-width: 3; }
 .ck-moon { fill: var(--muted); stroke: var(--paper); stroke-width: 3; }
-
-.ck-board { --b-muted: color-mix(in srgb, var(--board-fg) 78%, var(--board-bg)); display: grid; gap: 1.25rem; padding: clamp(1.25rem, 4vw, 2rem); border-radius: 10px; background: var(--board-bg); color: var(--board-fg); }
-.ck-board-time { display: flex; align-items: center; justify-content: center; gap: .4rem; font-variant-numeric: tabular-nums; }
-.ck-board-hm { font: 800 clamp(4rem, 15vw, 6.5rem)/.9 var(--display); font-stretch: 80%; letter-spacing: -.02em; }
-.ck-board-side { display: grid; gap: .3rem; font: 600 1.25rem/1 var(--display); color: var(--b-muted); }
-.ck-board-date { margin-top: -.6rem; text-align: center; color: var(--b-muted); }
-.ck-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; margin: 0; padding: 0; list-style: none; }
-.ck-tiles li { display: grid; justify-items: center; gap: .35rem; padding: .9rem .25rem; border-radius: 6px; background: color-mix(in srgb, var(--board-fg) 8%, var(--board-bg)); text-align: center; }
-.ck-tiles span { font-size: .85rem; font-weight: 500; }
-.ck-tiles strong { font: 700 clamp(1.05rem, 3.4vw, 1.3rem)/1 var(--display); font-variant-numeric: tabular-nums; }
-.ck-tiles small { font-size: .72rem; color: var(--b-muted); }
-.ck-tiles em { font: 600 clamp(.9rem, 2.8vw, 1rem)/1 var(--display); font-style: normal; font-variant-numeric: tabular-nums; }
-.ck-tiles li.is-next { background: var(--board-fg); color: var(--board-bg); }
-.ck-tiles li.is-next small { color: inherit; }
 /* Friday: the Dhuhr tile shows Jumu'ah and its khutbah times, ringed in the accent colour */
-.ck-tiles li.is-jumuah { box-shadow: inset 0 0 0 2px var(--clear); }
-.ck-tiles li.is-jumuah > span { color: var(--clear); font-weight: 700; }
-.ck-tiles li.is-jumuah.is-next > span { color: inherit; }
-.ck-tiles li.is-jumuah em { line-height: 1.15; }
-.ck-board-next { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; color: var(--b-muted); }
-.ck-board-next strong { color: var(--board-fg); font: 700 1.8rem/1 var(--display); font-variant-numeric: tabular-nums; }
-.ck-bar { height: 8px; margin-top: -.6rem; border-radius: 4px; background: color-mix(in srgb, var(--board-fg) 20%, var(--board-bg)); overflow: hidden; }
-.ck-bar span { display: block; height: 100%; border-radius: 4px; background: var(--board-fg); }
-.ck-board-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem 1rem; padding-top: .9rem; border-top: 1px solid color-mix(in srgb, var(--board-fg) 20%, var(--board-bg)); font-size: .9rem; color: var(--b-muted); }
 
 .ck-timeline { display: grid; gap: 1.25rem; }
 .ck-tl-head { display: grid; gap: .35rem; }
@@ -261,6 +238,57 @@ body { overflow: hidden; }
 .ck-bed-dots span { width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; border: 2px solid #6B5836; }
 .ck-bed-dots li.is-done span { background: #8C7A5B; border-color: #8C7A5B; }
 .ck-bed-dots li.is-next span { border-color: #E8A33D; }
+
+/* Masjid board: the day as one printed sheet (clocks.js board). Sized from its container, so it fills the Today tab on a
+   tablet and the full screen display alike; on a phone, or with no container, the units fall back to the screen. */
+.sh { --u: min(1cqh, .62cqw); display: grid; grid-template-rows: minmax(0, 1fr) auto auto auto; min-height: 0; height: 100%; font-variant-numeric: lining-nums tabular-nums; }
+.sh p { margin: 0; }
+.sh-mid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: center; gap: calc(var(--u) * 3); min-height: 0; padding-block: calc(var(--u) * 1.5); }
+.sh-time { display: flex; align-items: flex-start; gap: calc(var(--u) * 1.2); line-height: 1; }
+.sh-hm { font: 400 calc(var(--u) * 33)/1 var(--display); letter-spacing: -.045em; margin-block: -.08em -.12em; }
+.sh-side { display: grid; gap: calc(var(--u) * .6); padding-top: calc(var(--u) * 4.5); font: 500 max(1rem, calc(var(--u) * 4))/1 var(--display); color: var(--muted); }
+.sh-next { border-left: var(--rule-w, 1px) solid var(--ink); padding-left: calc(var(--u) * 3.5); display: grid; gap: calc(var(--u) * 1.2); min-width: 0; }
+.sh-l { font: 600 max(.75rem, calc(var(--u) * 2.1))/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--clear); }
+.sh-n { font: 500 calc(var(--u) * 11.5)/1 var(--display); letter-spacing: -.02em; }
+.sh-n i { font-size: .48em; font-weight: 400; color: var(--muted); margin-left: .04em; }
+.sh-at { font: italic 400 max(1rem, calc(var(--u) * 3.2))/1.3 var(--display); color: var(--muted); }
+.sh-at b { font-style: normal; font-weight: 600; color: var(--ink); }
+.sh-bar { height: 2px; background: var(--line); margin-top: calc(var(--u) * .8); }
+.sh-bar span { display: block; height: 100%; background: var(--ink); }
+.sh .sh-tt { width: 100%; border-collapse: collapse; table-layout: fixed; border-top: var(--rule-w, 1px) solid var(--ink); border-bottom: 3px double var(--ink); }
+.sh .sh-tt th, .sh .sh-tt td { padding: 0; text-align: center; border: 0; background: none; white-space: normal; }
+.sh .sh-tt thead th { padding-top: calc(var(--u) * 1.1); font: 600 max(.7rem, calc(var(--u) * 1.85))/1.2 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); vertical-align: bottom; }
+.sh .sh-tt tr > :first-child { width: 12%; text-align: left; }
+.sh .sh-tt tbody th { font: 600 max(.7rem, calc(var(--u) * 1.85))/1 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.sh-ar { display: block; font: 400 max(1rem, calc(var(--u) * 3))/1.3 var(--ar, "Amiri"), serif; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.sh .sh-tt td { font: 400 calc(var(--u) * 4.8)/1 var(--display); padding-block: calc(var(--u) * .6) calc(var(--u) * 1.1); }
+.sh .sh-tt .sh-iq > * { border-top: var(--rule-w, 1px) solid var(--line); }
+.sh .sh-tt .sh-iq td { font-weight: 600; font-size: calc(var(--u) * 6); padding-block: calc(var(--u) * 1) calc(var(--u) * 1.3); }
+.sh .sh-tt td em { font: italic 500 calc(var(--u) * 3.2)/1 var(--display); color: var(--muted); }
+.sh .sh-tt .sh-iq td:has(br) { font-size: calc(var(--u) * 3.6); line-height: 1.1; }
+.sh .sh-tt .is-next, .sh .sh-tt .is-next .sh-ar { color: var(--clear); }
+.sh-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.sh-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem 1.5rem; padding-top: calc(var(--u) * 1.3); font: italic 400 max(.95rem, calc(var(--u) * 2.5))/1.3 var(--display); color: var(--muted); }
+.sh-wx { font-style: normal; }
+/* a dua takes the timetable's place for a while (Settings › Display › card) */
+.sh-dua { display: grid; align-content: center; gap: calc(var(--u) * 1.2); min-height: 0; overflow: hidden; border-top: var(--rule-w, 1px) solid var(--ink); border-bottom: 3px double var(--ink); padding-block: calc(var(--u) * 1.4); cursor: pointer; }
+.sh-dua-h { display: flex; justify-content: space-between; gap: 1rem; font: 600 max(.7rem, calc(var(--u) * 1.85))/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.sh-dua-ar { font: 400 calc(var(--u) * 4.4)/1.55 var(--ar, "Amiri"), serif; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sh-dua-en { font: 400 max(.95rem, calc(var(--u) * 2.6))/1.4 var(--display); color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sh-has-dua .sh-hm { font-size: calc(var(--u) * 24); }
+.sh-has-dua .sh-n { font-size: calc(var(--u) * 8.5); }
+@media (max-width: 48rem) and (orientation: portrait) {
+  .sh { --u: min(.8svh, 1.25svw); height: auto; }
+  .sh-mid { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .sh-hm { font-size: calc(var(--u) * 26); }
+  .sh-side { padding-top: calc(var(--u) * 3.5); }
+  .sh-next { border-left: 0; border-top: 1px solid var(--ink); padding: calc(var(--u) * 2) 0 0; justify-self: stretch; }
+  .sh .sh-tt td { font-size: calc(var(--u) * 4.2); }
+  .sh .sh-tt .sh-iq td { font-size: calc(var(--u) * 4.6); }
+  .sh .sh-tt td em { font-size: calc(var(--u) * 2.8); }
+  .sh .sh-tt tr > :first-child { width: 3rem; }
+  .sh .sh-tt thead th, .sh .sh-tt tbody th { letter-spacing: .04em; }
+}
 
 /* Tables */
 .iqama table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
@@ -452,54 +480,85 @@ body { overflow: hidden; }
   .dk-count { --size: 4.5rem; }
 }
 
+/* Tablets and wider: no side rail. The tabs and the screen's actions share one line of text along the bottom, like the
+   running footer of a printed page; Today becomes one sheet that fills the screen (the board style), with the dua of the
+   day, the table and sharing below it for anyone who scrolls. */
+@media (min-width: 48.01rem) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .view { grid-row: 1; grid-column: 1; }
+  .app > .tabbar {
+    grid-row: 2; grid-column: 1; flex-direction: row; align-items: stretch; gap: 0; min-height: 2.9rem; overflow: visible;
+    padding: 0 max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-left, 0px));
+    background: var(--paper); border-right: 0; border-top: 1px solid var(--ink);
+  }
+  .brand { display: none; }
+  .app .tabbar .d-menu { flex-direction: row; flex-wrap: nowrap; width: auto; gap: 0 clamp(.8rem, 1.8vw, 1.6rem); }
+  .app .tabbar .d-menu li { display: flex; }
+  .app .tabbar .d-menu a, .app .tb-btn, .app .tb-btn.d-btn {
+    display: flex; align-items: center; height: 2.9rem; min-height: 0; padding: 0; gap: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+    font: 500 .78rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  }
+  .app .tabbar .d-menu a:hover, .app .tb-btn:hover { background: none; color: var(--ink); }
+  .app .tabbar .d-menu a.d-menu-active, .app .tabbar .d-menu a.d-menu-active:hover { background: none; color: var(--ink); box-shadow: inset 0 3px 0 var(--clear); }
+  .app .tabbar .d-menu a svg, .app .tb-btn svg { display: none; }
+  .topbar-actions {
+    position: fixed; z-index: 20; right: max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-right, 0px)); bottom: env(safe-area-inset-bottom, 0px);
+    height: 2.9rem; align-items: center; flex-wrap: nowrap; gap: clamp(.8rem, 1.8vw, 1.6rem);
+  }
+  .app #fullscreen { color: var(--ink); text-decoration: underline 1.5px; text-underline-offset: .35em; }
+  .app #awake[aria-pressed="true"] { color: var(--ink); }
+  .topbar { padding-top: max(1rem, env(safe-area-inset-top, 0px)); padding-bottom: .75rem; }
+
+  /* Today: one line of date, place and weather, closed by a double rule, then the sheet */
+  :root[data-tab="today"] .topbar { margin-inline: max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-left, 0px)); padding-inline: 0; padding-bottom: .55rem; border-bottom: 3px double var(--ink); margin-bottom: 0; }
+  :root[data-tab="today"] .topbar h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  :root[data-tab="today"] .topbar-title { display: block; flex: 1; }
+  :root[data-tab="today"] .topbar-meta { flex-wrap: nowrap; gap: .2rem .55rem; font: italic 400 1.15rem/1.3 var(--display); color: var(--ink); }
+  :root[data-tab="today"] .topbar-meta > * { white-space: nowrap; }
+  :root[data-tab="today"] .iq-date { font: normal 600 1.15rem/1.3 var(--display); color: var(--ink); }
+  :root[data-tab="today"] .iq-place { color: var(--ink); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  :root[data-tab="today"] .iq-time { display: none; }
+  :root[data-tab="today"] .iq-weather { margin-left: auto; font: inherit; color: var(--ink); text-decoration: none; }
+  :root[data-tab="today"][data-clock="board"] #tab-today { container-type: size; gap: 0; padding-top: 0; padding-bottom: 1.5rem; }
+  :root[data-clock="board"] #tab-today .today-grid { display: block; }
+  :root[data-clock="board"] #tab-today #clock { height: 100cqh; max-width: none; }
+  :root[data-clock="board"] #tab-today:has(#ask:not([hidden])) #clock { height: calc(100cqh - 3.4rem); }
+  :root[data-clock="board"] #tab-today .today-grid > :not(#clock) { margin-top: 2rem; }
+  /* the first-run location question shrinks to one line above the sheet */
+  #ask.iq-ask { display: flex; align-items: center; gap: .5rem 1rem; min-height: 3.4rem; padding: .4rem 0; background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+  #ask.iq-ask p { margin: 0; flex: 1; min-width: 0; font-size: .95rem; }
+  #ask.iq-ask .iq-fields { margin: 0; flex: none; display: flex; gap: .5rem; }
+  /* Full screen on a large screen: the board fills the space above the dua */
+  :root[data-clock="board"] .display[data-layout="full"] .dx-main { container-type: size; place-items: stretch; }
+  :root[data-clock="board"] .dx-clock, :root[data-clock="board"] #dx-clock { width: 100%; height: 100%; }
+}
+/* Phones: the bottom tabs become words */
+@media (max-width: 48rem) {
+  .dockbar svg { display: none; }
+  .dockbar .d-dock-label { font-size: .8rem; font-weight: 600; letter-spacing: .02em; }
+}
+
+/* Full screen: the same top line as Today (date and place over a double rule), the controls as plain words */
+.display .dx-top { flex-wrap: nowrap; padding-bottom: .55rem; border-bottom: 3px double var(--ink); }
+.display .dx-meta { flex-wrap: nowrap; gap: .2rem .9rem; font: italic 400 1.15rem/1.3 var(--display); color: var(--ink); min-width: 0; }
+.display .dx-actions { gap: 1.4rem; flex: none; }
+.display .dx-actions .d-btn:not(.dx-stop), .display .dx-awake {
+  height: auto; min-height: 2.75rem; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+  font: 500 .78rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.display .dx-actions .d-btn svg { display: none; }
+.display .dx-actions .d-btn:not(.dx-stop):hover { background: none; color: var(--ink); }
+.display #dx-exit { color: var(--ink); text-decoration: underline 1.5px; text-underline-offset: .35em; }
+.display .dx-dot { width: .45rem; height: .45rem; }
+
 /* Full screen, times only (small screens): time, weather, current prayer, iqama and the countdown */
 .dx-small { display: none; }
 .display[data-layout="times"] { grid-template-rows: auto minmax(0, 1fr); }
 .display[data-layout="times"] .dx-main, .display[data-layout="times"] .dx-dhikr { display: none; }
 .display[data-layout="times"] .dx-small { display: block; container-type: size; min-height: 0; }
 .display[data-layout="times"] .dx-meta { font-size: max(1rem, 1.3vw); }
-.tm { --u: min(1cqw, 2cqh); height: 100cqh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: center; gap: calc(var(--u) * 3); }
-.tm p { margin: 0; }
-.tm-time { display: flex; align-items: baseline; gap: calc(var(--u) * 1); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-.tm-hm { font-size: calc(var(--u) * 17); letter-spacing: -.02em; }
-.tm-side { display: grid; font-size: max(1.25rem, calc(var(--u) * 4.5)); color: var(--muted); font-weight: 600; }
-.tm-right { display: grid; gap: calc(var(--u) * 2.5); min-width: 0; }
-.tm-card { background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; padding: calc(var(--u) * 2) calc(var(--u) * 2.5); display: grid; gap: calc(var(--u) * .8); }
-.tm-label { color: var(--muted); font-size: max(1rem, calc(var(--u) * 2.6)); }
-.tm-name { font-size: max(1.75rem, calc(var(--u) * 6)); font-weight: 700; line-height: 1.1; }
-.tm-pt { display: flex; gap: calc(var(--u) * 4); font-size: max(1.25rem, calc(var(--u) * 4)); }
-.tm-pt > span { display: grid; }
-.tm-k { color: var(--muted); font-size: max(1rem, calc(var(--u) * 2.4)); }
-.tm-hl { color: var(--clear); }
-.tm-cnt { font-size: max(2.25rem, calc(var(--u) * 9)); font-weight: 700; line-height: 1.05; color: var(--clear); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tm-sub { color: var(--muted); font-size: max(1rem, calc(var(--u) * 2.6)); }
-.tm-bar { height: calc(var(--u) * 1.2); min-height: .5rem; background: var(--line); border-radius: 99px; overflow: hidden; }
-.tm-bar span { display: block; height: 100%; background: var(--clear); border-radius: inherit; }
-@media (orientation: portrait) {
-  .tm { --u: min(1cqw, .65cqh); grid-template-columns: minmax(0, 1fr); align-content: center; justify-items: stretch; gap: calc(var(--u) * 3); }
-  .tm-time { justify-content: center; }
-  .tm-hm { font-size: calc(var(--u) * 24); }
-}
 
 /* Full screen night mode: dim amber on black, whatever look is chosen for the day */
-.tm-left { display: grid; gap: calc(var(--u) * 3); min-width: 0; }
-.tm-wx { display: grid; gap: calc(var(--u) * 1.5); }
-.tm-temp { display: flex; align-items: baseline; gap: calc(var(--u) * 1.5); font-size: max(2rem, calc(var(--u) * 6)); font-weight: 700; line-height: 1; }
-.tm-temp span { font-size: max(1.25rem, calc(var(--u) * 3)); font-weight: 500; color: var(--muted); }
-.tm-out { font-size: max(1.125rem, calc(var(--u) * 2.4)); font-weight: 500; line-height: 1.3; }
-.tm-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: calc(var(--u) * 1.2) calc(var(--u) * 1.2); }
-.tm-st { display: grid; font-size: max(1.125rem, calc(var(--u) * 1.8)); white-space: nowrap; }
-.tm-st .tm-k { font-size: max(1rem, calc(var(--u) * 1.5)); }
-@container (max-width: 520px) { .tm-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.tm-lh { display: flex; justify-content: space-between; gap: 1rem; }
-.tm-ar { font: 400 max(1.25rem, calc(var(--u) * 2.3)) / 1.7 "Amiri", "Noto Naskh Arabic", serif; text-align: right; }
-.tm-en { font-size: max(1rem, calc(var(--u) * 1.7)); line-height: 1.35; color: var(--muted); }
-.tm-src { font-size: max(1rem, calc(var(--u) * 1.5)); color: var(--muted); }
-.tm-card[data-dua] { cursor: pointer; }
-.tm-rest { list-style: none; margin: 0; padding: 0; display: grid; gap: calc(var(--u) * .3); font-size: max(1.125rem, calc(var(--u) * 2.3)); font-variant-numeric: tabular-nums; }
-.tm-rest li { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: .5rem; }
-.tm-name.tm-jum, .tm-rest li.tm-jum > span:first-child { color: var(--clear); }
-.tm-rh { color: var(--muted); font-size: max(1rem, calc(var(--u) * 2)); }
 
 /* Countdown in its last 15 minutes: bright for the first half of each second, dim for the second half */
 @keyframes ck-blink { 0% { opacity: 1; } 50% { opacity: .25; } }
@@ -515,19 +574,9 @@ body { overflow: hidden; }
 .wx-dc { color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wx-dt { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .wx-days .wx-p { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
-@media (orientation: portrait) { .tm-left { gap: calc(var(--u) * 2); } .tm { gap: calc(var(--u) * 2.5); } }
-@container (max-height: 620px) and (max-width: 520px) { .tm-out, .tm-src { display: none; } }
 /* Very small phones (about 360 x 640): a little less room for the time, no bar, tighter edges */
 @media (max-height: 680px) and (max-width: 420px) and (orientation: portrait) {
   .display[data-layout="times"] { padding-block: .5rem; gap: .5rem; }
-  .tm-hm { font-size: calc(var(--u) * 18); }
-  .tm-bar { display: none; }
-  .tm-cnt { font-size: 2.25rem; }
-  .tm-sub { display: none; }
-  .tm-ar { line-height: 1.45; }
-  .tm-temp { font-size: 1.75rem; }
-  .tm-wx { gap: .25rem; }
-  .tm-stats { gap: .15rem .75rem; }
   .display[data-layout="times"] #dx-place { display: none; }
 }
 /* the weather body is a grid item: without this the wide hourly strip stretches the whole page */

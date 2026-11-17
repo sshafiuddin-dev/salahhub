@@ -1,6 +1,6 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, outlook, cardWindow, clock, esc, beepWav, alertLogText } from './logic.js';
+import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, esc, beepWav, alertLogText } from './logic.js';
 import { setSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { fetchWeather, weatherHtml } from './weather.js';
@@ -235,13 +235,13 @@ function tick() {
   if (!today || c.d !== today.d) { const later = !!today; loadDay(c); if (later) sync(false, true); return; }
   const nowMin = c.sec / 60, rows = shownRows(), ev = nextEvent(rows, tomorrow.rows[0].adhan, nowMin, day.sunrise);
   $('now').textContent = fmt(Math.floor(nowMin));
-  const html = renderClock(settings.clock, { sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full });
+  const html = renderClock(settings.clock, { sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0] });
   $('clock').innerHTML = html;
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim) applyLook();
   if (displayOpen) {
-    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, tomorrowFajr: tomorrow.rows[0], wx: wxStats(), card: dxCardFor(nowMin) });
+    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), card: dxCardFor(nowMin) });
     else {
       $('dx-clock').innerHTML = html;
       if (c.sec % 10 === 0) fitDisplay(); // re-fit after late font loads or a change in what the clock shows
@@ -290,6 +290,7 @@ function route() {
   let h = location.hash.slice(1);
   if (h === 'alerts') { h = 'settings'; sub = 'alerts'; } // the old address for the alerts screen
   tab = TAB_IDS.includes(h) ? h : 'today';
+  root.dataset.tab = tab; // the stylesheet lays out Today as one sheet
   for (const id of TAB_IDS) $(`tab-${id}`).hidden = id !== tab;
   document.querySelectorAll('.tabbar a, .dockbar a').forEach(a => {
     const on = a.getAttribute('href') === `#${tab}`;
@@ -756,14 +757,12 @@ function prayerMarks() {
   return day.rows.map((r, i) => (r.adhan >= nowMin ? { name: NAMES[r.key], min: r.adhan, today: true } : { name: NAMES[r.key], min: tomorrow.rows[i].adhan, today: false }));
 }
 // Under the time in the times-only full screen: temperature, a line about the next two days, then one row of details.
-function wxStats() {
+// One line of weather for the full screen sheet: now, today's high and low, and the chance of rain
+function wxLine() {
   const w = weather;
   if (!w) return '';
-  const u = settings.units, r = v => (v == null ? '–' : Math.round(v)), out = outlook(w.days, u), rain = w.today.pop ?? w.pop;
-  const item = (k, v) => `<span class="tm-st"><span class="tm-k">${k}</span><b>${v}</b></span>`;
-  return `<div class="tm-wx"><p class="tm-temp">${r(w.temp)}°${u}<span>${w.label ? w.label.toLowerCase() : ''}</span></p>${out ? `<p class="tm-out">${out}</p>` : ''}<div class="tm-stats">`
-    + item('High/low', `${r(w.today.max)}°/${r(w.today.min)}°`) + item('Feels', `${r(w.feels)}°`) + item('Humidity', w.humidity == null ? '–' : `${r(w.humidity)}%`)
-    + item('Wind', `${r(w.wind)} ${u === 'F' ? 'mph' : 'km/h'}`) + item('Rain', rain == null ? '–' : `${r(rain)}%`) + '</div></div>';
+  const u = settings.units, r = v => (v == null ? '–' : Math.round(v)), rain = w.today.pop ?? w.pop;
+  return `${r(w.temp)}°${u}${w.label ? ` ${esc(w.label.toLowerCase())}` : ''} &nbsp;·&nbsp; H ${r(w.today.max)}° L ${r(w.today.min)}°${rain == null ? '' : ` &nbsp;·&nbsp; Rain ${r(rain)}%`}`;
 }
 // What the card in the times-only full screen shows instead of the current prayer: after sunrise until Dhuhr (rest of today or a morning dua)
 // and, with duas chosen, from Maghrib until Isha (an evening dua). null keeps the current prayer.

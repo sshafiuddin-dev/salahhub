@@ -82,20 +82,43 @@ function barPct(d) {
   return Math.max(0, Math.min(100, (d.now - prev) / (d.next.at - prev) * 100));
 }
 
-function board(d) {
-  const m = Math.floor(d.now);
-  const pct = barPct(d);
-  const tiles = d.rows.map(r => {
-    const cls = [r.key === d.next.key ? 'is-next' : '', r.jumuah ? 'is-jumuah' : ''].filter(Boolean).join(' ');
-    const low = r.jumuah ? `<small>Khutbah</small><em>${r.jumuah.map(hm).join('<br>')}</em>` : `<small>Iqama</small><em>${r.iqama == null ? 'Not set' : hm(r.iqama)}</em>`;
-    return `<li${cls ? ` class="${cls}"` : ''}><span>${nameOf(r)}</span><strong>${hm(r.adhan)}</strong>${low}</li>`;
+// Masjid board: the day as one printed sheet. The time beside the countdown, then the timetable (adhan above, iqama below,
+// English and Arabic names), then sunrise and Jumu'ah. When d.card holds a dua, the dua takes the timetable's place.
+// d.tomorrowFajr (a row) is used after Isha; d.wx is an optional weather line for the foot.
+const AR = { fajr: 'الفجر', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
+const AR_JUM = 'الجمعة';
+const units = (t) => t.replace(/(\d)([hms])/g, '$1<i>$2</i>');
+function nextLine(d) {
+  const row = d.next.at >= 1440 ? d.tomorrowFajr : d.rows.find(r => r.key === d.next.key);
+  if (!row) return `<p class="sh-at">${nextAt(d)}</p>`; // sunrise
+  const low = row.jumuah ? `Khutbah <b>${khutbahs(row.jumuah)}</b>` : `Iqama <b>${row.iqama == null ? 'not set' : row.iqama === row.adhan ? 'on time' : fmt(row.iqama)}</b>`;
+  return `<p class="sh-at">Adhan <b>${fmt(row.adhan)}</b> &nbsp;·&nbsp; ${low}</p>`;
+}
+function sheetTable(d) {
+  const nx = (r) => r.key === d.next.key && d.next.at < 1440;
+  const th = d.rows.map(r => `<th scope="col"${nx(r) ? ' class="is-next"' : ''}>${nameOf(r)}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
+  const adhan = d.rows.map(r => `<td${nx(r) ? ' class="is-next"' : ''}>${hm(r.adhan)}</td>`).join('');
+  const iqama = d.rows.map(r => {
+    const v = r.jumuah ? r.jumuah.map(hm).join('<br>') : r.iqama == null ? '<em>not set</em>' : r.iqama === r.adhan ? '<em>on time</em>' : hm(r.iqama);
+    return `<td${nx(r) ? ' class="is-next"' : ''}>${v}</td>`;
   }).join('');
-  // the footer lists Jumu'ah on other days; on Friday the Jumu'ah tile already shows it
-  const jum = d.jumuah.length && !jumRow(d) ? `<span>${JUM} ${khutbahs(d.jumuah)}</span>` : '';
-  return `<div class="ck-board"><p class="ck-board-time"><span class="ck-board-hm">${hm(m)}</span><span class="ck-board-side"><span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span><span>${ampm(m)}</span></span></p>`
-    + `<p class="ck-board-date">${d.date}</p><ol class="ck-tiles">${tiles}</ol>`
-    + `<div class="ck-board-next"><span>${nextName(d)} in</span><strong class="${soon(d).trim()}">${untilNext(d)}</strong></div><div class="ck-bar"><span style="width:${pct.toFixed(1)}%"></span></div>`
-    + `<p class="ck-board-foot"><span>Sunrise ${fmt(d.sunrise)}</span>${jum}</p></div>`;
+  const low = jumRow(d) ? 'Iqama, khutbah' : 'Iqama';
+  return `<table class="sh-tt"><thead><tr><th scope="col"><span class="sh-vh">Prayer</span></th>${th}</tr></thead>`
+    + `<tbody><tr><th scope="row">Adhan</th>${adhan}</tr><tr class="sh-iq"><th scope="row">${low}</th>${iqama}</tr></tbody></table>`;
+}
+function board(d) {
+  const m = Math.floor(d.now), k = d.card;
+  const jum = d.jumuah?.length && !jumRow(d) ? ` &nbsp;·&nbsp; ${JUM} ${khutbahs(d.jumuah)}` : '';
+  const body = k?.kind === 'dua'
+    ? `<div class="sh-dua" data-dua><p class="sh-dua-h"><span>${k.title}</span><span>${k.pos} · tap for the next</span></p>`
+      + `<p class="sh-dua-ar" lang="ar" dir="rtl">${esc(k.item.ar)}</p><p class="sh-dua-en">${esc(k.item.en)}</p></div>`
+    : sheetTable(d);
+  return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}"><div class="sh-mid">`
+    + `<p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side"><span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span><span>${ampm(m)}</span></span></p>`
+    + `<div class="sh-next"><p class="sh-l">${nextName(d)} in</p><p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${nextLine(d)}`
+    + `<div class="sh-bar"><span style="width:${barPct(d).toFixed(1)}%"></span></div></div></div>`
+    + body
+    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.wx ? `<span class="sh-wx">${d.wx}</span>` : ''}</p></div>`;
 }
 
 function timeline(d) {
@@ -111,7 +134,7 @@ function timeline(d) {
     const cls = [m >= (e.iq ?? e.at) ? 'is-done' : '', m >= e.at ? 'is-reached' : ''].filter(Boolean).join(' ');
     return `<li${cls ? ` class="${cls}"` : ''}${e.jumuah ? ' data-jumuah' : ''}><span class="ck-node"></span><strong>${e.jumuah ? JUM : NAMES[e.key]}</strong><span class="ck-tl-times"><b>${fmt(e.at)}</b><span>${iq}</span></span></li>`;
   }).join('');
-  const jum = d.jumuah.length && !jumRow(d) ? `<p class="ck-tl-foot">${JUM} khutbah ${khutbahs(d.jumuah)}</p>` : '';
+  const jum = d.jumuah?.length && !jumRow(d) ? `<p class="ck-tl-foot">${JUM} khutbah ${khutbahs(d.jumuah)}</p>` : '';
   return `<div class="ck-timeline"><div class="ck-tl-head"><p>${nextName(d)} ${nextAt(d)}, in</p><p class="ck-count${soon(d)}">${untilNext(d)}</p></div>`
     + `<div class="ck-rail"><span class="ck-rail-fill" style="height:${f1(y)}px"></span><span class="ck-rail-dot" style="top:${f1(y - 9)}px"></span><ol>${rows}</ol></div>${jum}</div>`;
 }
@@ -129,25 +152,5 @@ function bedside(d) {
 const STYLES = { board, dial, analog, sun, timeline, bedside };
 export const renderClock = (style, d) => (STYLES[style] || board)(d);
 
-// Full screen on small screens: only the time, the current prayer and what is counted down to.
-// d also carries tomorrowFajr (a row) for the countdown after the last iqama of the day.
-export function renderTimes(d) {
-  const m = Math.floor(d.now);
-  // shortcut: before Fajr the current prayer is last night's Isha, shown with today's times (they differ by a minute or two)
-  const cur = [...d.rows].reverse().find(r => r.adhan <= d.now) ?? d.rows[d.rows.length - 1];
-  const pct = barPct(d);
-  const row = d.next.at >= 1440 ? d.tomorrowFajr : d.rows.find(r => r.key === d.next.key);
-  const sub = row?.jumuah && d.next.kind ? `<p class="tm-sub">${JUM} adhan ${fmt(row.adhan)}, khutbah ${khutbahs(row.jumuah)}</p>`
-    : d.next.kind === 'adhan' ? `<p class="tm-sub">${NAMES[row.key]} ${fmt(row.adhan)}, iqama ${row.iqama == null ? 'not set' : fmt(row.iqama)}</p>`
-    : d.next.kind === 'iqama' ? `<p class="tm-sub">Iqama at ${fmt(d.next.at)}</p>` : '';
-  const k = d.card, left = d.rows.filter(r => r.adhan > d.now);
-  const card = !k
-    ? `<p class="tm-label">Current prayer</p><p class="tm-name${cur.jumuah ? ' tm-jum' : ''}">${nameOf(cur)}</p><p class="tm-pt"><span><span class="tm-k">Adhan</span><b>${fmt(cur.adhan)}</b></span><span><span class="tm-k">${cur.jumuah ? 'Khutbah' : 'Iqama'}</span><b class="${d.next.kind === 'iqama' ? 'tm-hl' : ''}">${cur.jumuah ? khutbahs(cur.jumuah) : cur.iqama == null ? 'Not set' : fmt(cur.iqama)}</b></span></p>`
-    : k.kind === 'dua'
-      ? `<p class="tm-label tm-lh"><span>${k.title}</span><span>${k.pos}</span></p><p class="tm-ar" lang="ar" dir="rtl">${esc(k.item.ar)}</p><p class="tm-en">${esc(k.item.en)}</p><p class="tm-src">${esc(k.item.src)} · tap: next</p>`
-      : `<p class="tm-label">Rest of today</p><ul class="tm-rest"><li class="tm-rh"><span></span><span>Adhan</span><span>Iqama</span></li>${left.map(r => `<li${r.jumuah ? ' class="tm-jum"' : ''}><span>${nameOf(r)}</span><span>${fmt(r.adhan)}</span><span>${r.jumuah ? khutbahs(r.jumuah, hm) : r.iqama == null ? '–' : fmt(r.iqama)}</span></li>`).join('')}</ul>`;
-  return `<div class="tm"><div class="tm-left"><p class="tm-time"><span class="tm-hm">${hm(m)}</span><span class="tm-side"><span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span><span>${ampm(m)}</span></span></p>${d.wx || ''}</div>`
-    + `<div class="tm-right"><div class="tm-card"${k?.kind === 'dua' ? ' data-dua' : ''}>${card}</div>`
-    + `<div><p class="tm-label">${nextName(d)} in</p><p class="tm-cnt${soon(d)}">${untilNext(d)}</p>${sub}</div>`
-    + `<div class="tm-bar"><span style="width:${pct.toFixed(1)}%"></span></div></div></div>`;
-}
+// Full screen on small screens: the same sheet as the masjid board, whichever clock style is chosen, with the weather line.
+export const renderTimes = (d) => board(d);
