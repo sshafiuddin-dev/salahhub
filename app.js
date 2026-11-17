@@ -410,7 +410,7 @@ $('dk-listen').addEventListener('click', () => {
 });
 
 // Adhkar tab: every Hisn al-Muslim chapter with its recording, filtered by what is typed in the search box
-$('adhkar-audio').innerHTML = HISN.map(([id, title, num]) => `<li data-id="${id}" data-t="${title.toLowerCase()} ${id}"><div class="au-row"><button class="au-toggle" type="button" aria-expanded="false" aria-controls="au-body-${id}"><span class="au-no">${id}</span><span class="au-title">${title}</span></button><button class="d-btn d-btn-sm d-btn-soft d-btn-primary au-play" type="button" data-src="${hisnUrl(num)}" data-label="Chapter" aria-label="Play the whole chapter: ${title}">Chapter</button></div><div class="au-body" id="au-body-${id}" hidden></div></li>`).join('');
+$('adhkar-audio').innerHTML = HISN.map(([id, title, num]) => `<li data-id="${id}" data-t="${title.toLowerCase()} ${id}"><div class="au-row"><button class="au-toggle" type="button" aria-expanded="false" aria-controls="au-body-${id}"><span class="au-no">${id}</span><span class="au-title">${title}</span></button><button class="d-btn d-btn-sm d-btn-soft d-btn-primary au-play" type="button" data-src="${hisnUrl(num)}" data-label="Listen" aria-label="Listen to the whole chapter: ${title}">Listen</button></div><div class="au-body" id="au-body-${id}" hidden></div></li>`).join('');
 function filterAdhkar() {
   const q = $('au-search').value.trim().toLowerCase();
   let shown = 0;
