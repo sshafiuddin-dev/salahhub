@@ -75,16 +75,10 @@ function sun(d) {
     + `<circle class="${isDay ? 'ck-sunball' : 'ck-moon'}" cx="${bx}" cy="${by}" r="13"/></svg>${stack('ck-below', d)}</div>`;
 }
 
-// How full the bar is: from the previous adhan, iqama or sunrise to the next event, in percent.
-function barPct(d) {
-  const marks = [...d.rows.flatMap(r => (r.iqama == null ? [r.adhan] : [r.adhan, r.iqama])), ...(d.sunrise == null ? [] : [d.sunrise])].sort((a, b) => a - b);
-  const prev = [...marks].reverse().find(v => v <= d.now) ?? marks[marks.length - 1] - 1440;
-  return Math.max(0, Math.min(100, (d.now - prev) / (d.next.at - prev) * 100));
-}
-
 // Masjid board: the day as one printed sheet. The time beside the countdown, then the timetable (adhan above, iqama below,
 // English and Arabic names), then sunrise and Jumu'ah. When d.card holds a dua, the dua takes the timetable's place.
-// d.tomorrowFajr (a row) is used after Isha; d.wx is an optional weather line for the foot.
+// d.tomorrowFajr (a row) is used after Isha; d.wx is an optional weather line for the foot; d.wxAt the weather at the next prayer;
+// d.warn ({ event, until, more, sender }) an official warning, shown as a red-ruled line at the top while one is in force.
 const AR = { fajr: 'الفجر', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
 const AR_JUM = 'الجمعة';
 const units = (t) => t.replace(/(\d)([hms])/g, '$1<i>$2</i>');
@@ -94,6 +88,26 @@ function nextLine(d) {
   const low = row.jumuah ? `Khutbah <b>${khutbahs(row.jumuah)}</b>` : `Iqama <b>${row.iqama == null ? 'not set' : row.iqama === row.adhan ? 'on time' : fmt(row.iqama)}</b>`;
   return `<p class="sh-at">Adhan <b>${fmt(row.adhan)}</b> &nbsp;·&nbsp; ${low}</p>`;
 }
+// The day ruler: a printed scale from an hour before Fajr to an hour after Isha, an hour mark for each hour,
+// a tick per prayer (single letters, "rise" for sunrise) and a marker for now. The next prayer's tick is red.
+// It repeats what the table says, so it is hidden from screen readers.
+const LETTER = { fajr: 'F', dhuhr: 'D', asr: 'A', maghrib: 'M', isha: 'I' };
+function ruler(d) {
+  const a = Math.max(0, d.rows[0].adhan - 60), b = Math.min(1440, d.rows[4].adhan + 60);
+  const at = (m) => `${(((Math.min(b, Math.max(a, m)) - a) / (b - a)) * 100).toFixed(2)}%`;
+  const nextKey = d.next.at >= 1440 ? 'fajr-tomorrow' : d.next.key;
+  let h = `<span class="sh-done" style="width:${at(d.now)}"></span>`;
+  for (let m = Math.ceil(a / 60) * 60; m <= b; m += 60) h += `<span class="sh-hr" style="left:${at(m)}"></span>`;
+  const marks = [[d.rows[0], 'fajr'], [{ adhan: d.sunrise }, 'sunrise'], ...d.rows.slice(1).map(r => [r, r.key])];
+  for (const [r, key] of marks) {
+    if (r.adhan == null) continue;
+    const label = key === 'sunrise' ? 'rise' : r.jumuah ? 'J' : LETTER[key];
+    h += `<span class="sh-tk${key === 'sunrise' ? ' sm' : ''}${key === nextKey ? ' nx' : ''}" style="left:${at(r.adhan)}"><i>${label}</i></span>`;
+  }
+  return `<div class="sh-rule" aria-hidden="true">${h}<span class="sh-now" style="left:${at(d.now)}"></span></div>`;
+}
+// "At Dhuhr: 45°, rain likely (80%)", from d.wxAt = { name, temp, words, pop }
+const wxAt = (w) => (w ? `<p class="sh-wxat">At ${w.name}: <b>${Math.round(w.temp)}°${w.words ? `, ${esc(w.words)}` : ''}</b>${w.pop != null ? ` (${Math.round(w.pop)}%)` : ''}</p>` : '');
 function sheetTable(d) {
   const nx = (r) => r.key === d.next.key && d.next.at < 1440;
   const th = d.rows.map(r => `<th scope="col"${nx(r) ? ' class="is-next"' : ''}>${nameOf(r)}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
@@ -113,10 +127,12 @@ function board(d) {
     ? `<div class="sh-dua" data-dua><p class="sh-dua-h"><span>${k.title}</span><span>${k.pos} · tap for the next</span></p>`
       + `<p class="sh-dua-ar" lang="ar" dir="rtl">${esc(k.item.ar)}</p><p class="sh-dua-en">${esc(k.item.en)}</p></div>`
     : sheetTable(d);
-  return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}"><div class="sh-mid">`
+  const w = d.warn;
+  const warn = w ? `<p class="sh-warn"><b>${esc(w.event)}</b><span>${esc(w.until)}${w.more ? ` · ${w.more} more` : ''}</span><small>${esc(w.sender)}</small></p>` : '';
+  return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}${w ? ' sh-w' : ''}">${warn}<div class="sh-mid">`
     + `<p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side"><span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span><span>${ampm(m)}</span></span></p>`
-    + `<div class="sh-next"><p class="sh-l">${nextName(d)} in</p><p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${nextLine(d)}`
-    + `<div class="sh-bar"><span style="width:${barPct(d).toFixed(1)}%"></span></div></div></div>`
+    + `<div class="sh-next"><p class="sh-l">${nextName(d)} in</p><p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${nextLine(d)}${wxAt(d.wxAt)}`
+    + `${ruler(d)}</div></div>`
     + body
     + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.wx ? `<span class="sh-wx">${d.wx}</span>` : ''}</p></div>`;
 }

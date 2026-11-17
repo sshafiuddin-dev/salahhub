@@ -40,7 +40,7 @@
 
 /* The weather sky stays a faint wash over the paper, and goes away at Darkest */
 :root { --sky: color-mix(in srgb, var(--sky-base) 28%, var(--paper)); --board-bg: var(--surface); --board-fg: var(--ink); }
-:root[data-dim="3"] .sky-tint, :root[data-dim="3"] #sky, :root[data-dim="2"]:not([data-palette="contrast"]) .sky-tint, :root[data-dim="2"]:not([data-palette="contrast"]) #sky { display: none; } /* a still, warm page at night */
+:root[data-dim="3"] .sky-tint, :root[data-dim="3"] .sky-print, :root[data-dim="2"]:not([data-palette="contrast"]) .sky-tint, :root[data-dim="2"]:not([data-palette="contrast"]) .sky-print { display: none; } /* a still, warm page at night */
 
 /* Print, not app: square corners, hairlines, no filled pills */
 :root { --radius-selector: 2px; --radius-field: 2px; --radius-box: 2px; }
@@ -232,14 +232,14 @@ body { font-feature-settings: "kern", "liga"; }
 :root[data-palette="hand"] .tab { padding-left: calc(var(--margin-x) + clamp(.9rem, 2.2vw, 1.6rem)); }
 :root[data-palette="hand"] .display { padding-left: max(calc(var(--margin-x) + clamp(.9rem, 2.2vw, 1.6rem)), env(safe-area-inset-left, 0px)); }
 /* the clock card and the full screen card are now plain writing on the sheet */
-:root[data-palette="hand"] .sky-tint, :root[data-palette="hand"] #sky { display: none; }
+:root[data-palette="hand"] .sky-tint, :root[data-palette="hand"] .sky-print { display: none; }
 /* The masjid board sheet, written by hand */
 :root[data-palette="hand"] .sh-tt th, :root[data-palette="hand"] .sh-tt td, :root[data-palette="hand"] .sh-l, :root[data-palette="hand"] .sh-at,
 :root[data-palette="hand"] .sh-foot, :root[data-palette="hand"] .sh-dua-h { font-family: var(--hand); font-style: normal; letter-spacing: 0; text-transform: none; }
 :root[data-palette="hand"] .sh-tt thead th { font-size: max(.95rem, calc(var(--u) * 2.6)); color: var(--ink); }
 :root[data-palette="hand"] .sh-tt, :root[data-palette="hand"] .sh-dua { border-top: 0; border-bottom: 0; }
 :root[data-palette="hand"] .sh-tt .sh-iq > * { border-top: 0; }
-:root[data-palette="hand"] .sh-bar { background: var(--line); }
+:root[data-palette="hand"] .sh-wxat, :root[data-palette="hand"] .sh-tk i, :root[data-palette="hand"] .sh-warn b, :root[data-palette="hand"] .sh-warn span { font-family: var(--hand); font-style: normal; letter-spacing: 0; }
 /* the next adhan is circled in red pen */
 :root[data-palette="hand"] .sh-tt tbody tr:first-child td.is-next { position: relative; color: var(--ink); }
 :root[data-palette="hand"] .sh-tt tbody tr:first-child td.is-next::after {

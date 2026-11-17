@@ -2,8 +2,9 @@
 import assert from 'node:assert/strict';
 import { parse, fromSchedule, read } from '../functions/_lib/parse.js';
 import { handle } from '../functions/api/iqama.js';
+import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, esc, beepWav, alertLogText } from '../logic.js';
+import { safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, esc, beepWav, alertLogText } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -105,6 +106,42 @@ const path = Array.from({ length: 10 }, (_, i) => burnShift(i * 180));
 assert.deepEqual(path[0], [0, 0]); assert.deepEqual(path[9], [0, 0]);
 assert.deepEqual(burnShift(179), [0, 0]); assert.deepEqual(burnShift(180), [2, 0]);
 assert.ok(path.every(([x, y]) => Math.abs(x) <= 2 && Math.abs(y) <= 2) && new Set(path.slice(0, 9).map(String)).size === 9);
+// Weather at the next prayer, from hourly rows starting at the current hour
+const hrs = [[true, 11, 45, 61, 80], [true, 12, 44, 3, 40], [true, 13, 46, 2, 5], [false, 5, 30, 71, 70]].map(([today, h, temp, code, pop]) => ({ today, min: h * 60, temp, code, pop }));
+assert.deepEqual(prayerWeather(hrs, 703), { temp: 45, words: 'rain likely', pop: 80 });
+assert.deepEqual(prayerWeather(hrs, 750), { temp: 44, words: 'chance of rain', pop: 40 });
+assert.deepEqual(prayerWeather(hrs, 790), { temp: 46, words: 'partly cloudy', pop: null });
+assert.deepEqual(prayerWeather(hrs, 1440 + 329), { temp: 30, words: 'snow likely', pop: 70 }, 'tomorrow Fajr uses tomorrow’s hour');
+assert.equal(prayerWeather(hrs, 1200), null, 'no forecast hour, no line');
+
+// Warning end times, in the place's zone (New York, UTC-5 in November)
+const nov17 = new Date('2026-11-17T15:00:00Z');
+assert.equal(untilText('2026-11-17T19:00:00-05:00', nov17, 'America/New_York'), 'until 7:00 PM');
+assert.equal(untilText('2026-11-18T13:00:00-05:00', nov17, 'America/New_York'), 'until 1:00 PM Wed');
+assert.equal(untilText(null, nov17, 'America/New_York'), 'until further notice');
+
+// /api/alerts: picks real, current alerts, most severe first, one per event; caches; outside the US and failures give []
+const nwsF = (event, severity, ends, extra = {}) => ({ properties: { status: 'Actual', messageType: 'Alert', event, severity, ends, senderName: 'NWS Mount Holly NJ', ...extra } });
+const feats = [nwsF('Wind Advisory', 'Moderate', '2026-11-17T23:00:00-05:00'), nwsF('Winter Storm Warning', 'Severe', '2026-11-18T19:00:00-05:00'),
+  nwsF('Wind Advisory', 'Moderate', '2026-11-17T21:00:00-05:00'), nwsF('Test Message', 'Minor', null, { status: 'Test' }),
+  nwsF('Frost Advisory', 'Minor', '2026-11-17T08:00:00-05:00'), nwsF('Flood Watch', 'Severe', null, { messageType: 'Cancel' })];
+assert.deepEqual(pickAlerts(feats, nov17.getTime()).map(a => a.event), ['Winter Storm Warning', 'Wind Advisory']);
+assert.equal(pickAlerts(feats, nov17.getTime())[1].until, '2026-11-17T23:00:00-05:00', 'the later-ending copy of a repeated advisory');
+{
+  const store = new Map(), cache = { match: async (k) => store.get(k.url)?.clone(), put: async (k, r) => { store.set(k.url, r); } };
+  let calls = 0, asked = null;
+  const nws = async (u, o) => { calls++; asked = [u, o.headers['user-agent']]; return new Response(JSON.stringify({ features: feats })); };
+  const ask = (q, get = nws) => alertsHandle('https://x.test/api/alerts' + q, cache, get, nov17.getTime()).then(async r => [r.status, await r.json()]);
+  assert.equal((await ask(''))[0], 400);
+  const [st, body] = await ask('?lat=40.3841&lng=-74.5633');
+  assert.equal(st, 200); assert.equal(body.alerts.length, 2);
+  assert.equal(asked[0], 'https://api.weather.gov/alerts/active?point=40.38,-74.56'); assert.ok(asked[1].includes('salahhub'), 'NWS gets a named User-Agent');
+  await ask('?lat=40.38&lng=-74.56'); assert.equal(calls, 1, 'second ask in 5 minutes comes from the cache');
+  assert.deepEqual((await ask('?lat=51.5&lng=-0.12', async () => new Response('{}', { status: 400 })))[1], { alerts: [], outside: true });
+  const quiet = console.error; console.error = () => {};
+  assert.deepEqual((await ask('?lat=1&lng=1', async () => { throw new Error('offline'); }))[1], { alerts: [], unavailable: true });
+  console.error = quiet;
+}
 const { renderTimes } = await import('../clocks.js');
 const tm = (now, sec) => renderTimes({ sec, now, rows: five, sunrise: 400, next: nextEvent(five, 313, now, 400), tomorrowFajr: five[0], card: null });
 assert.ok(tm(340, 340 * 60).includes('Sunrise in'), 'sunrise countdown after the Fajr iqama');
