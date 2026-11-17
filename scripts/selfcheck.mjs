@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { parse, fromSchedule, read } from '../functions/_lib/parse.js';
 import { handle } from '../functions/api/iqama.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, esc, beepWav, alertLogText } from '../logic.js';
+import { safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, esc, beepWav, alertLogText } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -100,6 +100,11 @@ assert.equal(outlook([dy('2026-11-11', 20, 0), dy('2026-11-12', 24, 0), dy('2026
 assert.equal(outlook([dy('2026-11-11', 20, 0)], 'C'), '');
 const five = [312, 700, 860, 1000, 1090].map((adhan, i) => ({ key: PRAYERS[i], adhan, iqama: adhan + 20 }));
 assert.deepEqual([399, 400, 699, 700, 999, 1000, 1089, 1090].map(n => cardWindow(n, five, 400)), [null, 'morning', 'morning', null, null, 'evening', 'evening', null]);
+// Burn-in shift: 2 px steps every 3 minutes, a 27-minute cycle, never more than 2 px from centre
+const path = Array.from({ length: 10 }, (_, i) => burnShift(i * 180));
+assert.deepEqual(path[0], [0, 0]); assert.deepEqual(path[9], [0, 0]);
+assert.deepEqual(burnShift(179), [0, 0]); assert.deepEqual(burnShift(180), [2, 0]);
+assert.ok(path.every(([x, y]) => Math.abs(x) <= 2 && Math.abs(y) <= 2) && new Set(path.slice(0, 9).map(String)).size === 9);
 const { renderTimes } = await import('../clocks.js');
 const tm = (now, sec) => renderTimes({ sec, now, rows: five, sunrise: 400, next: nextEvent(five, 313, now, 400), tomorrowFajr: five[0], card: null });
 assert.ok(tm(340, 340 * 60).includes('Sunrise in'), 'sunrise countdown after the Fajr iqama');

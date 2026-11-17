@@ -1,6 +1,6 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, esc, beepWav, alertLogText } from './logic.js';
+import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, esc, beepWav, alertLogText } from './logic.js';
 import { setSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { fetchWeather, weatherHtml } from './weather.js';
@@ -885,7 +885,13 @@ async function updateLock() {
   }
   syncAwake();
 }
+// Slow pixel shift while the screen is kept on (Keep screen on, or Full screen); centred otherwise
+function applyShift() {
+  const [x, y] = wantAwake() ? burnShift(clock(new Date(), place().zone).sec) : [0, 0];
+  root.style.setProperty('--shift', `${x}px ${y}px`);
+}
 function syncAwake() {
+  applyShift();
   $('awake').setAttribute('aria-pressed', settings.awake);
   $('awake-label').textContent = settings.awake ? 'Screen stays on' : 'Keep screen on';
   $('awake-switch').checked = settings.awake;
@@ -1011,6 +1017,7 @@ syncSound();
 tick();
 updateLock();
 setInterval(tick, 1000);
+setInterval(applyShift, 30e3);
 sync();
 setInterval(sync, SYNC_EVERY);
 addEventListener('online', () => sync()); // the connection came back: bring everything up to date at once
