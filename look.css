@@ -202,9 +202,9 @@ body { font-feature-settings: "kern", "liga"; }
 /* Phones: the month table keeps every column on screen; the Hijri month name gives way to the day number */
 @media (max-width: 40rem) {
   #month .mo-hm, #month .mo-ap { display: none; } /* the column order (Fajr, Sunrise, Dhuhr...) already says morning or afternoon */
-  #month th, #month td { padding-inline: .2rem; }
+  #month th, #month td { padding-inline: .1rem; }
   #month td, #month tbody th { font-size: .88rem; }
-  #month thead th { font-size: .62rem; letter-spacing: .04em; }
+  #month thead th { font-size: .7rem; letter-spacing: 0; } /* 11.2 px: the smallest size still read comfortably */
 }
 
 /* ---- Full screen, compact layout (touch screens under 800px, such as a 7-inch tablet) ---- */
