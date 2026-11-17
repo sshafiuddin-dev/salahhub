@@ -50,4 +50,4 @@ Iqama Times shows the same list under Settings, About.
 |---|---|---|---|
 | Animation | [Motion](https://motion.dev/) © Motion B.V. | MIT, see `vendor/MOTION-LICENSE.md` | `vendor/motion.min.js` |
 | UI components | [daisyUI](https://daisyui.com/) 5 and [Tailwind CSS](https://tailwindcss.com/) 4, built into `daisy.css` by `scripts/daisy/build.sh` | MIT | `daisy.css` |
-| Fonts | Amiri, Bricolage Grotesque, IBM Plex Sans, IBM Plex Mono, served by [Google Fonts](https://fonts.google.com/) | SIL Open Font License 1.1 | `index.html` |
+| Fonts | Amiri, Aref Ruqaa, IBM Plex Sans, Kalam and Newsreader in the app; Amiri, IBM Plex Sans and Newsreader in the guide; served by [Google Fonts](https://fonts.google.com/) | SIL Open Font License 1.1 | `index.html`, `guide/` |
