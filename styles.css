@@ -768,3 +768,7 @@ body { overflow: hidden; }
   .qp-ic, .qp-pick, .qp-seek::-webkit-slider-thumb, .qp-seek::-moz-range-thumb { transition: none; }
   .qp-ic:active, .qp-main:active .qp-txt, .qp-pick:active, .qp-seek:hover::-webkit-slider-thumb, .qp-seek:active::-webkit-slider-thumb, .qp-seek:hover::-moz-range-thumb, .qp-seek:active::-moz-range-thumb { scale: 1; }
 }
+
+/* Burn-in care: while the screen is kept on, app.js steps --shift around a 2 px grid every 3 minutes.
+   Only the clock areas and the full-screen header move; bars with fixed children stay put. */
+#clock, .dx-small, .dx-clock, .display .dx-top { translate: var(--shift, 0 0); }

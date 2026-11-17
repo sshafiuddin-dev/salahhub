@@ -209,3 +209,8 @@ export function weatherKind(code) {
   const hit = WEATHER.find(([codes]) => codes.includes(code));
   return hit ? { kind: hit[1], label: hit[2] } : { kind: 'plain', label: '' };
 }
+
+// Burn-in care for a screen kept on all day: the clock and table step 2 px around a 3 × 3 grid,
+// one step every 3 minutes, so no edge stays on the same pixels for long. Returns [x, y] in px.
+const SHIFT_PATH = [[0, 0], [2, 0], [2, 2], [0, 2], [-2, 2], [-2, 0], [-2, -2], [0, -2], [2, -2]];
+export const burnShift = (sec) => SHIFT_PATH[Math.floor(sec / 180) % SHIFT_PATH.length];
