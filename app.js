@@ -1019,7 +1019,7 @@ addEventListener('online', () => sync()); // the connection came back: bring eve
 // Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server
 // whether any of its files changed since it loaded; if so, it reloads itself at a quiet moment: no sound playing, no alert,
 // nobody touching it for a minute, no adhan or iqama within 2 minutes. The full screen view is restored after the reload.
-const WATCHED = ['./', 'boot.js', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'motion.js'];
+const WATCHED = ['./', 'boot.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'motion.js'];
 let loadedVersion = '', updateWaiting = false, lastTouch = Date.now();
 for (const t of ['pointerdown', 'keydown', 'touchstart']) addEventListener(t, () => { lastTouch = Date.now(); }, { passive: true });
 // The server gives every file but the home page a version tag; the home page is fingerprinted from its text instead
