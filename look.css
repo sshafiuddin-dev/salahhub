@@ -314,3 +314,29 @@ body { font-feature-settings: "kern", "liga"; }
 :root[data-palette="hand"] .ck-board, :root[data-palette="hand"] .tm-card { background: transparent; padding-left: 0; }
 :root[data-palette="hand"] .tm-card { padding-inline: 0; }
 :root[data-palette="hand"] .sky-tint, :root[data-palette="hand"] #sky { display: none; }
+
+/* Older browsers (before Chrome 111, such as Silk on a 2015 Fire 7) cannot read color-mix() or oklch().
+   Where a colour uses them, these give the nearest plain colour from the look's own tokens, so borders,
+   tints and highlights still show and still follow the look and brightness level. Newer browsers skip this block. */
+@supports not (color: color-mix(in srgb, red, blue)) {
+  :root, :root[data-night] { --sky: var(--paper); }
+  :root { -webkit-tap-highlight-color: rgba(0, 0, 0, .1); }
+  .d-btn:not(.d-btn-primary, .d-btn-soft, .d-btn-ghost, [aria-pressed="true"]) { border-color: var(--line); }
+  .d-input, .d-select:not(.qp-riwaya), .d-textarea { border-color: var(--line); }
+  .d-toggle:not(:checked) { border-color: var(--muted); color: var(--muted); }
+  .ck-board { --b-muted: var(--muted); }
+  .ck-tiles li { background: var(--paper); }
+  .ck-bar, :root[data-palette="hand"] .ck-bar { background: var(--line); }
+  .ck-board-foot { border-top-color: var(--line); }
+  .ck-sky-top { stop-color: var(--sky-base); }
+  .ck-ground { fill: var(--line); }
+  #today tr.next, #month tr.today, .wx-hours li.has-prayer { background: var(--surface); }
+  .dk-count { background-color: var(--line); }
+  .qp-row:hover, .qp-row.is-open, .qp-ic:hover, .qp-row.is-drag, .qp-pick { background: var(--surface); }
+  .qp-ic[data-q="repeat"][aria-pressed="true"], .qp-ic[data-q="shuffle"][aria-pressed="true"] { background: var(--line); }
+  .qp-play:hover { background: var(--ink); }
+  .qp-track::before { background: var(--line); }
+  .qp-buf { background: var(--muted); }
+  .d-range { --d-range-bg: var(--line); }
+  .d-range::-webkit-slider-thumb { box-shadow: 0 0 0 2rem var(--surface) inset; }
+}

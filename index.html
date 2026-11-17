@@ -11,9 +11,9 @@
     <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Kalam:wght@400;700&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&display=swap">
+    <!-- fonts are served from this site (see fonts.css); the clock's lettering is fetched first -->
+    <link rel="preload" href="fonts/newsreader-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="fonts.css">
     <!-- shares the portfolio's tokens, type and buttons -->
     <!-- daisyUI components, built once (see scripts/daisy) and committed, so the site needs no build step -->
     <link rel="stylesheet" href="daisy.css">
@@ -292,7 +292,6 @@
                             <li><strong>City search:</strong> the name you type goes to Open-Meteo, to find the place.</li>
                             <li><strong>ISCJ iqama times:</strong> the app asks this site’s own server, which reads iscj.org. Nothing about you is in that request.</li>
                             <li><strong>Quran and adhkar audio:</strong> the reciter list and recitations stream from mp3quran.net, and adhkar recordings from hisnmuslim.com, when you play them.</li>
-                            <li><strong>Fonts:</strong> the lettering is loaded from Google Fonts.</li>
                             <li><strong>Security reports:</strong> if the browser blocks something on a page for safety, it tells this site’s server log which page and which address. Nothing else is in the report.</li>
                         </ul>
                         <p>Each of these services, and Cloudflare, which hosts this site, sees your device’s internet address, as any website does. There are no accounts, ads or tracking in the app.</p>
@@ -310,7 +309,7 @@
                         <h3>Weather and places</h3>
                         <p>Weather by <a href="https://open-meteo.com/">Open-Meteo.com</a> (CC BY 4.0). Air quality from Open-Meteo, using <a href="https://atmosphere.copernicus.eu/">Copernicus Atmosphere Monitoring Service</a> information. Place search by Open-Meteo, using <a href="https://www.geonames.org/">GeoNames</a> (CC BY 4.0).</p>
                         <h3>Software and fonts</h3>
-                        <p><a href="https://daisyui.com/">daisyUI</a> and <a href="https://tailwindcss.com/">Tailwind CSS</a> (MIT), <a href="https://motion.dev/">Motion</a> (MIT). Fonts: Amiri, Aref Ruqaa, IBM Plex Sans, Kalam and Newsreader, from <a href="https://fonts.google.com/">Google Fonts</a> (SIL Open Font License 1.1).</p>
+                        <p><a href="https://daisyui.com/">daisyUI</a> and <a href="https://tailwindcss.com/">Tailwind CSS</a> (MIT), <a href="https://motion.dev/">Motion</a> (MIT). Fonts: Amiri, Aref Ruqaa, IBM Plex Sans, Kalam and Newsreader, from <a href="https://fonts.google.com/">Google Fonts</a>, served from this site (SIL Open Font License 1.1).</p>
                         <p>Full list with licences: <a href="https://github.com/sshafiuddin-dev/salahhub/blob/main/CREDITS.md">CREDITS.md</a>.</p>
                     </div>
                 </section>
