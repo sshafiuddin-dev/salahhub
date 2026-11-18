@@ -121,15 +121,13 @@ body { overflow: hidden; }
 :root[data-skymode="real"] .topbar, :root[data-skymode="real"] .dx-top, :root[data-skymode="real"] .sh-mid, :root[data-skymode="real"] .sh-warn {
   text-shadow: 0 0 .5em var(--paper), 0 0 .18em var(--paper), 0 0 .06em var(--paper); }
 :root[data-skymode="real"] .iq-hijri, :root[data-skymode="real"] .dx-meta, :root[data-skymode="real"] .sh-side, :root[data-skymode="real"] .sh-at, :root[data-skymode="real"] .sh-wxat { color: var(--ink); }
-/* and the small text in the sky's band sits on a soft paper backing, like a label pasted on a photograph:
-   the date line, the seconds by the clock and the countdown column. The big clock reads on the sky itself. */
-:root[data-skymode="real"] .topbar-title, :root[data-skymode="real"] .dx-top, :root[data-skymode="real"] .sh-next, :root[data-skymode="real"] .sh-side, :root[data-skymode="real"] .sh-warn { position: relative; isolation: isolate; }
-:root[data-skymode="real"] .topbar-title::before, :root[data-skymode="real"] .dx-top::before, :root[data-skymode="real"] .sh-next::before,
-:root[data-skymode="real"] .sh-side::before, :root[data-skymode="real"] .sh-warn::before {
-  content: ""; position: absolute; inset: -.25rem -.75rem; z-index: -1; border-radius: 4px; background: var(--paper); opacity: .88; }
-:root[data-skymode="real"] .sh-side::before { inset: -.25rem -.5rem; }
-:root[data-skymode="real"] .sh-next::before { bottom: -2.25rem; } /* down past the ruler's letters, which hang below the column */
-@media (max-width: 48rem) { :root[data-skymode="real"] .topbar-title::before { display: none; } :root[data-skymode="real"] .topbar { position: relative; isolation: isolate; }
+/* No panel is laid over the sky: the ink keeps its paper halo and sits straight on it, so the board stays one
+   printed sheet in front of a window rather than a card pinned to a photograph. The countdown column holds the
+   most small type, so its halo is the widest. */
+:root[data-skymode="real"] .sh-next, :root[data-skymode="real"] .sh-side, :root[data-skymode="real"] .dx-top {
+  text-shadow: 0 0 .7em var(--paper), 0 0 .3em var(--paper), 0 0 .12em var(--paper), 0 0 .05em var(--paper); }
+/* Phones: the top bar is dense and sits right on the sky, so there the whole bar (edge to edge, not a floating panel) keeps a paper wash */
+@media (max-width: 48rem) { :root[data-skymode="real"] .topbar { position: relative; isolation: isolate; }
   :root[data-skymode="real"] .topbar::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--paper); opacity: .8; } }
 
 /* App shell */
