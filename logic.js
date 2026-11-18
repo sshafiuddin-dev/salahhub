@@ -59,10 +59,22 @@ export function fmt(min) {
   return `${(h + 11) % 12 + 1}:${String(min % 60).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
+// Time left, rounded up: 7 h 38 min 30 s left reads "7h 39m", so the count agrees with the adhan time shown beside it
+// (9:50 PM to 5:29 AM) and reaches zero at the adhan itself. Under an hour it counts down in seconds.
 export function fmtSpan(sec) {
-  sec = Math.max(0, Math.round(sec));
-  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60, two = (n) => String(n).padStart(2, '0');
-  return h ? `${h}h ${two(m)}m` : `${m}m ${two(s)}s`;
+  sec = Math.max(0, Math.ceil(sec - 1e-6));
+  const two = (n) => String(n).padStart(2, '0');
+  if (sec >= 3600) { const min = Math.ceil(sec / 60); return `${Math.floor(min / 60)}h ${two(min % 60)}m`; }
+  return `${Math.floor(sec / 60)}m ${two(sec % 60)}s`;
+}
+
+// The moment (ms since 1970) a wall-clock time happens at a place: date y-m-d, min minutes after its midnight (1440 and
+// over runs into the next days). Uses the zone's own offset at that moment, so a countdown across a clock change is right.
+export function wallMs(y, m, d, min, zone) {
+  const naive = Date.UTC(y, m - 1, d, 0, 0) + Math.round(min * 60e3);
+  let t = naive - clock(new Date(naive), zone).offset * 36e5;
+  t = naive - clock(new Date(t), zone).offset * 36e5; // a second pass settles times near the change
+  return t;
 }
 
 // What to count down to: the next adhan or iqama today, else tomorrow's Fajr adhan.

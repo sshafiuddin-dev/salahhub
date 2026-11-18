@@ -1,6 +1,6 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
+import { wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
@@ -245,15 +245,16 @@ function tick() {
   tickedAt = nowMs;
   if (!today || c.d !== today.d) { const later = !!today; loadDay(c); if (later) sync(false, true); return; }
   const nowMin = c.sec / 60, rows = shownRows(), ev = nextEvent(rows, tomorrow.rows[0].adhan, nowMin, day.sunrise);
+  const left = (wallMs(today.y, today.m, today.d, ev.at, place().zone) - nowMs) / 1e3; // real seconds to it, the same clock as the time shown
   $('now').textContent = fmt(Math.floor(nowMin));
   const at = wxAt(ev, rows);
-  const html = renderClock(settings.clock, { sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine() });
+  const html = renderClock(settings.clock, { sec: c.sec, left, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine() });
   $('clock').innerHTML = html;
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim) applyLook();
   if (displayOpen) {
-    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), card: dxCardFor(nowMin) });
+    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), card: dxCardFor(nowMin) });
     else {
       $('dx-clock').innerHTML = html;
       if (c.sec % 10 === 0) fitDisplay(); // re-fit after late font loads or a change in what the clock shows

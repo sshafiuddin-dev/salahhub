@@ -8,7 +8,9 @@ export const CLOCKS = { board: 'Masjid board', dial: '24-hour dial', analog: 'An
 const hm = (min) => fmt(min).replace(/ [AP]M$/, '');
 const ampm = (min) => fmt(min).slice(-2);
 const f1 = (n) => n.toFixed(1);
-const untilNext = (d) => fmtSpan(d.next.at * 60 - d.sec);
+// seconds to the next event: d.left from the page (real time, right across a clock change), else from the wall clock
+const leftOf = (d) => d.left ?? d.next.at * 60 - d.sec;
+const untilNext = (d) => fmtSpan(leftOf(d));
 const nextAt = (d) => `at ${fmt(d.next.at)}${d.next.at >= 1440 ? ' tomorrow' : ''}`;
 const JUM = 'Jumu’ah';
 const nameOf = (r) => (r.jumuah ? JUM : NAMES[r.key]);
@@ -19,7 +21,7 @@ const nextName = (d) => {
   return r?.jumuah ? `${JUM} ${d.next.kind === 'iqama' ? 'khutbah' : d.next.kind}` : `${NAMES[d.next.key]} ${d.next.kind}`.trim();
 };
 // the countdown blinks (soft, once a second) in its last 15 minutes
-const soon = (d) => (d.next.at * 60 - d.sec < 900 ? ' ck-blink' : '');
+const soon = (d) => (leftOf(d) < 900 ? ' ck-blink' : '');
 const stack = (cls, d) => `<div class="${cls}"><p>${nextName(d)} in</p><p class="ck-count${soon(d)}">${untilNext(d)}</p><p>${nextAt(d)}</p></div>`;
 
 function dial(d) {
@@ -86,7 +88,8 @@ function nextLine(d) {
   const row = d.next.at >= 1440 ? d.tomorrowFajr : d.rows.find(r => r.key === d.next.key);
   if (!row) return `<p class="sh-at">${nextAt(d)}</p>`; // sunrise
   const low = row.jumuah ? `Khutbah <b>${khutbahs(row.jumuah)}</b>` : `Iqama <b>${row.iqama == null ? 'not set' : row.iqama === row.adhan ? 'on time' : fmt(row.iqama)}</b>`;
-  return `<p class="sh-at">Adhan <b>${fmt(row.adhan)}</b> &nbsp;·&nbsp; ${low}</p>`;
+  const when = d.next.at >= 1440 ? ' tomorrow' : ''; // after Isha this is tomorrow's Fajr, a minute or so off today's in the table
+  return `<p class="sh-at">Adhan <b>${fmt(row.adhan)}</b>${when} &nbsp;·&nbsp; ${low}</p>`;
 }
 // The day ruler: a printed scale from an hour before Fajr to an hour after Isha, an hour mark for each hour,
 // a tick per prayer (single letters, "rise" for sunrise) and a marker for now. The next prayer's tick is red.
@@ -156,7 +159,7 @@ function timeline(d) {
 }
 
 function bedside(d) {
-  const m = Math.floor(d.now), left = Math.max(0, Math.round((d.next.at * 60 - d.sec) / 60)), h = Math.floor(left / 60);
+  const m = Math.floor(d.now), left = Math.max(0, Math.ceil(leftOf(d) / 60 - 1e-6)), h = Math.floor(left / 60);
   const dots = d.rows.map(r => {
     const cls = r.key === d.next.key ? 'is-next' : d.now >= r.adhan && d.next.at < 1440 ? 'is-done' : '';
     return `<li${cls ? ` class="${cls}"` : ''}><span></span>${nameOf(r)}</li>`;
