@@ -83,6 +83,7 @@ function sun(d) {
 // d.warn ({ event, until, more, sender }) an official warning, shown as a red-ruled line at the top while one is in force.
 const AR = { fajr: 'الفجر', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
 const AR_JUM = 'الجمعة';
+const AR_RISE = 'الشروق';
 const units = (t) => t.replace(/(\d)([hms])/g, '$1<i>$2</i>');
 function nextLine(d) {
   const row = d.next.at >= 1440 ? d.tomorrowFajr : d.rows.find(r => r.key === d.next.key);
@@ -127,6 +128,14 @@ function sheetTable(d) {
 // After the Isha iqama the sheet shows tomorrow: d.ahead = { rows, sunrise } is tomorrow's day. The big clock and the
 // countdown stay on real time; the table, ruler, top line and foot read as the early hours before tomorrow's Fajr.
 const aheadView = (d) => ({ ...d, isAhead: true, rows: d.ahead.rows, sunrise: d.ahead.sunrise, now: d.now - 1440, next: { ...d.next, at: d.next.at - 1440 } });
+// The next event as a headline: "Asr · العصر" with what is coming ("adhan in") beside it, readable from across a room.
+function nextHead(d) {
+  const r = d.next.at < 1440 && d.rows.find(x => x.key === d.next.key);
+  const name = r?.jumuah ? JUM : NAMES[d.next.key];
+  const ar = r?.jumuah ? AR_JUM : d.next.key === 'sunrise' ? AR_RISE : AR[d.next.key];
+  const kind = r?.jumuah ? 'khutbah' : d.next.kind;
+  return `<p class="sh-l"><span class="sh-nm">${name}</span><span class="sh-nar" lang="ar">${ar}</span><span class="sh-kind">${kind ? `${kind} in` : 'in'}</span></p>`;
+}
 function board(real) {
   const d = real.ahead && real.next.at >= 1440 ? aheadView(real) : real;
   const m = Math.floor(real.now), k = d.card;
@@ -138,11 +147,11 @@ function board(real) {
   const w = d.warn;
   const warn = w ? `<p class="sh-warn"><b>${esc(w.event)}</b><span>${esc(w.until)}${w.more ? ` · ${w.more} more` : ''}</span><small>${esc(w.sender)}</small></p>` : '';
   return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}${w ? ' sh-w' : ''}">${warn}<div class="sh-mid">`
-    + `<p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side"><span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span><span>${ampm(m)}</span></span></p>`
-    + `<div class="sh-next"><p class="sh-l">${nextName(d)} in</p><p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${nextLine(d)}${wxAt(d.wxAt)}`
+    + `<p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side">${leftOf(d) < 900 ? `<span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span>` : ''}<span>${ampm(m)}</span></span></p>`
+    + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${nextLine(d)}${wxAt(d.wxAt)}`
     + `${ruler(d)}</div></div>`
     + body
-    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.wx ? `<span class="sh-wx">${d.wx}</span>` : ''}${d.month ? `<a class="sh-month" href="#month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</p></div>`;
+    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.wx ? `<span class="sh-wx">${d.wx}</span>` : ''}${d.month ? `<a class="sh-month" href="#month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</p></div>`;
 }
 
 function timeline(d) {
