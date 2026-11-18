@@ -5,7 +5,7 @@ import { handle } from '../functions/api/iqama.js';
 import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
 import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from '../logic.js';
+import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -89,7 +89,20 @@ assert.equal(iqamaAt('14:45', 800), 885);
 assert.equal(iqamaAt(undefined, 800), null);
 assert.equal(iqamaAt('<b>', 800), null);
 assert.deepEqual([0, 345, 720, 885, 1439].map(fmt), ['12:00 AM', '5:45 AM', '12:00 PM', '2:45 PM', '11:59 PM']);
-assert.deepEqual([4805, 65].map(fmtSpan), ['1h 20m', '1m 05s']);
+assert.deepEqual([4805, 65].map(fmtSpan), ['1h 21m', '1m 05s']);
+// Countdown rounds up, so it agrees with the adhan time shown: 9:50:30 PM to a 5:29 AM Fajr is 7h 38m 30s, shown "7h 39m"
+assert.equal(fmtSpan((1440 + 329) * 60 - (21 * 3600 + 50 * 60 + 30)), '7h 39m');
+assert.equal(fmtSpan(7 * 3600 + 39 * 60), '7h 39m', 'on the minute');
+assert.deepEqual([3600, 3599, 59.2, 0, -5].map(fmtSpan), ['1h 00m', '59m 59s', '1m 00s', '0m 00s', '0m 00s']);
+// Real time to a wall-clock time: New York, 2026
+const NY = 'America/New_York';
+assert.equal(wallMs(2026, 11, 17, 329, NY), Date.parse('2026-11-17T10:29:00Z'), 'standard time, UTC-5');
+assert.equal(wallMs(2026, 7, 1, 329, NY), Date.parse('2026-07-01T09:29:00Z'), 'daylight time, UTC-4');
+assert.equal(wallMs(2026, 11, 16, 1440 + 329, NY), Date.parse('2026-11-17T10:29:00Z'), 'tomorrow by minutes past 1440');
+// The night clocks go back (1 Nov 2026, 2 AM): from 9:50 PM on 31 Oct to a 6:20 AM Fajr is 9h 30m of real time, not 8h 30m
+assert.equal(fmtSpan((wallMs(2026, 10, 31, 1440 + 380, NY) - wallMs(2026, 10, 31, 21 * 60 + 50, NY)) / 1e3), '9h 30m');
+// ...and the night they go forward (8 Mar 2026): 7h 30m
+assert.equal(fmtSpan((wallMs(2026, 3, 7, 1440 + 380, NY) - wallMs(2026, 3, 7, 21 * 60 + 50, NY)) / 1e3), '7h 30m');
 const rows = [{ key: 'fajr', adhan: 312, iqama: 345 }, { key: 'isha', adhan: 1090, iqama: null }];
 assert.deepEqual(nextEvent(rows, 313, 300), { key: 'fajr', kind: 'adhan', at: 312 });
 assert.deepEqual(nextEvent(rows, 313, 320), { key: 'fajr', kind: 'iqama', at: 345 });
@@ -472,3 +485,25 @@ console.log('hijri and offsets ok');
   assert.equal(hijriNow(2026, 2, 17, 0, false, 1061, 1060), '29 Shaban 1447', 'off: midnight');
 }
 console.log('hijri at maghrib ok');
+{ // After the Isha iqama the sheet shows tomorrow; the clock and countdown stay on real time
+  const { renderTimes: rt } = await import('../clocks.js');
+  const mk = (f) => [['fajr', f, 360], ['dhuhr', 712, 750], ['asr', 871, 885], ['maghrib', 1001, 1001], ['isha', 1085, 1200]].map(([key, adhan, iqama]) => ({ key, adhan, iqama }));
+  const todayRows = mk(328), tmrw = mk(329), now = 21 * 60 + 50, next = nextEvent(todayRows, 329, now);
+  const base = { sec: now * 60 + 30, left: (1440 + 329 - now) * 60 - 30, now, rows: todayRows, sunrise: 410, next, tomorrowFajr: tmrw[0], card: null };
+  const txt = (h) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const late = txt(rt({ ...base, ahead: { rows: tmrw, sunrise: 411 } }));
+  assert.match(late, /Tomorrow/, 'corner says Tomorrow');
+  assert.match(late, / 5:29 /, 'table has tomorrow’s Fajr');
+  assert.doesNotMatch(late, / 5:28 /, 'and not today’s');
+  assert.match(late, /9:50/, 'big clock is still now');
+  assert.match(late, /7 h 39 m/, 'countdown unchanged');
+  assert.match(late, /Adhan 5:29 AM tomorrow/);
+  assert.match(late, /Sunrise 6:51 AM/, 'tomorrow’s sunrise');
+  assert.match(rt({ ...base, ahead: { rows: tmrw, sunrise: 411 } }), /is-next[^>]*>Fajr/, 'Fajr is the next prayer');
+  const early = txt(rt(base));
+  assert.doesNotMatch(early, /Tomorrow/, 'without ahead the sheet is today’s');
+  // Thursday night: Friday's sheet carries Jumu'ah
+  const fri = txt(rt({ ...base, ahead: { rows: fridayRows(tmrw, 'Fri', [720, 790]), sunrise: 411 } }));
+  assert.match(fri, /Jumu’ah/);
+  console.log('tomorrow sheet ok');
+}
