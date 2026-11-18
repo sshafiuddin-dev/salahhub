@@ -394,6 +394,8 @@ body { overflow: hidden; }
 #today tr.friday th, #today tr.friday td { color: var(--ink); font-weight: 600; }
 #today tr.next { background: color-mix(in srgb, var(--clear) 14%, transparent); }
 .iq-note { margin-top: .75rem; font-size: .9rem; color: var(--muted); max-width: 60ch; }
+.iq-note .iq-warn { color: var(--clear); font-weight: 600; } /* last sync failed or is over a day old */
+.iq-def, .sh-def { display: block; font: italic 400 .7em/1.1 var(--display); color: var(--muted); letter-spacing: 0; text-transform: none; } /* the visitor's default offset, not the masjid's time */
 #alert-log { white-space: pre-line; }
 .table-scroll { width: 100%; overflow-x: auto; margin-top: .75rem; }
 #month tr.today { font-weight: 600; background: color-mix(in srgb, var(--clear) 14%, transparent); }

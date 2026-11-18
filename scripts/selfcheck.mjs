@@ -507,3 +507,11 @@ console.log('hijri at maghrib ok');
   assert.match(fri, /Jumu’ah/);
   console.log('tomorrow sheet ok');
 }
+{ // A default iqama (the visitor's "minutes after adhan" for prayers with no known time) is labelled default
+  const { renderTimes: rt } = await import('../clocks.js');
+  const rows = [['fajr', 328, 338], ['dhuhr', 712, 722], ['asr', 871, 881], ['maghrib', 1001, 1011], ['isha', 1085, 1095]].map(([key, adhan, iqama]) => ({ key, adhan, iqama, def: true }));
+  const h = rt({ sec: 300 * 60, left: 28 * 60, now: 300, rows, sunrise: 410, next: nextEvent(rows, 329, 300), tomorrowFajr: rows[0], card: null });
+  assert.equal((h.match(/sh-def">default/g) || []).length, 5, 'every default iqama in the table is labelled');
+  assert.match(h.replace(/<[^>]+>/g, ''), /Iqama 5:38 AM \(default\)/, 'and the line beside the countdown');
+  console.log('default iqama ok');
+}

@@ -31,7 +31,7 @@ const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
   tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightLevel: 2, level: 0, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
-  adhkar: true, translit: true, wxBack: 'real', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
+  defIqama: null, adhkar: true, translit: true, wxBack: 'real', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -58,6 +58,8 @@ for (const k of ['palette', 'mode', 'dxNight', 'dxAuto']) delete settings[k];
 if (!LOOKS[settings.look]) settings.look = DEFAULTS.look;
 settings.tune = cleanTune(settings.tune);
 if (![-2, -1, 0, 1, 2].includes(settings.hijriShift)) settings.hijriShift = 0;
+// Default iqama for a prayer with no time from ISCJ or the visitor: off (null), or minutes after adhan, shown labelled "default"
+if (!(Number.isInteger(settings.defIqama) && settings.defIqama >= 0 && settings.defIqama <= 60)) settings.defIqama = null;
 settings.hijriMaghrib = settings.hijriMaghrib === true;
 if (!AUTO_DIM.includes(settings.autoDim)) settings.autoDim = DEFAULTS.autoDim;
 if (![1, 2, 3].includes(settings.nightLevel)) settings.nightLevel = DEFAULTS.nightLevel;
@@ -165,7 +167,9 @@ function dayTimes(y, m, d) {
     sunrise: min('sunrise'),
     rows: PRAYERS.map(key => {
       const adhan = min(key), own = settings.iqama[key] != null;
-      return { key, adhan, own, iqama: iqamaAt(own ? settings.iqama[key] : useMasjid ? (sunday && masjid.sunday[key]) || masjid.iqama[key] : null, adhan) };
+      const iqama = iqamaAt(own ? settings.iqama[key] : useMasjid ? (sunday && masjid.sunday[key]) || masjid.iqama[key] : null, adhan);
+      // no time known: the visitor's default offset, if they turned one on, marked so every view labels it "default"
+      return iqama == null && settings.defIqama != null ? { key, adhan, own, iqama: adhan + settings.defIqama, def: true } : { key, adhan, own, iqama };
     }),
   };
 }
@@ -222,7 +226,7 @@ function renderDay() {
 
   let body = '';
   for (const r of v.rows) {
-    body += `<tr data-k="${r.key}"><th scope="row">${NAMES[r.key]}</th><td>${fmt(r.adhan)}</td><td>${r.iqama == null ? 'Not set' : fmt(r.iqama)}</td></tr>`;
+    body += `<tr data-k="${r.key}"><th scope="row">${NAMES[r.key]}</th><td>${fmt(r.adhan)}</td><td>${r.iqama == null ? 'Not set' : `${fmt(r.iqama)}${r.def ? ' <small class="iq-def">default</small>' : ''}`}</td></tr>`;
     if (r.key === 'fajr') body += `<tr class="minor"><th scope="row">Sunrise</th><td>${fmt(v.sunrise)}</td><td></td></tr>`;
   }
   if (jumuah()) body += `<tr class="minor${sheet.weekday === 'Fri' ? ' friday' : ''}"><th scope="row">Jumu&rsquo;ah khutbah</th><td colspan="2">${jumuah()}</td></tr>`;
@@ -607,11 +611,20 @@ function buildForm() {
       </select>
       <input class="d-input d-input-sm" type="time" id="time-${k}" data-k="${k}" aria-label="${NAMES[k]} iqama time" hidden>
       <input class="d-input d-input-sm" type="number" id="offset-${k}" data-k="${k}" min="0" max="180" step="1" inputmode="numeric" aria-label="${NAMES[k]} iqama, minutes after adhan" hidden>
-    </div>`).join('') + `<button class="d-btn d-btn-sm" type="button" id="iqama-reset">${nearby ? 'Use ISCJ times for all' : 'Clear all'}</button>`;
+    </div>`).join('') + `
+    <div class="iq-rule iq-rule-def">
+      <label for="def-mode">No time known</label>
+      <select class="d-select d-select-sm" id="def-mode"><option value="off">Leave as not set</option><option value="on">Minutes after adhan, labelled default</option></select>
+      <input class="d-input d-input-sm" type="number" id="def-min" min="0" max="60" step="1" inputmode="numeric" aria-label="Default iqama, minutes after adhan" hidden>
+    </div>
+    <button class="d-btn d-btn-sm" type="button" id="iqama-reset">${nearby ? 'Use ISCJ times for all' : 'Clear all'}</button>`;
   $('iqama-reset').addEventListener('click', () => { settings.iqama = {}; save(); fillForm(); loadDay(today); });
   fillForm();
 }
 function fillForm() {
+  $('def-mode').value = settings.defIqama == null ? 'off' : 'on';
+  $('def-min').hidden = settings.defIqama == null;
+  $('def-min').value = settings.defIqama ?? 10;
   for (const k of PRAYERS) {
     const rule = settings.iqama[k], mode = rule == null ? 'masjid' : rule[0] === '+' ? 'offset' : 'time';
     $(`mode-${k}`).value = mode;
@@ -623,6 +636,12 @@ function fillForm() {
 }
 $('iqama-form').addEventListener('submit', (e) => e.preventDefault()); // Enter in a field must not reload the page
 $('iqama-form').addEventListener('change', (e) => {
+  if (e.target.id === 'def-mode' || e.target.id === 'def-min') {
+    const n = Math.round(+$('def-min').value);
+    settings.defIqama = $('def-mode').value === 'off' ? null : n >= 0 && n <= 60 ? n : 10;
+    save(); fillForm(); loadDay(today);
+    return;
+  }
   const k = e.target.dataset.k;
   if (!k) return;
   const mode = $(`mode-${k}`).value, row = day.rows.find(r => r.key === k);
@@ -1034,7 +1053,14 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 // The weather is refreshed every 15 minutes. ISCJ is read at start, on a new day, on Sync now, when the connection returns,
 // and about hourly (its times change only when ISCJ publishes, so this costs ISCJ almost nothing: the server keeps a copy for 5 minutes).
 const SYNC_EVERY = 15 * 60e3, IQAMA_EVERY = 55 * 60e3;
-let lastSync = 0, lastIqama = 0;
+let lastSync = 0, lastIqama = 0, syncedAt = 0, syncFailed = false;
+// "Last synced 2:14 PM" beside Sync now; in the warning colour when the last try failed or the last good sync is over a day old
+function showSynced() {
+  const el = $('synced'), old = !syncedAt || Date.now() - syncedAt > 864e5;
+  el.textContent = !syncedAt ? (syncFailed ? 'Not synced yet: ISCJ could not be reached.' : '')
+    : `${syncFailed ? 'Could not sync. ' : ''}Last synced ${stamp(syncedAt)}.`;
+  el.classList.toggle('iq-warn', syncFailed || old && !!syncedAt);
+}
 async function loadIqama(fresh) {
   let j = null, live = false;
   try { const r = await fetch(`/api/iqama${fresh ? '?fresh=1' : ''}`); if (r.ok) { j = await r.json(); live = !j.stale; } } catch (e) { /* fall back below */ }
@@ -1054,6 +1080,8 @@ async function sync(fresh, newDay) {
   if (!SETS.adhan.items[0].ar) loadHisnText().then(fillSets).then(() => { dkSig = ''; tick(); }).catch((e) => console.warn('Iqama Times: adhkar text failed', e));
   const [live] = await Promise.all([wantIqama ? loadIqama(fresh) : null, loadWeather()]);
   if (wantIqama && live) lastIqama = lastSync;
+  if (wantIqama) { syncFailed = !live; if (live) syncedAt = lastSync; }
+  showSynced();
   if (today && wantIqama) loadDay(today);
   return wantIqama ? live : true;
 }
@@ -1071,6 +1099,7 @@ setInterval(tick, 1000);
 setInterval(applyShift, 30e3);
 sync();
 setInterval(sync, SYNC_EVERY);
+setInterval(showSynced, 60e3); // turns to the warning colour once the last good sync is a day old
 addEventListener('online', () => sync()); // the connection came back: bring everything up to date at once
 
 // Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server

@@ -87,7 +87,7 @@ const units = (t) => t.replace(/(\d)([hms])/g, '$1<i>$2</i>');
 function nextLine(d) {
   const row = d.next.at >= 1440 ? d.tomorrowFajr : d.rows.find(r => r.key === d.next.key);
   if (!row) return `<p class="sh-at">${nextAt(d)}</p>`; // sunrise
-  const low = row.jumuah ? `Khutbah <b>${khutbahs(row.jumuah)}</b>` : `Iqama <b>${row.iqama == null ? 'not set' : row.iqama === row.adhan ? 'on time' : fmt(row.iqama)}</b>`;
+  const low = row.jumuah ? `Khutbah <b>${khutbahs(row.jumuah)}</b>` : `Iqama <b>${row.iqama == null ? 'not set' : row.iqama === row.adhan ? 'on time' : fmt(row.iqama)}</b>${row.def ? ' (default)' : ''}`;
   const when = d.next.at >= 1440 || d.isAhead ? ' tomorrow' : ''; // after Isha this is tomorrow's Fajr
   return `<p class="sh-at">Adhan <b>${fmt(row.adhan)}</b>${when} &nbsp;·&nbsp; ${low}</p>`;
 }
@@ -116,7 +116,7 @@ function sheetTable(d) {
   const th = d.rows.map(r => `<th scope="col"${nx(r) ? ' class="is-next"' : ''}>${nameOf(r)}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
   const adhan = d.rows.map(r => `<td${nx(r) ? ' class="is-next"' : ''}>${hm(r.adhan)}</td>`).join('');
   const iqama = d.rows.map(r => {
-    const v = r.jumuah ? r.jumuah.map(hm).join('<br>') : r.iqama == null ? '<em>not set</em>' : r.iqama === r.adhan ? '<em>on time</em>' : hm(r.iqama);
+    const v = r.jumuah ? r.jumuah.map(hm).join('<br>') : r.iqama == null ? '<em>not set</em>' : r.iqama === r.adhan && !r.def ? '<em>on time</em>' : r.def ? `${hm(r.iqama)}<small class="sh-def">default</small>` : hm(r.iqama);
     return `<td${nx(r) ? ' class="is-next"' : ''}>${v}</td>`;
   }).join('');
   const low = jumRow(d) ? 'Iqama, khutbah' : 'Iqama';
@@ -146,7 +146,7 @@ function board(real) {
 }
 
 function timeline(d) {
-  const E = [{ key: 'fajr', at: d.rows[0].adhan, iq: d.rows[0].iqama }, { key: 'sunrise', at: d.sunrise }, ...d.rows.slice(1).map(r => ({ key: r.key, at: r.adhan, iq: r.iqama, jumuah: r.jumuah }))];
+  const E = [{ key: 'fajr', at: d.rows[0].adhan, iq: d.rows[0].iqama, def: d.rows[0].def }, { key: 'sunrise', at: d.sunrise }, ...d.rows.slice(1).map(r => ({ key: r.key, at: r.adhan, iq: r.iqama, def: r.def, jumuah: r.jumuah }))];
   // rows are evenly spaced; the marker moves between row centres in proportion to the time between them
   const H = 56, c = (i) => i * H + H / 2, m = d.now;
   let y;
@@ -154,7 +154,7 @@ function timeline(d) {
   else if (m >= E[5].at) y = c(5) + (m - E[5].at) / (1440 - E[5].at) * (H / 2);
   else { const i = E.findIndex((e, k) => m >= e.at && m < E[k + 1].at); y = c(i) + (m - E[i].at) / (E[i + 1].at - E[i].at) * H; }
   const rows = E.map(e => {
-    const iq = e.jumuah ? `Khutbah ${khutbahs(e.jumuah)}` : !('iq' in e) ? '' : e.iq == null ? 'Iqama not set' : e.iq === e.at ? 'Iqama on time' : `Iqama ${fmt(e.iq)}`;
+    const iq = e.jumuah ? `Khutbah ${khutbahs(e.jumuah)}` : !('iq' in e) ? '' : e.iq == null ? 'Iqama not set' : e.iq === e.at && !e.def ? 'Iqama on time' : `Iqama ${fmt(e.iq)}${e.def ? ' (default)' : ''}`;
     const cls = [m >= (e.iq ?? e.at) ? 'is-done' : '', m >= e.at ? 'is-reached' : ''].filter(Boolean).join(' ');
     return `<li${cls ? ` class="${cls}"` : ''}${e.jumuah ? ' data-jumuah' : ''}><span class="ck-node"></span><strong>${e.jumuah ? JUM : NAMES[e.key]}</strong><span class="ck-tl-times"><b>${fmt(e.at)}</b><span>${iq}</span></span></li>`;
   }).join('');
