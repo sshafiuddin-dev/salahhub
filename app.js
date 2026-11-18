@@ -251,6 +251,15 @@ function renderDay() {
 const khutbah = () => parseHM(settings.alerts.jumuah.time) ?? jumuahMins()[0] ?? null;
 const alertRows = () => (today.weekday === 'Fri' && khutbah() != null ? [...day.rows, { key: 'jumuah', adhan: khutbah(), iqama: null }] : day.rows);
 
+// One line for the wall display: where iqama comes from and how fresh it is. Turns "late" after a day without a check.
+const freshNote = () => {
+  if (!near() || masjid.failed) return null;
+  if (!masjid.checked) return { text: 'Iqama from ISCJ', late: false };
+  const t = new Date(masjid.checked).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const old = Date.now() - masjid.checked > 24 * 3600e3;
+  return { text: old ? `Iqama not checked since ${t}, ${new Date(masjid.checked).toLocaleDateString([], { month: 'short', day: 'numeric' })}` : `Iqama from ISCJ, checked ${t}`, late: old || masjid.stale };
+};
+
 function tick() {
   const c = clock(new Date(), place().zone), nowMs = Date.now();
   // over 100 s since the last tick (alerts skip anything over 90 s late): the page was asleep, frozen or discarded
@@ -263,13 +272,13 @@ function tick() {
   const left = (wallMs(today.y, today.m, today.d, ev.at, place().zone) - nowMs) / 1e3; // real seconds to it, the same clock as the time shown
   $('now').textContent = fmt(Math.floor(nowMin));
   const at = wxAt(ev, rows);
-  const html = renderClock(settings.clock, { sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine() });
+  const html = renderClock(settings.clock, { sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine(), fresh: freshNote() });
   $('clock').innerHTML = html;
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim) applyLook();
   if (displayOpen) {
-    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), card: dxCardFor(nowMin) });
+    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), fresh: freshNote(), card: dxCardFor(nowMin) });
     else {
       $('dx-clock').innerHTML = html;
       if (c.sec % 10 === 0) fitDisplay(); // re-fit after late font loads or a change in what the clock shows

@@ -165,7 +165,7 @@ body { overflow: hidden; }
 .tb-btn svg { width: 1.15rem; height: 1.15rem; }
 .tab {
   flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
-  display: grid; gap: 1.25rem; align-content: start;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; align-content: start;
   padding: .25rem max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-right, 0px)) 2rem clamp(1rem, 3vw, 2.5rem);
 }
 .tab-fill { grid-template-rows: auto minmax(0, 1fr); align-content: stretch; }
@@ -316,11 +316,16 @@ body { overflow: hidden; }
 .sh-warn small { margin-left: auto; font: 500 max(.72rem, calc(var(--u) * 1.8))/1.2 var(--body); letter-spacing: .06em; color: var(--muted); }
 .sh-mid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: center; gap: calc(var(--u) * 3); min-height: 0; padding-block: calc(var(--u) * 1.5); }
 .sh-time { display: flex; align-items: flex-start; gap: calc(var(--u) * 1.2); line-height: 1; }
-.sh-hm { font: 400 calc(var(--u) * 33)/1 var(--display); letter-spacing: -.045em; margin-block: -.08em -.12em; }
+.sh-hm { font: 400 calc(var(--u) * 27)/1 var(--display); letter-spacing: -.045em; margin-block: -.08em -.12em; }
 .sh-side { display: grid; gap: calc(var(--u) * .6); padding-top: calc(var(--u) * 4.5); font: 500 max(1rem, calc(var(--u) * 4))/1 var(--display); color: var(--muted); }
 .sh-next { border-left: var(--rule-w, 1px) solid var(--ink); padding-left: calc(var(--u) * 3.5); display: grid; gap: calc(var(--u) * 1.2); min-width: 0; }
-.sh-l { font: 600 max(.75rem, calc(var(--u) * 2.1))/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--clear); }
-.sh-n { font: 500 calc(var(--u) * 11.5)/1 var(--display); letter-spacing: -.02em; }
+.sh-l { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: calc(var(--u) * 1.6); color: var(--clear); line-height: 1.05; }
+.sh-nm { font: 500 calc(var(--u) * 9)/1.05 var(--display); letter-spacing: -.015em; }
+.sh-nar { font: 400 calc(var(--u) * 9)/1.2 var(--ar, "Amiri"), serif; letter-spacing: 0; }
+.sh-kind { flex-basis: 100%; font: italic 400 max(1rem, calc(var(--u) * 3.2))/1.3 var(--display); color: var(--muted); }
+.sh-fresh { color: var(--muted); }
+.sh-fresh.late { color: var(--clear); font-style: normal; font-weight: 600; }
+.sh-n { font: 500 calc(var(--u) * 12.5)/1 var(--display); letter-spacing: -.02em; }
 .sh-n i { font-size: .48em; font-weight: 400; color: var(--muted); margin-left: .04em; }
 .sh-at { font: italic 400 max(1rem, calc(var(--u) * 3.2))/1.3 var(--display); color: var(--muted); }
 .sh-at b { font-style: normal; font-weight: 600; color: var(--ink); }
@@ -342,8 +347,8 @@ body { overflow: hidden; }
 .sh .sh-tt { width: 100%; border-collapse: collapse; table-layout: fixed; border-top: var(--rule-w, 1px) solid var(--ink); border-bottom: 3px double var(--ink); }
 .sh .sh-tt th, .sh .sh-tt td { padding: 0; text-align: center; border: 0; background: none; white-space: normal; }
 .sh .sh-tt thead th { padding-top: calc(var(--u) * 1.1); font: 600 max(.7rem, calc(var(--u) * 1.85))/1.2 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); vertical-align: bottom; }
-.sh .sh-tt tr > :first-child { width: 12%; text-align: left; }
-.sh .sh-tt tbody th { font: 600 max(.7rem, calc(var(--u) * 1.85))/1 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.sh .sh-tt tr > :first-child { width: 13%; text-align: left; overflow: visible; }
+.sh .sh-tt tbody th { font: 600 max(.7rem, calc(var(--u) * 1.85))/1 var(--body); letter-spacing: .06em; text-align: left; padding: 0 .5em 0 .6em; text-transform: uppercase; color: var(--muted); }
 .sh-ar { display: block; font: 400 max(1rem, calc(var(--u) * 3))/1.3 var(--ar, "Amiri"), serif; letter-spacing: 0; text-transform: none; color: var(--ink); }
 .sh .sh-tt td { font: 400 calc(var(--u) * 4.8)/1 var(--display); padding-block: calc(var(--u) * .6) calc(var(--u) * 1.1); }
 .sh .sh-tt .sh-iq > * { border-top: var(--rule-w, 1px) solid var(--line); }
@@ -351,6 +356,8 @@ body { overflow: hidden; }
 .sh .sh-tt td em { font: italic 500 calc(var(--u) * 3.2)/1 var(--display); color: var(--muted); }
 .sh .sh-tt .sh-iq td:has(br) { font-size: calc(var(--u) * 3.6); line-height: 1.1; }
 .sh .sh-tt .is-next, .sh .sh-tt .is-next .sh-ar { color: var(--clear); }
+.sh .sh-tt thead th.is-next { box-shadow: inset 0 3px 0 currentColor; }
+.sh .sh-tt .sh-iq td.is-next { box-shadow: inset 0 -3px 0 currentColor; }
 .sh-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .sh .sh-tt thead th .sh-tmrw { color: var(--clear); } /* after Isha the sheet is tomorrow's: the corner cell says so, in the accent ink */
 .sh-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem 1.5rem; padding-top: calc(var(--u) * 1.3); font: italic 400 max(.95rem, calc(var(--u) * 2.5))/1.3 var(--display); color: var(--muted); }
@@ -428,7 +435,7 @@ body { overflow: hidden; }
 
 /* Full screen display */
 .display {
-  position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 1rem;
+  position: fixed; inset: 0; z-index: 50; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; gap: 1rem;
   padding: max(1.25rem, env(safe-area-inset-top, 0px)) max(clamp(1rem, 4vw, 3.5rem), env(safe-area-inset-right, 0px)) max(1.25rem, env(safe-area-inset-bottom, 0px)) max(clamp(1rem, 4vw, 3.5rem), env(safe-area-inset-left, 0px));
   background: var(--paper); color: var(--ink); overflow: hidden; isolation: isolate; /* its own weather layers sit just above this paper */
 }
@@ -643,6 +650,7 @@ body { overflow: hidden; }
 .display .dx-top { flex-wrap: nowrap; padding-bottom: .55rem; border-bottom: 3px double var(--ink); }
 .display .dx-meta { flex-wrap: nowrap; gap: .2rem .9rem; font: italic 400 1.15rem/1.3 var(--display); color: var(--ink); min-width: 0; }
 .display .dx-actions { gap: 1.4rem; flex: none; }
+@media (max-width: 40rem) { .display .dx-top, .display .dx-meta { flex-wrap: wrap; } .display .dx-actions { flex: 0 1 auto; flex-wrap: wrap; gap: .4rem 1.1rem; } }
 .display .dx-actions .d-btn:not(.dx-stop), .display .dx-awake {
   height: auto; min-height: 2.75rem; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
   font: 500 .78rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
