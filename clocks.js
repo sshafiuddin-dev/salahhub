@@ -23,7 +23,9 @@ const nextName = (d) => {
 // the countdown blinks (soft, once a second) in its last 15 minutes
 // from 15 minutes out the countdown sits on a highlighter mark; in the last 3 minutes the mark blinks (once a second)
 const soon = (d) => (leftOf(d) < 180 ? ' ck-hl ck-blink' : leftOf(d) < 900 ? ' ck-hl' : '');
-const stack = (cls, d) => `<div class="${cls}"><p>${nextName(d)} in</p><p class="ck-count${soon(d)}">${untilNext(d)}</p><p>${nextAt(d)}</p></div>`;
+// the next event as the board shows it: the name in English and Arabic, what is coming (or "Adhan called"), the countdown, adhan and iqama
+const head = (d) => `${nextHead(d)}<p class="ck-count${soon(d)}">${units(untilNext(d))}</p>${nextLine(d)}`;
+const stack = (cls, d) => `<div class="${cls} ck-head">${head(d)}</div>`;
 
 function dial(d) {
   const C = 180, R = 122;
@@ -71,11 +73,12 @@ function sun(d) {
     + `<defs><linearGradient id="ck-skyfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ck-sky-top"/><stop offset="1" class="ck-sky-bottom"/></linearGradient></defs>`
     + `<rect x="0" y="0" width="400" height="180" rx="10" fill="url(#ck-skyfill)"/><rect class="ck-ground" x="0" y="180" width="400" height="120" rx="10"/>`
     + `<path class="ck-arc" d="M40 180 A160 140 0 0 1 360 180"/><path class="ck-arc ck-dash" d="M360 180 A160 90 0 0 1 40 180"/><line class="ck-horizon" x1="0" y1="180" x2="400" y2="180"/>`
+    + `<circle class="${isDay ? 'ck-sunball' : 'ck-moon'}" cx="${bx}" cy="${by}" r="13"/>` // drawn first: the prayer names sit on top of it
     + `${dot(day(dhuhr.adhan))}${dot(day(asr.adhan))}${dot(['360', '180'])}${dot(['40', '180'])}${dot(night(isha.adhan))}${dot(night(fajr.adhan))}`
     + `${label(day(dhuhr.adhan), `${nameOf(dhuhr)} ${hm(dhuhr.adhan)}`, '', -14)}${label(day(asr.adhan), `Asr ${hm(asr.adhan)}`, '', -14)}`
     + `<text class="ck-strong ck-end" x="356" y="166">Maghrib ${hm(set)}</text><text class="ck-strong ck-start" x="44" y="166">Sunrise ${hm(rise)}</text>`
     + `${label(night(isha.adhan), `Isha ${hm(isha.adhan)}`, 'ck-end', 24)}${label(night(fajr.adhan), `Fajr ${hm(fajr.adhan)}`, 'ck-start', 24)}`
-    + `<circle class="${isDay ? 'ck-sunball' : 'ck-moon'}" cx="${bx}" cy="${by}" r="13"/></svg>${stack('ck-below', d)}</div>`;
+    + `</svg>${stack('ck-below', d)}</div>`;
 }
 
 // Masjid board: the day as one printed sheet. The time beside the countdown, then the timetable (adhan above, iqama below,
@@ -85,6 +88,7 @@ function sun(d) {
 const AR = { fajr: 'الفجر', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
 const AR_JUM = 'الجمعة';
 const AR_RISE = 'الشروق';
+const arOf = (d) => { const r = d.next.at < 1440 && d.rows.find(x => x.key === d.next.key); return r?.jumuah ? AR_JUM : d.next.key === 'sunrise' ? AR_RISE : AR[d.next.key]; };
 const units = (t) => t.replace(/(\d)([hms])/g, '$1<i>$2</i>');
 function nextLine(d) {
   const row = d.next.at >= 1440 ? d.tomorrowFajr : d.rows.find(r => r.key === d.next.key);
@@ -171,7 +175,7 @@ function timeline(d) {
     return `<li${cls ? ` class="${cls}"` : ''}${e.jumuah ? ' data-jumuah' : ''}><span class="ck-node"></span><strong>${e.jumuah ? JUM : NAMES[e.key]}</strong><span class="ck-tl-times"><b>${fmt(e.at)}</b><span>${iq}</span></span></li>`;
   }).join('');
   const jum = d.jumuah?.length && !jumRow(d) ? `<p class="ck-tl-foot">${JUM} khutbah ${khutbahs(d.jumuah)}</p>` : '';
-  return `<div class="ck-timeline"><div class="ck-tl-head"><p>${nextName(d)} ${nextAt(d)}, in</p><p class="ck-count${soon(d)}">${untilNext(d)}</p></div>`
+  return `<div class="ck-timeline"><div class="ck-tl-head ck-head">${head(d)}</div>`
     + `<div class="ck-rail"><span class="ck-rail-fill" style="height:${f1(y)}px"></span><span class="ck-rail-dot" style="top:${f1(y - 9)}px"></span><ol>${rows}</ol></div>${jum}</div>`;
 }
 
@@ -182,7 +186,7 @@ function bedside(d) {
     return `<li${cls ? ` class="${cls}"` : ''}><span></span>${nameOf(r)}</li>`;
   }).join('');
   return `<div class="ck-bedside"><p class="ck-bed-time"><span>${hm(m)}</span><small>${ampm(m)}</small></p><p class="ck-bed-date">${d.date}</p>`
-    + `<div><p class="ck-bed-next">${nextName(d)} ${fmt(d.next.at)}</p><p class="ck-bed-in${soon(d)}">in ${h ? `${h} hr ` : ''}${left % 60} min</p></div><ol class="ck-bed-dots">${dots}</ol></div>`;
+    + `<div><p class="ck-bed-ar" lang="ar">${arOf(d)}</p><p class="ck-bed-next">${nextName(d)} ${fmt(d.next.at)}</p><p class="ck-bed-in${soon(d)}">in ${h ? `${h} hr ` : ''}${left % 60} min</p></div><ol class="ck-bed-dots">${dots}</ol></div>`;
 }
 
 const STYLES = { board, dial, analog, sun, timeline, bedside };
