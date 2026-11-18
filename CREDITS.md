@@ -43,6 +43,7 @@ Iqama Times shows the same list under Settings, About.
 | Weather and forecast | [Open-Meteo.com](https://open-meteo.com/) | CC BY 4.0 |
 | Air quality | Open-Meteo, using [Copernicus Atmosphere Monitoring Service](https://atmosphere.copernicus.eu/) information | CC BY 4.0 (Open-Meteo); Copernicus licence |
 | Place search | Open-Meteo geocoding, using [GeoNames](https://www.geonames.org/) | CC BY 4.0 |
+| US weather warnings, watches and advisories | [National Weather Service](https://www.weather.gov/) (NOAA), from [api.weather.gov](https://www.weather.gov/documentation/services-web-api) through `functions/api/alerts.js` | Public domain (US government work). Not affiliated with or endorsed by the NWS |
 
 ## Libraries and fonts
 
