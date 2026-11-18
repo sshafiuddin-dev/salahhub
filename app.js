@@ -263,13 +263,13 @@ function tick() {
   const left = (wallMs(today.y, today.m, today.d, ev.at, place().zone) - nowMs) / 1e3; // real seconds to it, the same clock as the time shown
   $('now').textContent = fmt(Math.floor(nowMin));
   const at = wxAt(ev, rows);
-  const html = renderClock(settings.clock, { sec: c.sec, left, ahead: aheadDay, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine() });
+  const html = renderClock(settings.clock, { sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine() });
   $('clock').innerHTML = html;
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim) applyLook();
   if (displayOpen) {
-    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, ahead: aheadDay, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), card: dxCardFor(nowMin) });
+    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), card: dxCardFor(nowMin) });
     else {
       $('dx-clock').innerHTML = html;
       if (c.sec % 10 === 0) fitDisplay(); // re-fit after late font loads or a change in what the clock shows
@@ -305,10 +305,12 @@ function renderMonth() {
     return `<tr${cls ? ` class="${cls}"` : ''}><th scope="row">${r.weekday} ${r.d}</th><td class="mo-hijri">${h}</td>${r.times.map(t => `<td>${fmt(t).replace(/ ([AP]M)$/, '<span class="mo-ap"> $1</span>')}</td>`).join('')}</tr>`;
   }).join('');
 }
+const monthName = () => (today ? new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(Date.UTC(today.y, today.m - 1, 15))) : '');
 const monthTitle = () => (today ? new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(today.y, today.m - 1, 15))) : 'This month');
 
 // Tabs: one screen each, chosen by the address (#weather), so the back button moves between them
 const TAB_IDS = ['today', 'weather', 'adhkar', 'quran', 'month', 'settings'];
+const MORE_TABS = ['adhkar', 'quran', 'month'];
 const TITLES = { today: 'Today', weather: 'Weather', adhkar: 'Adhkar audio', quran: 'Quran', settings: 'Settings' };
 let tab = 'today', sub = 'location';
 let feedback = null; // the feedback form, once set up
@@ -332,6 +334,15 @@ function route() {
     a.classList.toggle('d-menu-active', on && !!a.closest('.tabbar'));
     a.classList.toggle('d-dock-active', on && !!a.closest('.dockbar'));
   });
+  // More holds Adhkar, Quran and Month: it lights up while one of them is open, and closes once a choice is made
+  document.querySelectorAll('.more').forEach(m => {
+    const inside = MORE_TABS.includes(tab);
+    m.classList.toggle('is-on', inside);
+    m.querySelector('summary').classList.toggle('d-menu-active', inside && !!m.closest('.tabbar'));
+    m.querySelector('summary').classList.toggle('d-dock-active', inside && !!m.closest('.dockbar'));
+    const d = m.matches('details') ? m : m.querySelector('details');
+    if (d) d.open = false;
+  });
   $('tab-title').textContent = tab === 'month' ? monthTitle() : TITLES[tab];
   $('help').href = `guide/${tab === 'settings' ? HELP_SUB[sub] : HELP_TAB[tab]}`;
   document.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-selected', b.dataset.sub === sub));
@@ -339,6 +350,8 @@ function route() {
   if (tab === 'month' && today) renderMonth();
 }
 addEventListener('hashchange', route);
+// a tap anywhere else (or on a choice in it) closes the More menu
+document.addEventListener('click', (e) => document.querySelectorAll('.more details, details.more').forEach(d => { if (!d.contains(e.target) || e.target.closest('.more-menu a')) d.open = false; }));
 document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { sub = b.dataset.sub; route(); }));
 
 // Sharing: the system share sheet where there is one, otherwise the clipboard
@@ -1108,6 +1121,14 @@ addEventListener('online', () => sync()); // the connection came back: bring eve
 const WATCHED = ['./', 'boot.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'motion.js', 'feedback.js'];
 let loadedVersion = '', updateWaiting = false, lastTouch = Date.now();
 for (const t of ['pointerdown', 'keydown', 'touchstart']) addEventListener(t, () => { lastTouch = Date.now(); }, { passive: true });
+// A wall tablet comes back to Today by itself: after 2 minutes untouched, off any other screen (but not while audio plays,
+// a Settings field is being edited, or the feedback form is open)
+const IDLE_HOME = 120e3;
+setInterval(() => {
+  if (tab === 'today' || Date.now() - lastTouch < IDLE_HOME || playing() || quran.isPlaying()) return;
+  if (document.activeElement?.matches('input, select, textarea') || document.querySelector('dialog[open]')) return;
+  go('today');
+}, 10e3);
 // The server gives every file but the home page a version tag; the home page is fingerprinted from its text instead
 const fingerprint = (t) => { let h = 5381; for (let i = 0; i < t.length; i++) h = (h * 33 + t.charCodeAt(i)) | 0; return `${t.length}:${h}`; };
 async function siteVersion() {
