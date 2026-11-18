@@ -142,7 +142,7 @@ function board(real) {
     + `<div class="sh-next"><p class="sh-l">${nextName(d)} in</p><p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${nextLine(d)}${wxAt(d.wxAt)}`
     + `${ruler(d)}</div></div>`
     + body
-    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.wx ? `<span class="sh-wx">${d.wx}</span>` : ''}</p></div>`;
+    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.wx ? `<span class="sh-wx">${d.wx}</span>` : ''}${d.month ? `<a class="sh-month" href="#month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</p></div>`;
 }
 
 function timeline(d) {
