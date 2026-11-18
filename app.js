@@ -31,7 +31,7 @@ const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
   tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightLevel: 2, level: 0, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
-  defIqama: null, adhkar: true, translit: true, wxBack: 'real', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
+  defIqama: null, adhkar: true, translit: true, wxBack: 'auto', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -68,7 +68,11 @@ if (settings.units !== 'F' && settings.units !== 'C') settings.units = DEFAULTS.
 settings.muted = settings.muted === true;
 settings.adhkar = settings.adhkar !== false;
 // Weather background: real (the default), print, still or off; the earlier on/off switch maps to real and off
-settings.wxBack = settings.wxBack === false ? 'off' : ['real', 'print', 'still', 'off'].includes(settings.wxBack) ? settings.wxBack : 'real';
+// 'auto' (the default) is the printed sky by day and the realistic one from Maghrib to sunrise. Devices that had the old default, 'real',
+// move to 'auto' once; a person can pick Realistic sky again afterwards.
+if (settings.wxBack === 'real' && !settings.wxBackV) settings.wxBack = 'auto';
+settings.wxBackV = 1;
+settings.wxBack = settings.wxBack === false ? 'off' : ['auto', 'real', 'print', 'still', 'off'].includes(settings.wxBack) ? settings.wxBack : 'auto';
 settings.translit = settings.translit !== false;
 if (!['s', 'm', 'l'].includes(settings.arSize)) settings.arSize = DEFAULTS.arSize;
 settings.awake = settings.awake === true;
@@ -97,7 +101,9 @@ try { const d = +localStorage.getItem('iqama-dim'); if ([0, 1, 2, 3].includes(d)
 const nightNow = () => timesKnown && isNight(nowMinute, day.rows, day.sunrise, settings.autoDim);
 // With the realistic sky, nights (Maghrib to sunrise) use the dark look, since the sky is dark then; a level picked by hand
 // still holds, and the sky then switches to its printed form. Auto off keeps the level the person set.
-const realNight = () => settings.wxBack === 'real' && settings.look === 'paper' && settings.autoDim !== 'off' && timesKnown
+const night = () => timesKnown && (nowMinute >= day.rows[3].adhan || nowMinute < day.sunrise);
+const skyBack = () => (settings.wxBack === 'auto' ? (night() ? 'real' : 'print') : settings.wxBack);
+const realNight = () => skyBack() === 'real' && settings.look === 'paper' && settings.autoDim !== 'off' && timesKnown
   && (nowMinute >= day.rows[3].adhan || nowMinute < day.sunrise);
 const currentDim = () => {
   const d = timesKnown || settings.autoDim === 'off' ? dimLevel(settings, nightNow(), dimOverride) : shownDim ?? 0;
@@ -289,8 +295,8 @@ function tick() {
   const sky = skyParams(weather, { now: nowMin, sunrise: day.sunrise, maghrib: day.rows[3].adhan }, parseInt(today.hijri, 10) || 15);
   const dim = currentDim();
   // no sky in the Handwritten and High contrast looks, nor at Dim unless the realistic sky can show by day
-  const skyOk = settings.look === 'paper' && (dim < 2 || (settings.wxBack === 'real' && (dim === 3 || !sky.night)));
-  updateSky(sky, settings.wxBack, skyOk, root.dataset.theme === 'dark');
+  const skyOk = settings.look === 'paper' && (dim < 2 || (skyBack() === 'real' && (dim === 3 || !sky.night)));
+  updateSky(sky, skyBack(), skyOk, root.dataset.theme === 'dark');
 
   // Alerts: only for moments crossed while the page is open
   if (lastSec != null && c.sec > lastSec) for (const a of alertsBetween(alertRows(), settings.alerts, lastSec, c.sec)) fire(a);
