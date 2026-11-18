@@ -7,6 +7,7 @@ import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
 import { HISN, hisnUrl } from './hisn.js';
 import { initQuran } from './quran.js';
+import { initFeedback } from './feedback.js';
 
 const $ = (id) => document.getElementById(id);
 const root = document.documentElement;
@@ -283,6 +284,7 @@ const monthTitle = () => (today ? new Intl.DateTimeFormat('en-US', { month: 'lon
 const TAB_IDS = ['today', 'weather', 'adhkar', 'quran', 'month', 'settings'];
 const TITLES = { today: 'Today', weather: 'Weather', adhkar: 'Adhkar audio', quran: 'Quran', settings: 'Settings' };
 let tab = 'today', sub = 'location';
+let feedback = null; // the feedback form, once set up
 function go(t, s) {
   if (s) sub = s;
   if (location.hash.slice(1) === t) route(); else location.hash = t;
@@ -293,6 +295,7 @@ const HELP_SUB = { location: 'location', iqama: 'iqama', alerts: 'alerts', displ
 function route() {
   let h = location.hash.slice(1);
   if (h === 'alerts') { h = 'settings'; sub = 'alerts'; } // the old address for the alerts screen
+  if (h === 'feedback') { history.replaceState(null, '', `#${tab}`); h = tab; setTimeout(() => feedback?.open(), 0); } // the guide links here
   tab = TAB_IDS.includes(h) ? h : 'today';
   root.dataset.tab = tab; // the stylesheet lays out Today as one sheet
   for (const id of TAB_IDS) $(`tab-${id}`).hidden = id !== tab;
@@ -1048,7 +1051,7 @@ addEventListener('online', () => sync()); // the connection came back: bring eve
 // Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server
 // whether any of its files changed since it loaded; if so, it reloads itself at a quiet moment: no sound playing, no alert,
 // nobody touching it for a minute, no adhan or iqama within 2 minutes. The full screen view is restored after the reload.
-const WATCHED = ['./', 'boot.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'motion.js'];
+const WATCHED = ['./', 'boot.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'motion.js', 'feedback.js'];
 let loadedVersion = '', updateWaiting = false, lastTouch = Date.now();
 for (const t of ['pointerdown', 'keydown', 'touchstart']) addEventListener(t, () => { lastTouch = Date.now(); }, { passive: true });
 // The server gives every file but the home page a version tag; the home page is fingerprinted from its text instead
@@ -1090,3 +1093,25 @@ $('sync').addEventListener('click', async () => {
   $('sync').disabled = false;
   say(live && weather ? 'Synced.' : `${live ? '' : 'Could not reach ISCJ, so the iqama times are the last saved ones. '}${weather ? '' : 'Weather is not available right now.'}`.trim());
 });
+
+// The app's version is the offline cache's name (sw.js raises it with every release)
+let swVersion = '';
+try { caches.keys().then(k => { swVersion = k.find(n => n.startsWith('iqama-')) || ''; }).catch(() => {}); } catch (e) {}
+// Feedback: what is listed here is shown in the form, and sent only if the person leaves it switched on.
+// No coordinates: the place's name is enough to look into wrong times.
+feedback = initFeedback({
+  snapTarget: () => (displayOpen ? $('display') : document.querySelector('.app')),
+  details: () => {
+    const shown = tab === 'settings' ? `settings › ${sub}` : tab;
+    return {
+      version: swVersion || 'unknown', screen: displayOpen ? 'full screen' : shown, place: place().name,
+      look: settings.look, brightness: DIM_NAMES[currentDim()] || '', 'clock style': settings.clock,
+      'full screen layout': settings.dxLayout, 'keep screen on': settings.awake ? 'on' : 'off',
+      alerts: settings.muted ? 'off' : 'on', units: settings.units,
+      'screen size': `${innerWidth} × ${innerHeight}, ${devicePixelRatio || 1}x`, browser: navigator.userAgent,
+      'time zone': place().zone, 'local time': new Date().toLocaleString('en-US', { timeZone: place().zone }),
+      online: navigator.onLine ? 'yes' : 'no',
+    };
+  },
+});
+if (location.hash === '#feedback') route();

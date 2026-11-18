@@ -45,6 +45,7 @@
                 </div>
                 <div class="topbar-actions">
                     <button class="d-btn d-btn-sm tb-btn" type="button" id="install" hidden>Install app</button>
+                    <button class="d-btn d-btn-sm d-btn-outline tb-btn fb-open" type="button" id="feedback-btn"><span>Feedback</span></button>
                     <a class="d-btn d-btn-sm d-btn-outline tb-btn" id="help" href="guide/today" aria-label="Help for this screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.2a2.6 2.6 0 0 1 5 .8c0 1.8-2.5 2.2-2.5 3.8M12 17h.01"/></svg><span>Help</span></a>
                     <button class="d-btn d-btn-sm d-btn-outline tb-btn dim-btn" type="button" id="dim-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="dim-sun" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><path class="dim-moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Bright</span></button>
                     <button class="d-btn d-btn-sm d-btn-outline tb-btn" type="button" id="awake" aria-pressed="false">
@@ -284,6 +285,7 @@
                     <div class="iq-fields">
                         <a class="d-btn d-btn-sm d-btn-primary" href="guide/">Read the guide</a>
                         <button class="d-btn d-btn-sm" type="button" id="share-app">Share the app</button>
+                        <button class="d-btn d-btn-sm fb-open" type="button" id="feedback-about">Send feedback</button>
                     </div>
                     <div class="iq-credits" id="privacy">
                         <h2>What leaves this device</h2>
@@ -294,6 +296,7 @@
                             <li><strong>Weather warnings:</strong> your place, rounded to about 1 km, goes to this site’s own server, which asks the <a href="https://www.weather.gov/">National Weather Service</a> for warnings in force there. Nothing else about you is in that request.</li>
                             <li><strong>ISCJ iqama times:</strong> the app asks this site’s own server, which reads iscj.org. Nothing about you is in that request.</li>
                             <li><strong>Quran and adhkar audio:</strong> the reciter list and recitations stream from mp3quran.net, and adhkar recordings from hisnmuslim.com, when you play them.</li>
+                            <li><strong>Feedback:</strong> only when you send it, what you write, the screenshot if you leave it in, the details listed in the form if you leave them on, and your email if you give one go to this site’s server, which emails them to the person who looks after the app. Nothing is sent until you tap <em>Send</em>.</li>
                             <li><strong>Security reports:</strong> if the browser blocks something on a page for safety, it tells this site’s server log which page and which address. Nothing else is in the report.</li>
                         </ul>
                         <p>Each of these services, and Cloudflare, which hosts this site, sees your device’s internet address, as any website does. There are no accounts, ads or tracking in the app.</p>
@@ -312,7 +315,7 @@
                         <p>Weather by <a href="https://open-meteo.com/">Open-Meteo.com</a> (CC BY 4.0). Air quality from Open-Meteo, using <a href="https://atmosphere.copernicus.eu/">Copernicus Atmosphere Monitoring Service</a> information. Place search by Open-Meteo, using <a href="https://www.geonames.org/">GeoNames</a> (CC BY 4.0).</p>
                         <p>Weather warnings, watches and advisories in the US from the <a href="https://www.weather.gov/">National Weather Service</a> (NOAA), through its public <a href="https://www.weather.gov/documentation/services-web-api">api.weather.gov</a> service. This information is in the public domain. Iqama Times is not affiliated with or endorsed by the National Weather Service; for official warnings, go to weather.gov.</p>
                         <h3>Software and fonts</h3>
-                        <p><a href="https://daisyui.com/">daisyUI</a> and <a href="https://tailwindcss.com/">Tailwind CSS</a> (MIT), <a href="https://motion.dev/">Motion</a> (MIT). Fonts: Amiri, Aref Ruqaa, IBM Plex Sans, Kalam and Newsreader, from <a href="https://fonts.google.com/">Google Fonts</a>, served from this site (SIL Open Font License 1.1).</p>
+                        <p><a href="https://daisyui.com/">daisyUI</a> and <a href="https://tailwindcss.com/">Tailwind CSS</a> (MIT), <a href="https://motion.dev/">Motion</a> (MIT), <a href="https://github.com/bubkoo/html-to-image">html-to-image</a> (MIT), for the feedback form’s screenshot. Fonts: Amiri, Aref Ruqaa, IBM Plex Sans, Kalam and Newsreader, from <a href="https://fonts.google.com/">Google Fonts</a>, served from this site (SIL Open Font License 1.1).</p>
                         <p>Full list with licences: <a href="https://github.com/sshafiuddin-dev/salahhub/blob/main/CREDITS.md">CREDITS.md</a>.</p>
                     </div>
                 </section>
@@ -344,6 +347,42 @@
             <button class="d-btn d-btn-sm d-btn-outline" type="button" id="dx-next">Next <span id="dx-pos"></span></button>
         </div>
     </div>
+
+    <dialog class="fb" id="fb" aria-labelledby="fb-title">
+        <form class="fb-form" id="fb-form" novalidate>
+            <h2 id="fb-title">Send feedback</h2>
+            <p class="fb-lead">Tell us what went wrong or what would make the app better. It goes to the person who looks after Iqama Times.</p>
+            <fieldset class="fb-kind">
+                <legend class="iq-label">What is it about?</legend>
+                <label><input type="radio" name="kind" value="problem" checked> Something isn’t working</label>
+                <label><input type="radio" name="kind" value="idea"> An idea</label>
+                <label><input type="radio" name="kind" value="other"> Something else</label>
+            </fieldset>
+            <label class="iq-label" for="fb-message">What happened, or your idea</label>
+            <textarea class="d-input fb-message" id="fb-message" name="message" rows="5" maxlength="4000" required aria-describedby="fb-message-hint"></textarea>
+            <p class="iq-note" id="fb-message-hint">For a problem, say what you expected and what you saw instead.</p>
+            <div class="fb-shot">
+                <p class="iq-label" id="fb-shot-label">Screenshot</p>
+                <figure class="fb-shot-fig" id="fb-shot-fig" hidden><figcaption id="fb-shot-cap"></figcaption></figure>
+                <p class="iq-note" id="fb-shot-none">No screenshot.</p>
+                <div class="iq-fields">
+                    <button class="d-btn d-btn-sm" type="button" id="fb-snap">Use the screen I was on</button>
+                    <label class="d-btn d-btn-sm fb-file">Attach a picture<input type="file" id="fb-file" accept="image/png,image/jpeg,image/webp"></label>
+                    <button class="link-btn" type="button" id="fb-shot-remove" hidden>Remove the picture</button>
+                </div>
+            </div>
+            <label class="iq-label" for="fb-contact">Your email <span class="fb-opt">(optional, for a reply)</span></label>
+            <input class="d-input fb-contact" type="email" id="fb-contact" name="contact" autocomplete="email" maxlength="200">
+            <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="fb-include" checked> Include these details</label>
+            <dl class="fb-details" id="fb-details"></dl>
+            <div class="fb-hp" aria-hidden="true"><label>Leave this empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+            <p class="fb-status" id="fb-status" role="status" aria-live="polite"></p>
+            <div class="fb-actions">
+                <button class="d-btn d-btn-sm" type="button" id="fb-cancel">Cancel</button>
+                <button class="d-btn d-btn-sm d-btn-primary" type="submit" id="fb-send">Send</button>
+            </div>
+        </form>
+    </dialog>
 
     <script src="vendor/motion.min.js" defer></script>
     <script type="module" src="app.js"></script>

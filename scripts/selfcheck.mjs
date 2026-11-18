@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { parse, fromSchedule, read } from '../functions/_lib/parse.js';
 import { handle } from '../functions/api/iqama.js';
 import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
+import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
 import { safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, esc, beepWav, alertLogText } from '../logic.js';
 
@@ -140,6 +141,39 @@ assert.equal(pickAlerts(feats, nov17.getTime())[1].until, '2026-11-17T23:00:00-0
   assert.deepEqual((await ask('?lat=51.5&lng=-0.12', async () => new Response('{}', { status: 400 })))[1], { alerts: [], outside: true });
   const quiet = console.error; console.error = () => {};
   assert.deepEqual((await ask('?lat=1&lng=1', async () => { throw new Error('offline'); }))[1], { alerts: [], unavailable: true });
+  console.error = quiet;
+}
+// /api/feedback: checks the form, sends one email through Resend with the screenshot attached, limits bursts
+{
+  const store = new Map(), cache = { match: async (k) => store.get(k.url)?.clone(), put: async (k, r) => { store.set(k.url, r); } };
+  const env = { RESEND_API_KEY: 're_test', FEEDBACK_TO: 'owner@example.com' };
+  let sent = [];
+  const resend = async (u, o) => { sent.push([u, o.headers.authorization, JSON.parse(o.body)]); return new Response('{"id":"1"}'); };
+  const post = (fields, e = env, send = resend, ip = '1.2.3.4') => {
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+    return feedbackHandle(new Request('https://x.test/api/feedback', { method: 'POST', body: fd, headers: { 'cf-connecting-ip': ip } }), e, cache, send).then(async r => [r.status, await r.json()]);
+  };
+  const png = new File([new Uint8Array([137, 80, 78, 71, 1, 2, 3])], 's.png', { type: 'image/png' });
+  assert.equal((await post({ kind: 'problem', message: 'x' }, {}))[0], 503, 'not set up until the key and address are added');
+  assert.equal((await post({ kind: 'problem', message: '  ' }))[0], 400, 'a message is needed');
+  assert.equal((await post({ kind: 'nonsense', message: 'x' }))[0], 400);
+  assert.equal((await post({ kind: 'idea', message: 'x', contact: 'not an email' }))[0], 400);
+  assert.equal((await post({ kind: 'idea', message: 'x', screenshot: new File(['<svg/>'], 'a.svg', { type: 'image/svg+xml' }) }))[0], 400, 'only PNG, JPEG or WebP');
+  assert.deepEqual(await post({ kind: 'idea', message: 'x', website: 'http://spam' }), [200, { ok: true }]); assert.equal(sent.length, 0, 'the honeypot sends nothing');
+  const [st] = await post({ kind: 'problem', message: 'No sound at Asr\nOn the Fire tablet', contact: 'me@example.com', details: JSON.stringify({ version: 'iqama-v35', 'bad key!': 'x', look: 'paper', nested: { a: 1 } }), screenshot: png });
+  assert.equal(st, 200); assert.equal(sent.length, 1);
+  const [url, auth, mail] = sent[0];
+  assert.equal(url, 'https://api.resend.com/emails'); assert.equal(auth, 'Bearer re_test');
+  assert.deepEqual(mail.to, ['owner@example.com']); assert.equal(mail.reply_to, 'me@example.com');
+  assert.equal(mail.subject, 'Iqama Times feedback: No sound at Asr');
+  assert.equal(mail.attachments[0].filename, 'screenshot.png'); assert.equal(mail.attachments[0].content, Buffer.from([137, 80, 78, 71, 1, 2, 3]).toString('base64'));
+  assert.ok(mail.text.includes('version: iqama-v35') && mail.text.includes('look: paper') && !mail.text.includes('bad key') && !mail.text.includes('nested'), 'only plain details are kept');
+  assert.ok(!mail.html.includes('<script') && (await post({ kind: 'other', message: '<script>x</script>' }, env, resend, '9.9.9.9'))[0] === 200 && sent.at(-1)[2].html.includes('&lt;script&gt;'), 'the message is escaped in the email');
+  for (let i = 0; i < 4; i++) await post({ kind: 'idea', message: `more ${i}` });
+  assert.equal((await post({ kind: 'idea', message: 'one too many' }))[0], 429, 'at most 5 an hour from one sender');
+  const quiet = console.error; console.error = () => {};
+  assert.equal((await post({ kind: 'idea', message: 'x' }, env, async () => new Response('bad', { status: 422 }), '5.5.5.5'))[0], 502);
   console.error = quiet;
 }
 const { renderTimes } = await import('../clocks.js');
