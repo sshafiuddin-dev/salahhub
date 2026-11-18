@@ -367,8 +367,7 @@ body { overflow: hidden; }
 .sh-dua-h { display: flex; justify-content: space-between; gap: 1rem; font: 600 max(.7rem, calc(var(--u) * 1.85))/1.2 var(--body); letter-spacing: .01em; color: var(--muted); }
 .sh-dua-ar { font: 400 calc(var(--u) * 4.4)/1.55 var(--ar, "Amiri"), serif; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .sh-dua-en { font: 400 max(.95rem, calc(var(--u) * 2.6))/1.4 var(--display); color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.sh-has-dua .sh-hm { font-size: calc(var(--u) * 24); }
-.sh-has-dua .sh-n { font-size: calc(var(--u) * 8.5); }
+/* the clock and the countdown keep their size in the dua minute: only the table gives way */
 /* Phones: title and buttons on one row, the date line across the full width under them */
 @media (max-width: 48rem) {
   .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .35rem 1rem; }
