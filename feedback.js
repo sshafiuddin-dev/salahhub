@@ -50,8 +50,13 @@ function showShot(blob, caption) {
   $('fb-shot-fig').hidden = !shot;
   $('fb-shot-none').hidden = !!shot;
   $('fb-shot-remove').hidden = !shot;
-  if (shot) { $('fb-shot-img').src = shot.url; $('fb-shot-img').alt = caption; $('fb-shot-cap').textContent = caption; }
-  else $('fb-shot-img').removeAttribute('src');
+  $('fb-shot-img')?.remove(); // the preview image exists only while there is a picture
+  if (shot) {
+    const img = document.createElement('img');
+    img.id = 'fb-shot-img'; img.src = shot.url; img.alt = caption;
+    $('fb-shot-fig').prepend(img);
+    $('fb-shot-cap').textContent = caption;
+  }
 }
 const status = (text, bad = false) => { $('fb-status').textContent = text; $('fb-status').classList.toggle('is-bad', bad); };
 
