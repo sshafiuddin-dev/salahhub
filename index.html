@@ -47,12 +47,12 @@
                     <button class="d-btn d-btn-sm tb-btn" type="button" id="install" hidden>Install app</button>
                     <button class="d-btn d-btn-sm d-btn-outline tb-btn fb-open" type="button" id="feedback-btn"><span>Feedback</span></button>
                     <a class="d-btn d-btn-sm d-btn-outline tb-btn" id="help" href="guide/today" aria-label="Help for this screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.2a2.6 2.6 0 0 1 5 .8c0 1.8-2.5 2.2-2.5 3.8M12 17h.01"/></svg><span>Help</span></a>
-                    <button class="d-btn d-btn-sm d-btn-outline tb-btn dim-btn" type="button" id="dim-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="dim-sun" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><path class="dim-moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Bright</span></button>
-                    <button class="d-btn d-btn-sm d-btn-outline tb-btn" type="button" id="awake" aria-pressed="false">
+                    <button class="d-btn d-btn-sm d-btn-outline tb-btn dim-btn" data-short="Light" type="button" id="dim-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="dim-sun" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><path class="dim-moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Bright</span></button>
+                    <button class="d-btn d-btn-sm d-btn-outline tb-btn" data-short="Awake" type="button" id="awake" aria-pressed="false">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg>
                         <span id="awake-label">Keep screen on</span>
                     </button>
-                    <button class="d-btn d-btn-sm d-btn-primary tb-btn" type="button" id="fullscreen">
+                    <button class="d-btn d-btn-sm d-btn-primary tb-btn" data-short="Full" type="button" id="fullscreen">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
                         <span>Full screen</span>
                     </button>

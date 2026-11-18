@@ -348,3 +348,9 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .dockbar .d-dock-label { display: block; line-height: 1.25rem; }
 .dockbar details.more { align-self: auto; height: 55px; } /* the same box as its neighbours, so the labels share a baseline */
 .seg { margin-bottom: .75rem; }
+
+/* Phase 10: phone Settings tabs sit in a steady grid (three, then two) instead of a ragged wrap */
+@media (max-width: 40rem) {
+  .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-self: stretch; }
+  .seg .d-tab { justify-content: center; text-align: center; padding-inline: .25rem; white-space: normal; line-height: 1.15; }
+}

@@ -573,6 +573,8 @@ body { overflow: hidden; }
   #feedback-btn { display: none; } /* phones: Settings › About has Send feedback */
   .tb-btn { width: 2.75rem; height: 2.75rem; padding: 0; }
   .tb-btn svg { width: 1.3rem; height: 1.3rem; }
+  .tb-btn[data-short] { width: 3.4rem; height: auto; min-height: 2.75rem; flex-direction: column; gap: .15rem; padding: .35rem 0; }
+  .tb-btn[data-short]::after { content: attr(data-short); font: 600 .66rem/1 var(--body); letter-spacing: .02em; } /* the icon's name, in words, under it */
   .toast { bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
   .seg { flex-wrap: wrap; overflow: visible; row-gap: 0; } /* five tabs wrap onto a second row: none is hidden off the edge */
   .seg .d-tab { flex: none; padding-inline: .75rem; }
