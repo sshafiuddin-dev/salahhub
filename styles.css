@@ -181,7 +181,7 @@ body { overflow: hidden; }
   transform: translate(-50%, 1rem); opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s var(--ease);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
-.sub-pane { display: grid; gap: .25rem; align-content: start; padding: 0; border: 0; } /* the portfolio pads every <section> */
+.sub-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: .25rem; align-content: start; padding: 0; border: 0; } /* the portfolio pads every <section> */
 .seg { justify-self: start; max-width: 100%; min-height: 3rem; font-family: var(--body); } /* min-height: a scroll-container grid item would otherwise be squeezed to a sliver by a tall pane */
 .seg .d-tab { font-weight: 600; color: var(--muted); background-color: transparent; border: 0; } /* these are <button>s, which daisyUI does not reset */
 .seg .d-tab[aria-selected="true"] { color: var(--ink); background-color: var(--surface); box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 18%, transparent); }
@@ -574,7 +574,7 @@ body { overflow: hidden; }
   .tb-btn { width: 2.75rem; height: 2.75rem; padding: 0; }
   .tb-btn svg { width: 1.3rem; height: 1.3rem; }
   .toast { bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
-  .seg { flex-wrap: nowrap; overflow-x: auto; }
+  .seg { flex-wrap: wrap; overflow: visible; row-gap: 0; } /* five tabs wrap onto a second row: none is hidden off the edge */
   .seg .d-tab { flex: none; padding-inline: .75rem; }
   .dk { padding: 1rem 1.1rem; }
   .dk-ar { font-size: 1.55rem; }

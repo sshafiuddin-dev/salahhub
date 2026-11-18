@@ -343,3 +343,8 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .ck-bed-ar { font: 400 2rem/1.6 var(--ar, "Amiri"), serif; color: #D9A04A; }
 /* bedside: a printed card turned dark, not a rounded app tile */
 .ck-bedside { border-radius: 0; outline: 1px solid #6B5836; outline-offset: -8px; }
+
+/* Phase 9: the dock's four labels share one box, so More sits on the same line as the others */
+.dockbar .d-dock-label { display: block; line-height: 1.25rem; }
+.dockbar details.more { align-self: auto; height: 55px; } /* the same box as its neighbours, so the labels share a baseline */
+.seg { margin-bottom: .75rem; }

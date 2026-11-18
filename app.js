@@ -362,7 +362,7 @@ function route() {
   $('help').href = `guide/${tab === 'settings' ? HELP_SUB[sub] : HELP_TAB[tab]}`;
   document.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-selected', b.dataset.sub === sub));
   document.querySelectorAll('.sub-pane').forEach(p => { p.hidden = p.id !== `sub-${sub}`; });
-  if (tab === 'month' && today) renderMonth();
+  if (tab === 'month' && today) { renderMonth(); requestAnimationFrame(() => document.querySelector('#month tr.today')?.scrollIntoView({ block: 'center' })); } // open at today, not the 1st
 }
 addEventListener('hashchange', route);
 // a tap anywhere else (or on a choice in it) closes the More menu
