@@ -327,3 +327,19 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .sh-l.is-called .sh-kind::before { content: ""; display: inline-block; width: .55em; height: .55em; margin-right: .5em; border-radius: 50%; background: var(--clear); vertical-align: .05em; }
 .sh .sh-tt tbody tr:first-child td.is-passed { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
 :root[data-palette="hand"] .sh-l.is-called .sh-kind { font-family: var(--hand); font-weight: 400; }
+
+/* Phase 8: the other clock styles speak the board's language (name in English and Arabic, adhan called, countdown, adhan and iqama) */
+.ck-head { --u: .17rem; display: grid; justify-items: center; gap: .35rem; text-align: center; }
+.ck-head .sh-l { justify-content: center; color: var(--clear); }
+.ck-head .sh-kind { text-align: center; }
+.ck-head .sh-at { font-size: 1rem; color: var(--muted); }
+.ck-head .sh-at b { color: var(--ink); }
+.ck-center .sh-at { display: none; } /* the dial's centre is small: its table carries the times */
+.ck-count i { font-size: .48em; font-weight: 400; color: var(--muted); margin-left: .04em; }
+.ck-count.ck-hl i { color: inherit; }
+.ck-tl-head.ck-head { justify-items: start; text-align: left; }
+.ck-tl-head .sh-l { justify-content: flex-start; }
+.ck-tl-head .sh-kind { text-align: left; }
+.ck-bed-ar { font: 400 2rem/1.6 var(--ar, "Amiri"), serif; color: #D9A04A; }
+/* bedside: a printed card turned dark, not a rounded app tile */
+.ck-bedside { border-radius: 0; outline: 1px solid #6B5836; outline-offset: -8px; }
