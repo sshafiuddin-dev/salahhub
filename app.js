@@ -478,12 +478,15 @@ function filterAdhkar() {
 $('au-search').addEventListener('input', filterAdhkar);
 filterAdhkar();
 // The text is copied from hisnmuslim.com into hisn-text.json by scripts/fetch-hisn.mjs, so it loads from this site
+// Light editorial pass on the copied text: no ((double brackets)) around the Arabic, "PBUH" spelled out
+const tidy = (t) => t.replace(/\(\(\s*/g, '').replace(/\s*\)\)/g, '').replace(/\bPBUH\b/g, 'peace be upon him');
 let hisnText = null;
 async function loadHisnText() {
   if (hisnText) return hisnText;
   const r = await fetch('hisn-text.json');
   if (!r.ok) throw new Error(`hisn-text.json answered ${r.status}`);
   hisnText = (await r.json()).chapters || {};
+  for (const c of Object.values(hisnText)) for (const it of c.items || []) for (const k of ['ar', 'en', 'tr']) if (typeof it[k] === 'string') it[k] = tidy(it[k]);
   return hisnText;
 }
 const hisnItems = (items) => items.map((it, i) => `<article class="au-dua"><div class="au-meta"><span>Dua ${i + 1} of ${items.length}</span>${it.n ? `<span>Read ${it.n} ${it.n === 1 ? 'time' : 'times'}</span>` : ''}</div>`
