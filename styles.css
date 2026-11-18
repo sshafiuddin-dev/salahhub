@@ -85,6 +85,9 @@ body { overflow: hidden; }
 
 /* The moving weather sky (sky.js): one layer behind the page, moved into the full screen view while it is open */
 .sky-live { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; color: var(--ink); }
+/* The sky belongs behind the clock, not behind a form: on every screen but Today it is dropped, so Settings,
+   Quran, Adhkar, Month and Weather keep their plain paper and their small text stays legible. */
+:root:not([data-tab="today"]) > body > .sky-live, :root:not([data-tab="today"]) .sky-tint { display: none; } /* the full screen view keeps its sky: there it is mounted inside #display */
 .sky-real { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
   /* the sky is full strength along the top and gone before the timetable, at any screen height */
   -webkit-mask-image: linear-gradient(#000 0, #000 min(30vh, 200px), transparent min(62vh, 420px)); mask-image: linear-gradient(#000 0, #000 min(30vh, 200px), transparent min(62vh, 420px)); }
@@ -141,9 +144,9 @@ body { overflow: hidden; }
 .tabbar::-webkit-scrollbar { display: none; }
 .brand { width: 2.1rem; height: 2.1rem; margin-bottom: 1rem; }
 .tabbar .d-menu { width: 5.5rem; padding: 0; gap: .3rem; }
-.tabbar .d-menu a { flex-direction: column; align-items: center; gap: .25rem; padding: .6rem 0; font-size: .78rem; font-weight: 600; }
+.tabbar .d-menu a, .tabbar .d-menu .more summary { flex-direction: column; align-items: center; gap: .25rem; padding: .6rem 0; font-size: .78rem; font-weight: 600; }
 .tabbar a, .dockbar a { text-decoration: none; }
-.tabbar .d-menu a { display: grid; grid-auto-flow: row; justify-items: center; justify-content: center; color: var(--ink); } /* the portfolio's a { color: inherit } outranks daisyUI's layered colours */
+.tabbar .d-menu a, .tabbar .d-menu .more summary { display: grid; grid-auto-flow: row; justify-items: center; justify-content: center; color: var(--ink); } /* the portfolio's a { color: inherit } outranks daisyUI's layered colours */
 .tabbar .d-menu a.d-menu-active { color: var(--paper); }
 .tabbar svg, .dockbar svg, .tb-btn svg { width: 1.4rem; height: 1.4rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .dockbar { display: none; position: static; }
@@ -545,7 +548,7 @@ body { overflow: hidden; }
   .tabbar { gap: .2rem; padding-top: max(.5rem, env(safe-area-inset-top, 0px)); padding-bottom: .5rem; }
   .brand { width: 1.6rem; height: 1.6rem; margin-bottom: .35rem; flex: none; }
   .tabbar .d-menu { width: 4.25rem; gap: .1rem; }
-  .tabbar .d-menu a { padding: .35rem 0; gap: .1rem; font-size: .7rem; }
+  .tabbar .d-menu a, .tabbar .d-menu .more summary { padding: .35rem 0; gap: .1rem; font-size: .7rem; }
   .tabbar svg { width: 1.2rem; height: 1.2rem; }
 }
 /* Phones: tabs move to a bottom bar, the top bar tightens and the action buttons become icons */
@@ -588,12 +591,12 @@ body { overflow: hidden; }
   .brand { display: none; }
   .app .tabbar .d-menu { flex-direction: row; flex-wrap: nowrap; width: auto; gap: 0 clamp(.8rem, 1.8vw, 1.6rem); }
   .app .tabbar .d-menu li { display: flex; }
-  .app .tabbar .d-menu a, .app .tb-btn, .app .tb-btn.d-btn {
+  .app .tabbar .d-menu a, .app .tabbar .d-menu .more summary, .app .tb-btn, .app .tb-btn.d-btn {
     display: flex; align-items: center; height: 2.9rem; min-height: 0; padding: 0; gap: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
     font: 500 .78rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
   }
-  .app .tabbar .d-menu a:hover, .app .tb-btn:hover { background: none; color: var(--ink); }
-  .app .tabbar .d-menu a.d-menu-active, .app .tabbar .d-menu a.d-menu-active:hover { background: none; color: var(--ink); box-shadow: inset 0 3px 0 var(--clear); }
+  .app .tabbar .d-menu a:hover, .app .tabbar .d-menu .more summary:hover, .app .tb-btn:hover { background: none; color: var(--ink); }
+  .app .tabbar .d-menu a.d-menu-active, .app .tabbar .d-menu .more summary.d-menu-active, .app .tabbar .d-menu a.d-menu-active:hover { background: none; color: var(--ink); box-shadow: inset 0 3px 0 var(--clear); }
   .app .tabbar .d-menu a svg, .app .tb-btn svg { display: none; }
   .topbar-actions {
     position: fixed; z-index: 20; right: max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-right, 0px)); bottom: env(safe-area-inset-bottom, 0px);
@@ -880,13 +883,13 @@ body { overflow: hidden; }
   .app .tabbar .d-menu { gap: 0 .7rem; }
   .topbar-actions { gap: .7rem; }
   .topbar-actions::before { content: ""; align-self: center; width: 1px; height: 1.1rem; background: var(--line); } /* where the tabs end and the actions begin */
-  .app .tabbar .d-menu a, .app .tb-btn, .app .tb-btn.d-btn { letter-spacing: .03em; font-size: .74rem; }
+  .app .tabbar .d-menu a, .app .tabbar .d-menu .more summary, .app .tb-btn, .app .tb-btn.d-btn { letter-spacing: .03em; font-size: .74rem; }
 }
 
 @media (min-width: 48.01rem) and (max-width: 52rem) {
   .app .tabbar .d-menu { gap: 0 .55rem; }
   .topbar-actions { gap: .55rem; }
-  .app .tabbar .d-menu a, .app .tb-btn, .app .tb-btn.d-btn { letter-spacing: .02em; font-size: .7rem; }
+  .app .tabbar .d-menu a, .app .tabbar .d-menu .more summary, .app .tb-btn, .app .tb-btn.d-btn { letter-spacing: .02em; font-size: .7rem; }
 }
 
 /* Feedback form: a printed sheet over the dimmed page */
@@ -924,7 +927,6 @@ body { overflow: hidden; }
 /* More menu: Adhkar, Quran and Month sit under one entry so the main bar stays short on a wall tablet */
 .more summary { list-style: none; cursor: pointer; }
 .more summary::-webkit-details-marker { display: none; }
-.tabbar .d-menu .more summary { display: grid; justify-items: center; gap: .25rem; padding: .6rem 0; font-size: .78rem; font-weight: 600; color: var(--ink); }
 .more details { position: relative; }
 .more-menu { position: absolute; z-index: 20; min-width: 9rem; padding: .35rem; background: var(--paper); border: 1px solid var(--line); box-shadow: 0 6px 20px #0004; }
 .tabbar .more-menu { left: 100%; top: 0; margin-left: .35rem; }
@@ -937,10 +939,9 @@ body { overflow: hidden; }
 .sh-month:hover { text-decoration: underline; }
 /* Bottom bar (tablets and wider): More looks like the other tabs and opens upward */
 @media (min-width: 48.01rem) {
-  .app .tabbar .d-menu .more summary { display: flex; align-items: center; height: 2.9rem; padding: 0; gap: .3rem; font: 500 .78rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .app .tabbar .d-menu .more summary { flex-direction: row; align-items: center; height: 2.9rem; padding: 0; gap: .34em; }
   .app .tabbar .d-menu .more summary svg { display: none; }
-  .app .tabbar .d-menu .more summary::after { content: "›"; display: inline-block; transform: rotate(-90deg); }
-  .app .tabbar .d-menu .more[open] summary::after, .app .tabbar .d-menu .more details[open] summary::after { transform: rotate(90deg); }
+  /* no caret: at this size any mark beside 11px uppercase type reads as a speck, and the menu opens right above the word */
   .app .tabbar .d-menu .more summary:hover, .app .tabbar .d-menu .more summary.d-menu-active { color: var(--ink); background: none; }
   .app .tabbar .d-menu .more summary.d-menu-active { box-shadow: inset 0 3px 0 var(--clear); }
   .tabbar .more-menu { left: 0; top: auto; bottom: 100%; margin: 0 0 .35rem; }
