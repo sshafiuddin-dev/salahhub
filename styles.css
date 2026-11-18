@@ -400,7 +400,7 @@ body { overflow: hidden; }
 #today tbody th { font: 600 clamp(1.1rem, 2.2vw, 1.4rem)/1.2 var(--display); }
 #today tr.minor th, #today tr.minor td { font: 400 .95rem/1.3 var(--body); color: var(--muted); padding-block: .45rem; }
 #today tr.friday th, #today tr.friday td { color: var(--ink); font-weight: 600; }
-#today tr.next { background: color-mix(in srgb, var(--clear) 14%, transparent); }
+#today tr.next { background: transparent; }
 .iq-note { margin-top: .75rem; font-size: .9rem; color: var(--muted); max-width: 60ch; }
 .iq-note .iq-warn { color: var(--clear); font-weight: 600; } /* last sync failed or is over a day old */
 .iq-def, .sh-def { display: block; font: italic 400 .7em/1.1 var(--display); color: var(--muted); letter-spacing: 0; text-transform: none; } /* the visitor's default offset, not the masjid's time */
