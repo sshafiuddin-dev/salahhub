@@ -354,3 +354,6 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
   .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-self: stretch; }
   .seg .d-tab { justify-content: center; text-align: center; padding-inline: .25rem; white-space: normal; line-height: 1.15; }
 }
+
+/* Phase 11: the dock's More item is as wide as a tap target needs */
+.dockbar details.more { min-width: 4rem; }
