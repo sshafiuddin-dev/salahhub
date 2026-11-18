@@ -103,11 +103,9 @@ const nightNow = () => timesKnown && isNight(nowMinute, day.rows, day.sunrise, s
 // still holds, and the sky then switches to its printed form. Auto off keeps the level the person set.
 const night = () => timesKnown && (nowMinute >= day.rows[3].adhan || nowMinute < day.sunrise);
 const skyBack = () => (settings.wxBack === 'auto' ? (night() ? 'real' : 'print') : settings.wxBack);
-const realNight = () => skyBack() === 'real' && settings.look === 'paper' && settings.autoDim !== 'off' && timesKnown
-  && (nowMinute >= day.rows[3].adhan || nowMinute < day.sunrise);
 const currentDim = () => {
   const d = timesKnown || settings.autoDim === 'off' ? dimLevel(settings, nightNow(), dimOverride) : shownDim ?? 0;
-  return realNight() && !(dimOverride && dimOverride.night === nightNow()) ? 3 : d;
+  return d; // the night level is the one chosen in Settings, whichever sky is behind it
 };
 function setDim(level) {
   if (settings.autoDim === 'off') { settings.level = level; save(); dimOverride = null; }
