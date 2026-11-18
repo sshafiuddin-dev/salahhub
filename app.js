@@ -1,7 +1,7 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, esc, beepWav, alertLogText } from './logic.js';
-import { setSky, redrawSky } from './sky.js';
+import { safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
+import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
@@ -31,7 +31,7 @@ const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
   tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightLevel: 2, level: 0, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
-  adhkar: true, translit: true, wxBack: true, arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
+  adhkar: true, translit: true, wxBack: 'real', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -65,8 +65,8 @@ if (![0, 1, 2, 3].includes(settings.level)) settings.level = DEFAULTS.level;
 if (settings.units !== 'F' && settings.units !== 'C') settings.units = DEFAULTS.units;
 settings.muted = settings.muted === true;
 settings.adhkar = settings.adhkar !== false;
-settings.wxBack = settings.wxBack !== false;
-root.toggleAttribute('data-plain', !settings.wxBack);
+// Weather background: real (the default), print, still or off; the earlier on/off switch maps to real and off
+settings.wxBack = settings.wxBack === false ? 'off' : ['real', 'print', 'still', 'off'].includes(settings.wxBack) ? settings.wxBack : 'real';
 settings.translit = settings.translit !== false;
 if (!['s', 'm', 'l'].includes(settings.arSize)) settings.arSize = DEFAULTS.arSize;
 settings.awake = settings.awake === true;
@@ -93,7 +93,14 @@ const save = () => { try { localStorage.setItem('iqama-settings', JSON.stringify
 let dimOverride = null, shownDim = null, timesKnown = false;
 try { const d = +localStorage.getItem('iqama-dim'); if ([0, 1, 2, 3].includes(d)) shownDim = d; } catch (e) {}
 const nightNow = () => timesKnown && isNight(nowMinute, day.rows, day.sunrise, settings.autoDim);
-const currentDim = () => (timesKnown || settings.autoDim === 'off' ? dimLevel(settings, nightNow(), dimOverride) : shownDim ?? 0);
+// With the realistic sky, nights (Maghrib to sunrise) use the dark look, since the sky is dark then; a level picked by hand
+// still holds, and the sky then switches to its printed form. Auto off keeps the level the person set.
+const realNight = () => settings.wxBack === 'real' && settings.look === 'paper' && settings.autoDim !== 'off' && timesKnown
+  && (nowMinute >= day.rows[3].adhan || nowMinute < day.sunrise);
+const currentDim = () => {
+  const d = timesKnown || settings.autoDim === 'off' ? dimLevel(settings, nightNow(), dimOverride) : shownDim ?? 0;
+  return realNight() && !(dimOverride && dimOverride.night === nightNow()) ? 3 : d;
+};
 function setDim(level) {
   if (settings.autoDim === 'off') { settings.level = level; save(); dimOverride = null; }
   else dimOverride = { level, night: nightNow() };
@@ -254,7 +261,11 @@ function tick() {
   }
   renderAdhkar(nowMin);
   for (const tr of $('today').tBodies[0].rows) tr.classList.toggle('next', tr.dataset.k === ev.key);
-  setSky(weather ? weather.kind : 'plain', nowMin >= day.sunrise && nowMin < day.rows[3].adhan);
+  const sky = skyParams(weather, { now: nowMin, sunrise: day.sunrise, maghrib: day.rows[3].adhan }, parseInt(today.hijri, 10) || 15);
+  const dim = currentDim();
+  // no sky in the Handwritten and High contrast looks, nor at Dim unless the realistic sky can show by day
+  const skyOk = settings.look === 'paper' && (dim < 2 || (settings.wxBack === 'real' && (dim === 3 || !sky.night)));
+  updateSky(sky, settings.wxBack, skyOk, root.dataset.theme === 'dark');
 
   // Alerts: only for moments crossed while the page is open
   if (lastSec != null && c.sec > lastSec) for (const a of alertsBetween(alertRows(), settings.alerts, lastSec, c.sec)) fire(a);
@@ -878,13 +889,13 @@ $('dk-count').addEventListener('click', () => {
 $('dk-tr-toggle').addEventListener('click', () => { settings.translit = !settings.translit; $('set-translit').checked = settings.translit; save(); tick(); });
 $('dk-share').addEventListener('click', () => { const it = dkItem(); share(SETS[dk.key].title, [it.ar, it.tr, it.en, it.src].filter(Boolean).join('\n')); });
 $('set-adhkar').checked = settings.adhkar;
-$('set-wxback').checked = settings.wxBack;
+$('set-wxback').value = settings.wxBack;
 $('set-translit').checked = settings.translit;
 const AR_SIZES = ['s', 'm', 'l'], AR_NAMES = ['Small', 'Medium', 'Large'];
 $('set-arsize').value = AR_SIZES.indexOf(settings.arSize);
 $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[AR_SIZES.indexOf(settings.arSize)]);
 $('set-adhkar').addEventListener('change', () => { settings.adhkar = $('set-adhkar').checked; save(); tick(); });
-$('set-wxback').addEventListener('change', () => { settings.wxBack = $('set-wxback').checked; save(); root.toggleAttribute('data-plain', !settings.wxBack); });
+$('set-wxback').addEventListener('change', () => { settings.wxBack = $('set-wxback').value; save(); applyLook(); tick(); });
 $('set-translit').addEventListener('change', () => { settings.translit = $('set-translit').checked; save(); tick(); });
 $('set-dxcard').value = settings.dxCard;
 $('set-dxcard').addEventListener('change', () => { settings.dxCard = $('set-dxcard').value; save(); tick(); });
@@ -972,6 +983,7 @@ const flagDisplay = (on) => { try { on ? localStorage.setItem(DISPLAY_KEY, '1') 
 async function openDisplay() {
   displayOpen = true;
   flagDisplay(true);
+  mountSky($('display')); // the moving sky goes with the view
   applyLayout();
   $('display').hidden = false;
   dkSig = '';
@@ -986,6 +998,7 @@ function closeDisplay() {
   if (!displayOpen) return;
   displayOpen = false;
   flagDisplay(false);
+  mountSky(document.body);
   $('display').hidden = true;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   updateLock();

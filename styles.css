@@ -79,7 +79,58 @@ body { overflow: hidden; }
 :root[data-sky="storm"] .sky-print { background: repeating-linear-gradient(104deg, transparent 0 4px, var(--tex) 4px 5px), repeating-linear-gradient(14deg, transparent 0 11px, var(--tex) 11px 12px); opacity: .17; }
 :root[data-sky="snow"] .sky-print { background: radial-gradient(circle, var(--tex) 0 1.2px, transparent 1.5px) 0 0 / 19px 17px, radial-gradient(circle, var(--tex) 0 .8px, transparent 1.1px) 9px 8px / 23px 21px, radial-gradient(circle, var(--tex) 0 1px, transparent 1.3px) 5px 13px / 31px 29px; opacity: .26; }
 /* Settings › Display › Weather background off: plain paper everywhere */
-:root[data-plain] .sky-tint, :root[data-plain] .sky-print { display: none; }
+:root[data-skymode="off"] .sky-tint, :root[data-skymode="off"] .sky-print { display: none; } /* Weather background: Off */
+/* the moving sky replaces the still texture; the realistic sky also brings its own colour, so the tint goes too */
+:root[data-skymode="print"] .sky-print, :root[data-skymode="real"] .sky-print, :root[data-skymode="real"] .sky-tint { display: none; }
+
+/* The moving weather sky (sky.js): one layer behind the page, moved into the full screen view while it is open */
+.sky-live { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; color: var(--ink); }
+.sky-real { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+  /* the sky is full strength along the top and gone before the timetable, at any screen height */
+  -webkit-mask-image: linear-gradient(#000 0, #000 min(30vh, 200px), transparent min(62vh, 420px)); mask-image: linear-gradient(#000 0, #000 min(30vh, 200px), transparent min(62vh, 420px)); }
+.sky-printed { position: absolute; inset: 0; -webkit-mask-image: linear-gradient(#000 0, #000 16%, transparent 48%); mask-image: linear-gradient(#000 0, #000 16%, transparent 48%); }
+.sky-printed > * { position: absolute; }
+.pm-tile, .pm-rain, .pm-cloud, .pm-fog { will-change: transform; }
+.pm-rain { left: -30%; top: -60%; width: 160%; height: 220%; background: var(--ink); opacity: var(--op);
+  -webkit-mask: var(--tile) repeat; mask: var(--tile) repeat; -webkit-mask-size: var(--tw) var(--th); mask-size: var(--tw) var(--th); animation: pm-fall-slant var(--dur) linear infinite; }
+@keyframes pm-fall-slant { from { transform: rotate(var(--slant)) translateY(calc(var(--th) * -1)); } to { transform: rotate(var(--slant)) translateY(0); } }
+.pm-sway { inset: 0; animation: pm-sway var(--sw) ease-in-out infinite alternate; }
+@keyframes pm-sway { from { transform: translateX(-14px); } to { transform: translateX(14px); } }
+.pm-tile { inset: 0; background: var(--ink); opacity: var(--op); -webkit-mask: var(--tile) repeat; mask: var(--tile) repeat; -webkit-mask-size: var(--tw) var(--th); mask-size: var(--tw) var(--th); }
+.pm-fall { inset: auto; left: -10%; top: -50%; width: 120%; height: 200%; animation: pm-fall var(--dur) linear infinite; }
+@keyframes pm-fall { from { transform: translateY(calc(var(--th) * -1)); } to { transform: translateY(0); } }
+.pm-twinkle { animation: pm-twinkle var(--dur) ease-in-out infinite alternate; }
+@keyframes pm-twinkle { from { opacity: calc(var(--op) * .25); } to { opacity: var(--op); } }
+.pm-cloud { left: 0; top: 0; width: 200%; height: 60%; opacity: var(--op);
+  background: radial-gradient(circle, var(--ink) 0 var(--dot), transparent calc(var(--dot) + .35px)) 0 0 / var(--grid) var(--grid);
+  -webkit-mask-image: var(--blobs); mask-image: var(--blobs); animation: pm-drift var(--dur) linear infinite; }
+.pm-cloud.pm-rev { animation-direction: reverse; }
+@keyframes pm-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.pm-fog { left: 0; width: 200%; height: 55%; top: var(--y); opacity: var(--op); background: repeating-linear-gradient(180deg, transparent 0 9px, var(--ink) 9px 10px);
+  -webkit-mask-image: repeating-linear-gradient(90deg, transparent 0, #000 12%, #000 22%, transparent 34%, transparent 50%); mask-image: repeating-linear-gradient(90deg, transparent 0, #000 12%, #000 22%, transparent 34%, transparent 50%);
+  animation: pm-drift var(--dur) linear infinite, pm-breathe 11s ease-in-out infinite alternate; }
+@keyframes pm-breathe { from { opacity: calc(var(--op) * .55); } to { opacity: var(--op); } }
+.pm-orb { width: 0; height: 0; opacity: .26; }
+.pm-moon { opacity: .42; }
+.pm-orb svg { overflow: visible; }
+.pm-glow { inset: 0; opacity: 0; background: radial-gradient(ellipse 70% 55% at 62% 0%, rgba(255, 252, 240, .95), transparent 70%); animation: pm-glow 15s ease-out infinite; }
+@keyframes pm-glow { 0%, 88% { opacity: 0; } 90% { opacity: .42; } 92.5% { opacity: .12; } 95% { opacity: .3; } 100% { opacity: 0; } }
+.pm-warm { inset: 0; opacity: var(--o); background: linear-gradient(180deg, transparent 6%, rgba(205, 112, 52, .34) 30%, rgba(205, 112, 52, .12) 40%, transparent 47%); }
+@media (prefers-reduced-motion: reduce) { .sky-printed * { animation: none !important; } }
+/* Over the realistic sky, text in its band gets a soft paper edge so it reads over cloud, glare or rain */
+:root[data-skymode="real"] .topbar, :root[data-skymode="real"] .dx-top, :root[data-skymode="real"] .sh-mid, :root[data-skymode="real"] .sh-warn {
+  text-shadow: 0 0 .5em var(--paper), 0 0 .18em var(--paper), 0 0 .06em var(--paper); }
+:root[data-skymode="real"] .iq-hijri, :root[data-skymode="real"] .dx-meta, :root[data-skymode="real"] .sh-side, :root[data-skymode="real"] .sh-at, :root[data-skymode="real"] .sh-wxat { color: var(--ink); }
+/* and the small text in the sky's band sits on a soft paper backing, like a label pasted on a photograph:
+   the date line, the seconds by the clock and the countdown column. The big clock reads on the sky itself. */
+:root[data-skymode="real"] .topbar-title, :root[data-skymode="real"] .dx-top, :root[data-skymode="real"] .sh-next, :root[data-skymode="real"] .sh-side, :root[data-skymode="real"] .sh-warn { position: relative; isolation: isolate; }
+:root[data-skymode="real"] .topbar-title::before, :root[data-skymode="real"] .dx-top::before, :root[data-skymode="real"] .sh-next::before,
+:root[data-skymode="real"] .sh-side::before, :root[data-skymode="real"] .sh-warn::before {
+  content: ""; position: absolute; inset: -.25rem -.75rem; z-index: -1; border-radius: 4px; background: var(--paper); opacity: .88; }
+:root[data-skymode="real"] .sh-side::before { inset: -.25rem -.5rem; }
+:root[data-skymode="real"] .sh-next::before { bottom: -2.25rem; } /* down past the ruler's letters, which hang below the column */
+@media (max-width: 48rem) { :root[data-skymode="real"] .topbar-title::before { display: none; } :root[data-skymode="real"] .topbar { position: relative; isolation: isolate; }
+  :root[data-skymode="real"] .topbar::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--paper); opacity: .8; } }
 
 /* App shell */
 .app { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); height: 100vh; height: 100dvh; }
@@ -281,7 +332,7 @@ body { overflow: hidden; }
 .sh-done { position: absolute; left: 0; top: calc(var(--base) - 1px); height: 3px; background: var(--ink); }
 .sh-hr { position: absolute; top: calc(var(--base) - max(4px, calc(var(--u) * .9))); height: max(4px, calc(var(--u) * .9)); border-left: 1px solid var(--muted); }
 .sh-tk { position: absolute; top: calc(var(--base) - max(9px, calc(var(--u) * 2))); height: max(16px, calc(var(--u) * 3.4)); margin-left: -1px; border-left: 2px solid var(--ink); }
-.sh-tk i { position: absolute; top: 100%; left: 0; transform: translateX(-50%); padding-top: 2px; font: 600 max(.8rem, calc(var(--u) * 2.4))/1 var(--body); font-style: normal; letter-spacing: .06em; color: var(--muted); }
+.sh-tk i { position: absolute; top: 100%; left: 0; transform: translateX(-50%); padding-top: 2px; font: 600 max(.8rem, calc(var(--u) * 2.4))/1 var(--body); font-style: normal; letter-spacing: .06em; color: var(--ink); }
 .sh-tk.sm { top: calc(var(--base) - max(5px, calc(var(--u) * 1.1))); height: max(10px, calc(var(--u) * 2.2)); margin-left: -.5px; border-left-width: 1px; }
 .sh-tk.sm i { font: italic 400 max(.88rem, calc(var(--u) * 2.6))/1 var(--display); letter-spacing: 0; }
 .sh-tk.nx { border-color: var(--clear); }

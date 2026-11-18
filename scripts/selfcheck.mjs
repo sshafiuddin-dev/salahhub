@@ -5,7 +5,7 @@ import { handle } from '../functions/api/iqama.js';
 import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
 import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, esc, beepWav, alertLogText } from '../logic.js';
+import { safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -175,6 +175,27 @@ assert.equal(pickAlerts(feats, nov17.getTime())[1].until, '2026-11-17T23:00:00-0
   const quiet = console.error; console.error = () => {};
   assert.equal((await post({ kind: 'idea', message: 'x' }, env, async () => new Response('bad', { status: 422 }), '5.5.5.5'))[0], 502);
   console.error = quiet;
+}
+// The moving sky: weather and time of day become the numbers the sky is drawn from
+{
+  const day = { now: 631, sunrise: 407, maghrib: 999 }, sky = (w, t = day, h = 7) => skyParams(w, t, h);
+  const rain = (mm) => sky({ kind: 'rain', cloud: 70, sky: { rain: mm } }).rain;
+  assert.deepEqual([rain(0), rain(.3), rain(1.2), rain(4), rain(12)], [.4, .3, .5, .75, 1], 'rain strength follows mm an hour (drizzle, light, moderate, heavy)');
+  assert.equal(sky({ kind: 'storm', sky: { rain: .2 } }).rain, .8, 'a storm always rains hard');
+  assert.equal(sky({ kind: 'rain', cloud: 30 }).cover, .85, 'rain means a mostly covered sky whatever the cloud figure says');
+  assert.equal(sky({ kind: 'clear', cloud: 0 }).cover, 0);
+  assert.equal(sky({ kind: 'snow', sky: { snow: 3 } }).snow, 1);
+  assert.equal(sky({ kind: 'fog' }).fog, .8); assert.equal(sky({ kind: 'clear', vis: 600 }).fog, .5);
+  assert.equal(sky({ kind: 'clear', dir: 270, sky: { wind: 40 } }).wind, 1, 'a west wind (from 270°) blows the rain to the right, full lean at 40 km/h');
+  assert.equal(sky({ kind: 'clear', dir: 90, sky: { wind: 20 } }).wind, -.5);
+  const noon = sky({ kind: 'clear' }, { ...day, now: 703 });
+  assert.ok(noon.sun[1] > .89 && noon.day === 1 && !noon.night && noon.dawn === 0, 'midday: sun high, full day');
+  const night = sky({ kind: 'clear' }, { ...day, now: 1270 });
+  assert.ok(night.night && night.sun === null && night.day === 0);
+  assert.ok(sky({ kind: 'clear' }, { ...day, now: 1000 }).night, 'night begins at Maghrib, when the realistic sky turns the page dark');
+  assert.ok(sky({ kind: 'clear' }, { ...day, now: 380 }).dawn > .5 && sky({ kind: 'clear' }, { ...day, now: 990 }).dawn > .5, 'warm light around sunrise and Maghrib');
+  assert.equal(sky(null).kind, 'plain', 'no weather yet: a plain sky');
+  assert.ok(Math.abs(sky({ kind: 'clear' }, day, 15).moon - .49) < .02 && sky({ kind: 'clear' }, day, 1).moon < .03, 'the moon follows the Hijri day');
 }
 const { renderTimes } = await import('../clocks.js');
 const tm = (now, sec) => renderTimes({ sec, now, rows: five, sunrise: 400, next: nextEvent(five, 313, now, 400), tomorrowFajr: five[0], card: null });

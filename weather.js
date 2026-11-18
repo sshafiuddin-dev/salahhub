@@ -2,7 +2,7 @@
 // Only numbers and parsed times from the reply reach the page, never its raw strings.
 import { fmt, weatherKind, uvLevel, aqiLevel, compass, outlook, dayName, dayKind } from './logic.js';
 
-const CURRENT = 'temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,uv_index,precipitation_probability';
+const CURRENT = 'temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,uv_index,precipitation_probability,precipitation,rain,showers,snowfall,is_day';
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const minutesOf = (iso) => { const m = /T(\d{2}):(\d{2})/.exec(typeof iso === 'string' ? iso : ''); return m ? m[1] * 60 + +m[2] : null; };
 
@@ -46,6 +46,13 @@ export async function fetchWeather(lat, lng, units) {
       rain: num(first('precipitation_sum')), pop: num(first('precipitation_probability_max')), sunrise: minutesOf(first('sunrise')), sunset: minutesOf(first('sunset')),
     },
     hours, days,
+    // for the moving sky, in fixed units whatever the app shows: rain in mm and snow in cm in the last hour, wind in km/h
+    sky: {
+      rain: (() => { const r = num(c.rain), sh = num(c.showers), p = num(c.precipitation); const v = r == null && sh == null ? p : (r || 0) + (sh || 0); return v == null ? null : v * (f ? 25.4 : 1); })(),
+      snow: num(c.snowfall) == null ? null : num(c.snowfall) * (f ? 2.54 : 1),
+      wind: num(c.wind_speed_10m) == null ? null : num(c.wind_speed_10m) * (f ? 1.609 : 1),
+      day: num(c.is_day),
+    },
     air: a ? { aqi: num(a.us_aqi), pm25: num(a.pm2_5), pm10: num(a.pm10), o3: num(a.ozone), no2: num(a.nitrogen_dioxide) } : null,
   };
 }
