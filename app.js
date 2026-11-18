@@ -776,6 +776,16 @@ $('set-hijri-maghrib').addEventListener('change', () => { settings.hijriMaghrib 
 // Clock style and theme
 // decorative swatches: the theme's dark paper beside its accent
 const SWATCH = { paper: ['#F3EDE1', '#A8321F'], hand: ['#F6F1E4', '#24345C'], contrast: ['#FFFFFF', '#000000'] };
+// small line drawings of the six clock styles for the picker (decorative: the names are the labels)
+const T = (body) => `<svg viewBox="0 0 64 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">${body}</svg>`;
+const CK_THUMB = {
+  board: T('<path d="M4 6h56M4 34h56M4 22h56" stroke-width="1"/><path d="M6 10h20M38 10h16M38 15h10"/><path d="M8 26h8M22 26h8M36 26h8M50 26h8" stroke-width="2.2"/>'),
+  dial: T('<circle cx="32" cy="20" r="15"/><path d="M32 5v4M47 20h-4M32 35v-4M17 20h4"/><path d="M32 20l7-5" stroke-width="2"/>'),
+  analog: T('<circle cx="32" cy="20" r="15"/><path d="M32 20V10M32 20l8 4" stroke-width="2"/>'),
+  sun: T('<path d="M6 32h52"/><path d="M10 32a22 22 0 0 1 44 0"/><circle cx="40" cy="14" r="3" fill="currentColor"/>'),
+  timeline: T('<path d="M16 5v30"/><circle cx="16" cy="9" r="2"/><circle cx="16" cy="20" r="2"/><circle cx="16" cy="31" r="2"/><path d="M24 9h24M24 20h18M24 31h22"/>'),
+  bedside: T('<path d="M12 12h8M26 12h8M42 12h8" stroke-width="3"/><path d="M12 28h40" stroke-width="1"/>'),
+};
 function fillPicker(id, map, current, label, onPick) {
   const box = $(id);
   box.innerHTML = Object.entries(map).map(([k, name]) => `<button type="button" role="radio" data-v="${k}" aria-checked="${k === current}" ${label(k, name)}</button>`).join('');
@@ -786,8 +796,8 @@ function fillPicker(id, map, current, label, onPick) {
     onPick(b.dataset.v);
   });
 }
-fillPicker('clock-style', CLOCKS, settings.clock, (k, name) => `class="d-btn d-btn-sm">${name}`, (v) => { settings.clock = v; save(); applyLook(); tick(); });
-fillPicker('palette', LOOKS, settings.look, (k, name) => `class="swatch" style="--a:${SWATCH[k][0]};--b:${SWATCH[k][1]}" aria-label="${name}" title="${name}">`, (v) => { settings.look = v; save(); applyLook(); $('look-name').textContent = LOOKS[v]; });
+fillPicker('clock-style', CLOCKS, settings.clock, (k, name) => `class="ck-opt">${CK_THUMB[k] || ''}<span>${name}</span>`, (v) => { settings.clock = v; save(); applyLook(); tick(); });
+fillPicker('palette', LOOKS, settings.look, (k, name) => `class="swatch" style="--a:${SWATCH[k][0]};--b:${SWATCH[k][1]}" aria-label="${name}"><i class="sw-chip"></i><span>${name}</span>`, (v) => { settings.look = v; save(); applyLook(); $('look-name').textContent = LOOKS[v]; });
 $('look-name').textContent = LOOKS[settings.look];
 // Brightness: the button in the top bar and in full screen steps through the four levels; Settings has the sliders and Auto
 function syncDim() {
@@ -795,7 +805,7 @@ function syncDim() {
   for (const id of ['dim-btn', 'dx-dim']) {
     const b = $(id);
     if (!b) continue;
-    b.querySelector('span').textContent = name;
+    b.querySelector('span').textContent = `Brightness: ${name}`;
     b.dataset.level = String(dim);
     b.setAttribute('aria-label', `Brightness: ${name}. Tap for ${DIM_NAMES[(dim + 1) % 4].toLowerCase()}`);
   }
