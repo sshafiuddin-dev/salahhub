@@ -921,16 +921,21 @@ function renderAdhkar(nowMin) {
   $('dk-tr-toggle').textContent = settings.translit ? 'Hide transliteration' : 'Show transliteration';
   $('dk-tr-toggle').hidden = !it.tr;
   $('dk-listen').hidden = !AUDIO[dk.key];
-  $('dx-dhikr').hidden = !show;
+  // Full screen: the dua is its own state, one minute in every five and never in the last 15 minutes before an event,
+  // so the board has the whole screen the rest of the time. Tapping Next shows it for a minute (see dxPeek).
+  const toEvent = nextEvent(shownRows(), tomorrow.rows[0].adhan, nowMin, day.sunrise).at - nowMin;
+  const duaTurn = Math.floor(nowMin) % 5 === 2 || Date.now() < dxPeek;
+  $('dx-dhikr').hidden = !show || !(toEvent > 15 && duaTurn);
   $('dx-ar').textContent = it.ar;
   $('dx-ar').hidden = !it.ar;
   $('dx-en').textContent = it.en;
   $('dx-pos').textContent = `${dk.i + 1} of ${set.items.length}`;
 }
+let dxPeek = 0; // ms: until then the dua stays up in full screen
 const stepAdhkar = (by) => { const n = SETS[dk.key].items.length; dk.i = (dk.i + by + n) % n; renderAdhkar(clock(new Date(), place().zone).sec / 60); };
 $('dk-prev').addEventListener('click', () => stepAdhkar(-1));
 $('dk-next').addEventListener('click', () => stepAdhkar(1));
-$('dx-next').addEventListener('click', () => stepAdhkar(1));
+$('dx-next').addEventListener('click', () => { dxPeek = Date.now() + 60e3; stepAdhkar(1); });
 $('dk-count').addEventListener('click', () => {
   const it = dkItem(), counts = dkCounts(), k = `${dk.key}.${dk.i}`, c = counts[k] || 0;
   if (c >= it.n) return;
