@@ -509,6 +509,7 @@ body { overflow: hidden; }
   /* the words leave the screen but stay as the buttons' names for screen readers */
   .tb-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #help { display: none; } /* phones: Settings › About has Read the guide; the header keeps room for the date */
+  #feedback-btn { display: none; } /* phones: Settings › About has Send feedback */
   .tb-btn { width: 2.75rem; height: 2.75rem; padding: 0; }
   .tb-btn svg { width: 1.3rem; height: 1.3rem; }
   .toast { bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
@@ -821,3 +822,49 @@ body { overflow: hidden; }
 /* Burn-in care: while the screen is kept on, app.js steps --shift around a 2 px grid every 3 minutes.
    Only the clock areas and the full-screen header move; bars with fixed children stay put. */
 #clock, .dx-small, .dx-clock, .display .dx-top { translate: var(--shift, 0 0); }
+
+/* Narrower tablets: the six tabs and five actions share one bottom bar, so the bar tightens before anything overlaps */
+@media (min-width: 48.01rem) and (max-width: 62rem) {
+  .app .tabbar .d-menu { gap: 0 .7rem; }
+  .topbar-actions { gap: .7rem; }
+  .topbar-actions::before { content: ""; align-self: center; width: 1px; height: 1.1rem; background: var(--line); } /* where the tabs end and the actions begin */
+  .app .tabbar .d-menu a, .app .tb-btn, .app .tb-btn.d-btn { letter-spacing: .03em; font-size: .74rem; }
+}
+
+@media (min-width: 48.01rem) and (max-width: 52rem) {
+  .app .tabbar .d-menu { gap: 0 .55rem; }
+  .topbar-actions { gap: .55rem; }
+  .app .tabbar .d-menu a, .app .tb-btn, .app .tb-btn.d-btn { letter-spacing: .02em; font-size: .7rem; }
+}
+
+/* Feedback form: a printed sheet over the dimmed page */
+.fb { width: min(38rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 0; border-top: 3px double var(--ink); border-radius: 2px;
+  background: var(--paper); color: var(--ink); box-shadow: 0 .75rem 2.5rem rgba(0, 0, 0, .35); overflow: auto; overscroll-behavior: contain; }
+.fb::backdrop { background: rgba(20, 16, 10, .45); }
+.fb-form { display: grid; gap: .55rem; padding: 1.25rem clamp(1rem, 4vw, 1.75rem) 1.25rem; }
+.fb h2 { font: 500 1.55rem/1.15 var(--display); }
+.fb-lead { color: var(--muted); font-size: .95rem; margin-bottom: .35rem; }
+.fb .iq-label { margin-top: .5rem; }
+.fb-kind { display: flex; flex-wrap: wrap; gap: .35rem 1.25rem; margin: 0; padding: 0; border: 0; }
+.fb-kind legend { padding: 0; margin-bottom: .35rem; }
+.fb-kind label { display: inline-flex; align-items: center; gap: .45rem; min-height: 2.75rem; font-size: .98rem; cursor: pointer; }
+.fb-kind input { width: 1.15rem; height: 1.15rem; accent-color: var(--clear); }
+.fb .fb-message { width: 100%; min-height: 7.5rem; height: auto; padding: .65rem .75rem; line-height: 1.45; resize: vertical; white-space: pre-wrap; align-items: start; }
+.fb .fb-contact { width: 100%; max-width: 24rem; }
+.fb-opt { font-weight: 400; color: var(--muted); }
+.fb-shot { display: grid; gap: .45rem; }
+.fb-shot-fig { margin: 0; display: grid; gap: .3rem; }
+.fb-shot-fig img { display: block; width: 100%; max-height: 13rem; object-fit: contain; object-position: left top; border: 1px solid var(--line); background: var(--surface); }
+.fb-shot-fig figcaption { font: italic 400 .9rem/1.3 var(--display); color: var(--muted); }
+.fb-file { position: relative; overflow: hidden; cursor: pointer; }
+.fb-file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; } /* the label is the button; the file picker opens on tap */
+.fb-file:focus-within { outline: 2px solid var(--clear); outline-offset: 2px; }
+.fb-details { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .15rem .9rem; margin: 0; padding: .6rem .75rem; border: 1px solid var(--line); font-size: .82rem; color: var(--muted); }
+.fb-details[hidden] { display: none; }
+.fb-details dt { font-weight: 600; color: var(--ink); }
+.fb-details dd { margin: 0; overflow-wrap: anywhere; }
+.fb-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.fb-status { min-height: 1.4em; font-size: .95rem; }
+.fb-status.is-bad { color: var(--risk, var(--clear)); }
+.fb-actions { display: flex; justify-content: flex-end; gap: .6rem; padding-top: .6rem; border-top: 1px solid var(--line); }
+.fb-actions .d-btn { min-height: 2.75rem; padding-inline: 1.2rem; }
