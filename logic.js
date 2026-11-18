@@ -240,3 +240,32 @@ export function untilText(iso, now, zone) {
   const later = end.y !== today.y || end.m !== today.m || end.d !== today.d;
   return `until ${fmt(Math.floor(end.sec / 60))}${later ? ` ${end.weekday}` : ''}`;
 }
+
+// The moving weather sky: what to draw, from the weather now and the time of day. Pure, so the self-check can test it.
+// w: { kind, cloud (%), vis (m), dir (° the wind comes from), sky: { rain (mm/h), snow (cm/h), wind (km/h) } } or null.
+// t: { now, sunrise, maghrib } in minutes after midnight; hijriDay: 1-30.
+// Returns numbers from 0 to 1 for cloud cover, darkness of the cloud, rain, snow and fog; wind as a slant from -1 (to the
+// left) to 1; day (1 full daylight, 0 night), dawn (the warm hour around sunrise or Maghrib), the sun's place [x, y]
+// across and up the sky (null when it is down), night (from Maghrib to sunrise) and the moon's phase (0 new, .5 full).
+const SKY_KIND = { clear: [.05, 0], cloudy: [.45, .05], overcast: [.95, .55], fog: [.6, .3], rain: [.95, .6], storm: [1, .75], snow: [.9, .35], plain: [.25, 0] };
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+export function skyParams(w, t, hijriDay) {
+  const kind = SKY_KIND[w?.kind] ? w.kind : 'plain', [cover0, dark] = SKY_KIND[kind], r = w?.sky?.rain, sn = w?.sky?.snow;
+  const wet = kind === 'rain' || kind === 'storm';
+  const cover = w?.cloud == null ? cover0 : Math.max(clamp01(w.cloud / 100), wet || kind === 'snow' ? .85 : 0);
+  // rain: drizzle and light rain thin, moderate and heavy dense (US/WMO bands: under 2.5, 7.6 and over mm an hour)
+  let rain = !wet ? 0 : r == null || r <= 0 ? .4 : r < .5 ? .3 : r < 2.5 ? .5 : r < 7.6 ? .75 : 1;
+  if (kind === 'storm') rain = Math.max(rain, .8);
+  const snow = kind !== 'snow' ? 0 : sn == null || sn <= 0 ? .55 : sn < .5 ? .45 : sn < 2 ? .7 : 1;
+  const fog = kind === 'fog' ? .8 : w?.vis != null && w.vis < 1000 ? .5 : 0;
+  // the wind leans the rain and moves the clouds: east-west part of where it blows to, strongest at 40 km/h and over
+  const speed = w?.sky?.wind ?? 0, dir = w?.dir ?? 270;
+  const wind = +(Math.sin(((dir + 180) % 360) * Math.PI / 180) * clamp01(speed / 40)).toFixed(3);
+  const { now, sunrise, maghrib } = t, span = maghrib - sunrise, f = (now - sunrise) / span;
+  const day = +clamp01(Math.min(now - (sunrise - 20), (maghrib + 20) - now) / 60).toFixed(3);
+  const near = (m, before, after) => (now < m ? clamp01(1 - (m - now) / before) : clamp01(1 - (now - m) / after));
+  const dawn = +Math.max(near(sunrise, 70, 40), near(maghrib, 45, 50)).toFixed(3);
+  const sun = f >= -.04 && f <= 1.04 ? [+(.08 + .84 * clamp01(f)).toFixed(3), +(.35 + .55 * Math.sin(Math.PI * clamp01(f))).toFixed(3)] : null;
+  return { kind, cover: +cover.toFixed(3), dark, rain, snow, fog, storm: kind === 'storm', wind, day, dawn, sun,
+    night: now >= maghrib || now < sunrise, moon: +(((hijriDay || 15) - .5) / 29.53).toFixed(3) };
+}

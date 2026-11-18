@@ -21,7 +21,7 @@
 }
 :root[data-palette="paper"][data-dim="1"] { --paper: #D8CFBE; --surface: #E0D8C8; --ink: #29241C; --muted: #50483A; --line: #B3A68E; --clear: #8A2818; --risk: #7E1616; }
 :root[data-palette="paper"][data-dim="2"] { --paper: #B8A07A; --surface: #C0A983; --ink: #22190F; --muted: #45351F; --line: #9A845E; --clear: #6B1D10; --risk: #6B1D10; }
-:root[data-palette="paper"][data-dim="3"] { --paper: #000000; --surface: #0A0806; --ink: #A9803F; --muted: #85683A; --line: #1E1810; --clear: #C98A3A; --risk: #C96A4E; color-scheme: dark; }
+:root[data-palette="paper"][data-dim="3"] { --paper: #000000; --surface: #0A0806; --ink: #A9803F; --muted: #90713F; /* 4.6:1 on black */ --line: #1E1810; --clear: #C98A3A; --risk: #C96A4E; color-scheme: dark; }
 
 /* Handwritten: blue-black pen on a ruled sheet, red pen for what matters next */
 :root[data-palette="hand"] {
