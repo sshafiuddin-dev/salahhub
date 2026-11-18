@@ -121,15 +121,13 @@ body { overflow: hidden; }
 :root[data-skymode="real"] .topbar, :root[data-skymode="real"] .dx-top, :root[data-skymode="real"] .sh-mid, :root[data-skymode="real"] .sh-warn {
   text-shadow: 0 0 .5em var(--paper), 0 0 .18em var(--paper), 0 0 .06em var(--paper); }
 :root[data-skymode="real"] .iq-hijri, :root[data-skymode="real"] .dx-meta, :root[data-skymode="real"] .sh-side, :root[data-skymode="real"] .sh-at, :root[data-skymode="real"] .sh-wxat { color: var(--ink); }
-/* and the small text in the sky's band sits on a soft paper backing, like a label pasted on a photograph:
-   the date line, the seconds by the clock and the countdown column. The big clock reads on the sky itself. */
-:root[data-skymode="real"] .topbar-title, :root[data-skymode="real"] .dx-top, :root[data-skymode="real"] .sh-next, :root[data-skymode="real"] .sh-side, :root[data-skymode="real"] .sh-warn { position: relative; isolation: isolate; }
-:root[data-skymode="real"] .topbar-title::before, :root[data-skymode="real"] .dx-top::before, :root[data-skymode="real"] .sh-next::before,
-:root[data-skymode="real"] .sh-side::before, :root[data-skymode="real"] .sh-warn::before {
-  content: ""; position: absolute; inset: -.25rem -.75rem; z-index: -1; border-radius: 4px; background: var(--paper); opacity: .88; }
-:root[data-skymode="real"] .sh-side::before { inset: -.25rem -.5rem; }
-:root[data-skymode="real"] .sh-next::before { bottom: -2.25rem; } /* down past the ruler's letters, which hang below the column */
-@media (max-width: 48rem) { :root[data-skymode="real"] .topbar-title::before { display: none; } :root[data-skymode="real"] .topbar { position: relative; isolation: isolate; }
+/* No panel is laid over the sky: the ink keeps its paper halo and sits straight on it, so the board stays one
+   printed sheet in front of a window rather than a card pinned to a photograph. The countdown column holds the
+   most small type, so its halo is the widest. */
+:root[data-skymode="real"] .sh-next, :root[data-skymode="real"] .sh-side, :root[data-skymode="real"] .dx-top {
+  text-shadow: 0 0 .7em var(--paper), 0 0 .3em var(--paper), 0 0 .12em var(--paper), 0 0 .05em var(--paper); }
+/* Phones: the top bar is dense and sits right on the sky, so there the whole bar (edge to edge, not a floating panel) keeps a paper wash */
+@media (max-width: 48rem) { :root[data-skymode="real"] .topbar { position: relative; isolation: isolate; }
   :root[data-skymode="real"] .topbar::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--paper); opacity: .8; } }
 
 /* App shell */
@@ -922,3 +920,29 @@ body { overflow: hidden; }
 .fb-status.is-bad { color: var(--risk, var(--clear)); }
 .fb-actions { display: flex; justify-content: flex-end; gap: .6rem; padding-top: .6rem; border-top: 1px solid var(--line); }
 .fb-actions .d-btn { min-height: 2.75rem; padding-inline: 1.2rem; }
+
+/* More menu: Adhkar, Quran and Month sit under one entry so the main bar stays short on a wall tablet */
+.more summary { list-style: none; cursor: pointer; }
+.more summary::-webkit-details-marker { display: none; }
+.tabbar .d-menu .more summary { display: grid; justify-items: center; gap: .25rem; padding: .6rem 0; font-size: .78rem; font-weight: 600; color: var(--ink); }
+.more details { position: relative; }
+.more-menu { position: absolute; z-index: 20; min-width: 9rem; padding: .35rem; background: var(--paper); border: 1px solid var(--line); box-shadow: 0 6px 20px #0004; }
+.tabbar .more-menu { left: 100%; top: 0; margin-left: .35rem; }
+.dockbar .more-menu { right: 0; bottom: calc(100% + .35rem); display: grid; }
+.more-menu a { display: flex; align-items: center; gap: .6rem; padding: .7rem .9rem; min-height: 44px; color: var(--ink); }
+.dockbar details.more { position: relative; display: grid; place-items: center; flex: 1 1 0; }
+.dockbar .more summary { display: grid; justify-items: center; }
+/* Month link at the right end of the Sunrise line on the board */
+.sh-month { margin-left: auto; padding: .5rem .25rem .5rem 1rem; min-height: 44px; display: inline-flex; align-items: center; color: var(--clear); text-decoration: none; font-style: italic; }
+.sh-month:hover { text-decoration: underline; }
+/* Bottom bar (tablets and wider): More looks like the other tabs and opens upward */
+@media (min-width: 48.01rem) {
+  .app .tabbar .d-menu .more summary { display: flex; align-items: center; height: 2.9rem; padding: 0; gap: .3rem; font: 500 .78rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .app .tabbar .d-menu .more summary svg { display: none; }
+  .app .tabbar .d-menu .more summary::after { content: "›"; display: inline-block; transform: rotate(-90deg); }
+  .app .tabbar .d-menu .more[open] summary::after, .app .tabbar .d-menu .more details[open] summary::after { transform: rotate(90deg); }
+  .app .tabbar .d-menu .more summary:hover, .app .tabbar .d-menu .more summary.d-menu-active { color: var(--ink); background: none; }
+  .app .tabbar .d-menu .more summary.d-menu-active { box-shadow: inset 0 3px 0 var(--clear); }
+  .tabbar .more-menu { left: 0; top: auto; bottom: 100%; margin: 0 0 .35rem; }
+  .app .tabbar .more-menu a { height: auto; min-height: 44px; padding: .7rem .9rem; letter-spacing: .08em; }
+}
