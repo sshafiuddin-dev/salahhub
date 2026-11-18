@@ -88,7 +88,7 @@ function nextLine(d) {
   const row = d.next.at >= 1440 ? d.tomorrowFajr : d.rows.find(r => r.key === d.next.key);
   if (!row) return `<p class="sh-at">${nextAt(d)}</p>`; // sunrise
   const low = row.jumuah ? `Khutbah <b>${khutbahs(row.jumuah)}</b>` : `Iqama <b>${row.iqama == null ? 'not set' : row.iqama === row.adhan ? 'on time' : fmt(row.iqama)}</b>`;
-  const when = d.next.at >= 1440 ? ' tomorrow' : ''; // after Isha this is tomorrow's Fajr, a minute or so off today's in the table
+  const when = d.next.at >= 1440 || d.isAhead ? ' tomorrow' : ''; // after Isha this is tomorrow's Fajr
   return `<p class="sh-at">Adhan <b>${fmt(row.adhan)}</b>${when} &nbsp;·&nbsp; ${low}</p>`;
 }
 // The day ruler: a printed scale from an hour before Fajr to an hour after Isha, an hour mark for each hour,
@@ -120,11 +120,16 @@ function sheetTable(d) {
     return `<td${nx(r) ? ' class="is-next"' : ''}>${v}</td>`;
   }).join('');
   const low = jumRow(d) ? 'Iqama, khutbah' : 'Iqama';
-  return `<table class="sh-tt"><thead><tr><th scope="col"><span class="sh-vh">Prayer</span></th>${th}</tr></thead>`
+  const corner = d.isAhead ? '<span class="sh-tmrw">Tomorrow</span>' : '<span class="sh-vh">Prayer</span>';
+  return `<table class="sh-tt"><thead><tr><th scope="col">${corner}</th>${th}</tr></thead>`
     + `<tbody><tr><th scope="row">Adhan</th>${adhan}</tr><tr class="sh-iq"><th scope="row">${low}</th>${iqama}</tr></tbody></table>`;
 }
-function board(d) {
-  const m = Math.floor(d.now), k = d.card;
+// After the Isha iqama the sheet shows tomorrow: d.ahead = { rows, sunrise } is tomorrow's day. The big clock and the
+// countdown stay on real time; the table, ruler, top line and foot read as the early hours before tomorrow's Fajr.
+const aheadView = (d) => ({ ...d, isAhead: true, rows: d.ahead.rows, sunrise: d.ahead.sunrise, now: d.now - 1440, next: { ...d.next, at: d.next.at - 1440 } });
+function board(real) {
+  const d = real.ahead && real.next.at >= 1440 ? aheadView(real) : real;
+  const m = Math.floor(real.now), k = d.card;
   const jum = d.jumuah?.length && !jumRow(d) ? ` &nbsp;·&nbsp; ${JUM} ${khutbahs(d.jumuah)}` : '';
   const body = k?.kind === 'dua'
     ? `<div class="sh-dua" data-dua><p class="sh-dua-h"><span>${k.title}</span><span>${k.pos} · tap for the next</span></p>`

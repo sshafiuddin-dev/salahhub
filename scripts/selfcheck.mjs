@@ -485,3 +485,25 @@ console.log('hijri and offsets ok');
   assert.equal(hijriNow(2026, 2, 17, 0, false, 1061, 1060), '29 Shaban 1447', 'off: midnight');
 }
 console.log('hijri at maghrib ok');
+{ // After the Isha iqama the sheet shows tomorrow; the clock and countdown stay on real time
+  const { renderTimes: rt } = await import('../clocks.js');
+  const mk = (f) => [['fajr', f, 360], ['dhuhr', 712, 750], ['asr', 871, 885], ['maghrib', 1001, 1001], ['isha', 1085, 1200]].map(([key, adhan, iqama]) => ({ key, adhan, iqama }));
+  const todayRows = mk(328), tmrw = mk(329), now = 21 * 60 + 50, next = nextEvent(todayRows, 329, now);
+  const base = { sec: now * 60 + 30, left: (1440 + 329 - now) * 60 - 30, now, rows: todayRows, sunrise: 410, next, tomorrowFajr: tmrw[0], card: null };
+  const txt = (h) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const late = txt(rt({ ...base, ahead: { rows: tmrw, sunrise: 411 } }));
+  assert.match(late, /Tomorrow/, 'corner says Tomorrow');
+  assert.match(late, / 5:29 /, 'table has tomorrow’s Fajr');
+  assert.doesNotMatch(late, / 5:28 /, 'and not today’s');
+  assert.match(late, /9:50/, 'big clock is still now');
+  assert.match(late, /7 h 39 m/, 'countdown unchanged');
+  assert.match(late, /Adhan 5:29 AM tomorrow/);
+  assert.match(late, /Sunrise 6:51 AM/, 'tomorrow’s sunrise');
+  assert.match(rt({ ...base, ahead: { rows: tmrw, sunrise: 411 } }), /is-next[^>]*>Fajr/, 'Fajr is the next prayer');
+  const early = txt(rt(base));
+  assert.doesNotMatch(early, /Tomorrow/, 'without ahead the sheet is today’s');
+  // Thursday night: Friday's sheet carries Jumu'ah
+  const fri = txt(rt({ ...base, ahead: { rows: fridayRows(tmrw, 'Fri', [720, 790]), sunrise: 411 } }));
+  assert.match(fri, /Jumu’ah/);
+  console.log('tomorrow sheet ok');
+}

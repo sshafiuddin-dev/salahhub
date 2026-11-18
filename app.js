@@ -185,6 +185,10 @@ function showHijri() {
 }
 
 let today = null, day = null, tomorrow = null, lastSec = null, weather = null;
+// After the Isha iqama (or an hour after the Isha adhan when no iqama is set) the timetables show tomorrow's day
+let ahead = false;
+const isAhead = (nowMin) => nowMin >= (day.rows[4].iqama ?? day.rows[4].adhan + 60);
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 let alerts = []; // National Weather Service warnings in force here: [{ event, severity, until, sender }]
 
 function loadDay(c) {
@@ -193,6 +197,8 @@ function loadDay(c) {
   timesKnown = true;
   const n = new Date(Date.UTC(c.y, c.m - 1, c.d + 1));
   tomorrow = dayTimes(n.getUTCFullYear(), n.getUTCMonth() + 1, n.getUTCDate());
+  Object.assign(tomorrow, { y: n.getUTCFullYear(), m: n.getUTCMonth() + 1, d: n.getUTCDate(), weekday: WEEKDAYS[n.getUTCDay()] });
+  ahead = isAhead(c.sec / 60);
   today.long = new Intl.DateTimeFormat('en-US', { timeZone: place().zone, weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
   setHijri(c.sec / 60);
   renderDay();
@@ -207,16 +213,17 @@ const jumuah = () => shownJumuah().map(fmt).join(', ');
 const shownRows = () => fridayRows(day.rows, today.weekday, shownJumuah());
 
 function renderDay() {
-  $('date').textContent = `${today.weekday}, ${MONTHS[today.m - 1]} ${today.d}`;
+  const sheet = ahead ? tomorrow : today, v = ahead ? tomorrow : day;
+  $('date').textContent = `${ahead ? 'Tomorrow, ' : ''}${sheet.weekday}, ${MONTHS[sheet.m - 1]} ${sheet.d}`;
   $('place').textContent = place().name;
   $('place-name').textContent = place().name;
 
   let body = '';
-  for (const r of day.rows) {
+  for (const r of v.rows) {
     body += `<tr data-k="${r.key}"><th scope="row">${NAMES[r.key]}</th><td>${fmt(r.adhan)}</td><td>${r.iqama == null ? 'Not set' : fmt(r.iqama)}</td></tr>`;
-    if (r.key === 'fajr') body += `<tr class="minor"><th scope="row">Sunrise</th><td>${fmt(day.sunrise)}</td><td></td></tr>`;
+    if (r.key === 'fajr') body += `<tr class="minor"><th scope="row">Sunrise</th><td>${fmt(v.sunrise)}</td><td></td></tr>`;
   }
-  if (jumuah()) body += `<tr class="minor${today.weekday === 'Fri' ? ' friday' : ''}"><th scope="row">Jumu&rsquo;ah khutbah</th><td colspan="2">${jumuah()}</td></tr>`;
+  if (jumuah()) body += `<tr class="minor${sheet.weekday === 'Fri' ? ' friday' : ''}"><th scope="row">Jumu&rsquo;ah khutbah</th><td colspan="2">${jumuah()}</td></tr>`;
   $('today').tBodies[0].innerHTML = body;
 
   const own = day.rows.filter(r => r.own).map(r => NAMES[r.key]), mine = own.length ? ` ${own.join(', ')} set by you.` : '';
@@ -245,16 +252,18 @@ function tick() {
   tickedAt = nowMs;
   if (!today || c.d !== today.d) { const later = !!today; loadDay(c); if (later) sync(false, true); return; }
   const nowMin = c.sec / 60, rows = shownRows(), ev = nextEvent(rows, tomorrow.rows[0].adhan, nowMin, day.sunrise);
+  if (isAhead(nowMin) !== ahead) { ahead = !ahead; renderDay(); return; } // renderDay ticks again with the new sheet
+  const aheadDay = ahead ? { rows: fridayRows(tomorrow.rows, tomorrow.weekday, shownJumuah()), sunrise: tomorrow.sunrise } : null;
   const left = (wallMs(today.y, today.m, today.d, ev.at, place().zone) - nowMs) / 1e3; // real seconds to it, the same clock as the time shown
   $('now').textContent = fmt(Math.floor(nowMin));
   const at = wxAt(ev, rows);
-  const html = renderClock(settings.clock, { sec: c.sec, left, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine() });
+  const html = renderClock(settings.clock, { sec: c.sec, left, ahead: aheadDay, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine() });
   $('clock').innerHTML = html;
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim) applyLook();
   if (displayOpen) {
-    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), card: dxCardFor(nowMin) });
+    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, ahead: aheadDay, now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), card: dxCardFor(nowMin) });
     else {
       $('dx-clock').innerHTML = html;
       if (c.sec % 10 === 0) fitDisplay(); // re-fit after late font loads or a change in what the clock shows
