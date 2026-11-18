@@ -47,7 +47,9 @@
 body { font-feature-settings: "kern", "liga"; }
 .tb-btn { border-radius: 2px; }
 .d-btn { box-shadow: none; text-transform: none; font-weight: 500; letter-spacing: .005em; }
-.d-btn-primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.d-btn-primary:not(.d-btn-soft) { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.d-btn-soft.d-btn-primary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+.d-btn-soft.d-btn-primary:hover { border-color: var(--ink); background: transparent; }
 .iq-ask, .dk, .qp-dlg-in, .au-list li, .qp-pane { border-radius: 2px; }
 .iq-ask { background: transparent; border: 0; border-top: 2px solid var(--ink); border-bottom: var(--rule-w) solid var(--line); padding-inline: 0; }
 .dk { background: transparent; border: 0; border-top: 2px solid var(--ink); border-radius: 0; padding-inline: 0; }
@@ -274,3 +276,33 @@ body { font-feature-settings: "kern", "liga"; }
   .d-range { --d-range-bg: var(--line); }
   .d-range::-webkit-slider-thumb { box-shadow: 0 0 0 2rem var(--surface) inset; }
 }
+
+/* Settings, set like the printed sheet: ruled rows, square ink switches, labelled square swatches, drawn clock styles */
+.d-toggle { --d-input-color: var(--ink); border-radius: 2px; background: transparent; box-shadow: none; }
+.d-toggle::before { border-radius: 1px; box-shadow: none; }
+.d-toggle:checked, .d-toggle:has(> input:checked), .d-toggle-success:checked { --d-input-color: var(--ink); background: var(--ink); color: var(--paper); }
+.d-toggle:checked::before, .d-toggle:has(> input:checked)::before { background-color: var(--paper); }
+.d-toggle:not(:checked) { --d-input-color: var(--muted); }
+
+.al-grid { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 1rem; border-bottom: 3px double var(--ink); max-width: 44rem; }
+.al-card { background: none; border: 0; border-top: var(--rule-w) solid var(--line); border-radius: 0; }
+.al-card:first-child { border-top: 2px solid var(--ink); }
+
+.ck-picker { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .75rem; width: min(100%, 38rem); }
+.ck-opt { display: grid; justify-items: center; gap: .35rem; padding: .6rem .5rem .5rem; min-height: 5.5rem; background: transparent; border: 1px solid var(--line); border-radius: 2px; color: var(--muted); font: 500 .9rem/1.2 var(--body); cursor: pointer; }
+.ck-opt svg { width: 4rem; height: 2.5rem; }
+.ck-opt:hover { border-color: var(--ink); color: var(--ink); }
+.ck-opt[aria-checked="true"] { border: 2px solid var(--ink); padding: calc(.6rem - 1px) calc(.5rem - 1px) calc(.5rem - 1px); color: var(--ink); background: var(--surface); }
+
+.sw-picker { gap: 1rem; }
+.swatch { width: auto; height: auto; display: grid; justify-items: center; gap: .4rem; padding: .25rem; border-radius: 0; background: none; box-shadow: none; color: var(--muted); font: 500 .9rem/1.2 var(--body); }
+.sw-chip { width: 3.5rem; height: 3.5rem; border-radius: 2px; background: linear-gradient(135deg, var(--a) 50%, var(--b) 50%); box-shadow: inset 0 0 0 1px var(--line); }
+.swatch[aria-checked="true"] { outline: 0; color: var(--ink); }
+.swatch[aria-checked="true"] .sw-chip { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+.d-join .d-btn { min-height: 2.5rem; height: 2.5rem; }
+.set-more { margin-top: 1rem; border-top: var(--rule-w) solid var(--line); padding-top: .5rem; }
+.set-more > summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; font-weight: 500; color: var(--muted); }
+.set-more[open] > summary { color: var(--ink); }
+.set-more .set-group:first-of-type { margin-top: .4rem; }
+#feedback-btn { display: none; } /* Feedback lives in Settings > About; the wall display does not need it */
