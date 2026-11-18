@@ -41,6 +41,7 @@
 /* The weather sky stays a faint wash over the paper, and goes away at Darkest */
 :root { --sky: color-mix(in srgb, var(--sky-base) 28%, var(--paper)); --board-bg: var(--surface); --board-fg: var(--ink); }
 :root[data-dim="3"] .sky-tint, :root[data-dim="3"] .sky-print, :root[data-dim="2"]:not([data-palette="contrast"]) .sky-tint, :root[data-dim="2"]:not([data-palette="contrast"]) .sky-print { display: none; } /* a still, warm page at night */
+:root[data-dim="3"] .sky-live, :root[data-dim="3"] .sky-real, :root[data-dim="2"]:not([data-palette="contrast"]) .sky-live, :root[data-dim="2"]:not([data-palette="contrast"]) .sky-real { display: none; } /* Dim and Darkest keep no sky at all: no stars, no moon, no glow */
 
 /* Print, not app: square corners, hairlines, no filled pills */
 :root { --radius-selector: 2px; --radius-field: 2px; --radius-box: 2px; }
@@ -80,7 +81,7 @@ body { font-feature-settings: "kern", "liga"; }
 
 /* Today's table */
 #today th, #today td { border-color: var(--line); }
-#today tr.next th, #today tr.next td { color: var(--clear); background: transparent; }
+#today tr.next th, #today tr.next td { color: var(--clear); background: transparent; box-shadow: inset 0 2px 0 var(--clear), inset 0 -2px 0 var(--clear); } /* the next prayer sits between two red rules, like the board */
 
 /* Full screen */
 .display { background: var(--paper); }
@@ -247,8 +248,8 @@ body { font-feature-settings: "kern", "liga"; }
 :root[data-palette="hand"] .sh-tt .sh-iq > * { border-top: 0; }
 :root[data-palette="hand"] .sh-wxat, :root[data-palette="hand"] .sh-tk i, :root[data-palette="hand"] .sh-warn b, :root[data-palette="hand"] .sh-warn span { font-family: var(--hand); font-style: normal; letter-spacing: 0; }
 /* the next adhan is circled in red pen */
-:root[data-palette="hand"] .sh-tt tbody tr:first-child td.is-next { position: relative; color: var(--ink); }
-:root[data-palette="hand"] .sh-tt tbody tr:first-child td.is-next::after {
+:root[data-palette="hand"] .sh-tt tbody tr:first-child td.is-next, :root[data-palette="hand"] .sh-tt tbody tr.sh-iq td.is-next { position: relative; color: var(--ink); }
+:root[data-palette="hand"] .sh-tt tbody tr:first-child td.is-next::after, :root[data-palette="hand"] .sh-tt tbody tr.sh-iq td.is-next::after {
   content: ""; position: absolute; inset: 0 8%; pointer-events: none; background: var(--clear);
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' preserveAspectRatio='none'%3E%3Cpath d='M64 6C30 3 6 22 7 50s27 45 57 44 50-20 49-46S88 5 52 9' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
           mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' preserveAspectRatio='none'%3E%3Cpath d='M64 6C30 3 6 22 7 50s27 45 57 44 50-20 49-46S88 5 52 9' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
@@ -266,7 +267,7 @@ body { font-feature-settings: "kern", "liga"; }
   .d-toggle:not(:checked) { border-color: var(--muted); color: var(--muted); }
   .ck-sky-top { stop-color: var(--sky-base); }
   .ck-ground { fill: var(--line); }
-  #today tr.next, #month tr.today, .wx-hours li.has-prayer { background: var(--surface); }
+  #month tr.today, .wx-hours li.has-prayer { background: var(--surface); }
   .dk-count { background-color: var(--line); }
   .qp-row:hover, .qp-row.is-open, .qp-ic:hover, .qp-row.is-drag, .qp-pick { background: var(--surface); }
   .qp-ic[data-q="repeat"][aria-pressed="true"], .qp-ic[data-q="shuffle"][aria-pressed="true"] { background: var(--line); }
@@ -320,3 +321,9 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .tb-btn, .d-join-item, .link-btn { min-width: 2.75rem; }
 .d-toggle-xs[type=checkbox], .d-toggle-sm[type=checkbox] { --d-size: 1.75rem; } /* 24px at least, whatever the label around it */
 .dockbar .more summary { padding: 0; line-height: 1.2; }
+
+/* Phase 6: the adhan has been called, the wait is now for the iqama */
+.sh-l.is-called .sh-kind { font: 600 max(1.15rem, calc(var(--u) * 4.4))/1.25 var(--display); font-style: normal; color: var(--clear); }
+.sh-l.is-called .sh-kind::before { content: ""; display: inline-block; width: .55em; height: .55em; margin-right: .5em; border-radius: 50%; background: var(--clear); vertical-align: .05em; }
+.sh .sh-tt tbody tr:first-child td.is-passed { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+:root[data-palette="hand"] .sh-l.is-called .sh-kind { font-family: var(--hand); font-weight: 400; }

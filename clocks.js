@@ -116,7 +116,8 @@ const wxAt = (w) => (w ? `<p class="sh-wxat">At ${w.name}: <b>${Math.round(w.tem
 function sheetTable(d) {
   const nx = (r) => r.key === d.next.key && d.next.at < 1440;
   const th = d.rows.map(r => `<th scope="col"${nx(r) ? ' class="is-next"' : ''}>${nameOf(r)}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
-  const adhan = d.rows.map(r => `<td${nx(r) ? ' class="is-next"' : ''}>${hm(r.adhan)}</td>`).join('');
+  const calledNow = d.next.kind === 'iqama' && d.next.at < 1440; // the adhan time has passed: the Iqama cell carries the mark
+  const adhan = d.rows.map(r => `<td${nx(r) ? ` class="${calledNow ? 'is-passed' : 'is-next'}"` : ''}>${hm(r.adhan)}</td>`).join('');
   const iqama = d.rows.map(r => {
     const v = r.jumuah ? r.jumuah.map(hm).join('<br>') : r.iqama == null ? '<em>not set</em>' : r.iqama === r.adhan && !r.def ? '<em>on time</em>' : r.def ? `${hm(r.iqama)}<small class="sh-def">default</small>` : hm(r.iqama);
     return `<td${nx(r) ? ' class="is-next"' : ''}>${v}</td>`;
