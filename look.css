@@ -109,9 +109,13 @@ body { font-feature-settings: "kern", "liga"; }
 :root[data-dim="3"] { --alert: #9C7420; --alert-ink: #000000; }
 :root[data-palette="contrast"] { --alert: #FFD000; --alert-ink: #000000; }
 :root[data-palette="contrast"][data-dim="2"], :root[data-palette="contrast"][data-dim="3"] { --alert: #FF9F1C; }
-@keyframes ck-mark { 0%, 49% { background-color: var(--alert); color: var(--alert-ink); } 50%, 100% { background-color: transparent; } }
-:root .ck-blink { display: inline-block; opacity: 1; padding: .02em .22em; margin: -.02em -.22em; border-radius: 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; animation: ck-mark 1s infinite; }
-@media (prefers-reduced-motion: reduce) { :root .ck-blink { animation: none; background-color: var(--alert); color: var(--alert-ink); } }
+@keyframes ck-mark { 0%, 49% { background-color: var(--alert); } 50%, 100% { background-color: transparent; } }
+/* the mark: a tight highlighter behind the digits only, steady from 15 minutes out, blinking in the last 3 */
+:root .ck-hl { display: inline-block; padding: .02em .16em; margin-inline: -.16em; border-radius: 2px; background-color: var(--alert); color: var(--alert-ink); }
+.sh .sh-n.ck-hl { justify-self: start; }
+.sh .sh-n.ck-hl i { color: inherit; }
+:root .ck-hl.ck-blink { animation: ck-mark 1s infinite; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { :root .ck-hl.ck-blink { animation: none; color: var(--alert-ink); } }
 
 /* Keep the top bar to one row on a tablet: the date line wraps under itself instead of pushing the buttons down */
 @media (min-width: 48.01rem) {

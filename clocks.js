@@ -21,7 +21,8 @@ const nextName = (d) => {
   return r?.jumuah ? `${JUM} ${d.next.kind === 'iqama' ? 'khutbah' : d.next.kind}` : `${NAMES[d.next.key]} ${d.next.kind}`.trim();
 };
 // the countdown blinks (soft, once a second) in its last 15 minutes
-const soon = (d) => (leftOf(d) < 900 ? ' ck-blink' : '');
+// from 15 minutes out the countdown sits on a highlighter mark; in the last 3 minutes the mark blinks (once a second)
+const soon = (d) => (leftOf(d) < 180 ? ' ck-hl ck-blink' : leftOf(d) < 900 ? ' ck-hl' : '');
 const stack = (cls, d) => `<div class="${cls}"><p>${nextName(d)} in</p><p class="ck-count${soon(d)}">${untilNext(d)}</p><p>${nextAt(d)}</p></div>`;
 
 function dial(d) {
@@ -134,7 +135,8 @@ function nextHead(d) {
   const name = r?.jumuah ? JUM : NAMES[d.next.key];
   const ar = r?.jumuah ? AR_JUM : d.next.key === 'sunrise' ? AR_RISE : AR[d.next.key];
   const kind = r?.jumuah ? 'khutbah' : d.next.kind;
-  return `<p class="sh-l"><span class="sh-nm">${name}</span><span class="sh-nar" lang="ar">${ar}</span><span class="sh-kind">${kind ? `${kind} in` : 'in'}</span></p>`;
+  const called = d.next.kind === 'iqama' && d.next.at < 1440; // the adhan has been called: the wait is for the iqama
+  return `<p class="sh-l${called ? ' is-called' : ''}"><span class="sh-nm">${name}</span><span class="sh-nar" lang="ar">${ar}</span><span class="sh-kind">${called ? 'Adhan called · iqama in' : kind ? `${kind} in` : 'in'}</span></p>`;
 }
 function board(real) {
   const d = real.ahead && real.next.at >= 1440 ? aheadView(real) : real;
