@@ -306,3 +306,17 @@ body { font-feature-settings: "kern", "liga"; }
 .set-more[open] > summary { color: var(--ink); }
 .set-more .set-group:first-of-type { margin-top: .4rem; }
 #feedback-btn { display: none; } /* Feedback lives in Settings > About; the wall display does not need it */
+
+/* Phase 5: 44px tap targets, placeholder contrast, phone dock alignment */
+.d-btn-sm, .d-tab, .d-select, .d-input { min-height: 2.75rem; }
+.d-btn-sm { height: auto; }
+.link-btn { display: inline-flex; align-items: center; min-height: 2.75rem; }
+.d-range { min-height: 2.75rem; }
+.check { min-height: 2.75rem; }
+.d-join .d-btn { min-height: 2.75rem; height: 2.75rem; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+.dockbar details.more { align-self: stretch; display: flex; }
+.dockbar .more summary { flex: 1; display: flex; align-items: center; justify-content: center; }
+.tb-btn, .d-join-item, .link-btn { min-width: 2.75rem; }
+.d-toggle-xs[type=checkbox], .d-toggle-sm[type=checkbox] { --d-size: 1.75rem; } /* 24px at least, whatever the label around it */
+.dockbar .more summary { padding: 0; line-height: 1.2; }
