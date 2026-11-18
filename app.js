@@ -362,7 +362,7 @@ function route() {
   $('help').href = `guide/${tab === 'settings' ? HELP_SUB[sub] : HELP_TAB[tab]}`;
   document.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-selected', b.dataset.sub === sub));
   document.querySelectorAll('.sub-pane').forEach(p => { p.hidden = p.id !== `sub-${sub}`; });
-  if (tab === 'month' && today) renderMonth();
+  if (tab === 'month' && today) { renderMonth(); requestAnimationFrame(() => document.querySelector('#month tr.today')?.scrollIntoView({ block: 'center' })); } // open at today, not the 1st
 }
 addEventListener('hashchange', route);
 // a tap anywhere else (or on a choice in it) closes the More menu
@@ -479,7 +479,10 @@ $('au-search').addEventListener('input', filterAdhkar);
 filterAdhkar();
 // The text is copied from hisnmuslim.com into hisn-text.json by scripts/fetch-hisn.mjs, so it loads from this site
 // Light editorial pass on the copied text: no ((double brackets)) around the Arabic, "PBUH" spelled out
-const tidy = (t) => t.replace(/\(\(\s*/g, '').replace(/\s*\)\)/g, '').replace(/\bPBUH\b/g, 'peace be upon him');
+// Drops the doubled brackets, expands PBUH, and removes any bracket that never found its partner (the source text has some)
+const unpair = (t) => { const open = []; const drop = new Set(); [...t].forEach((c, i) => { if (c === '(') open.push(i); else if (c === ')') { if (open.length) open.pop(); else drop.add(i); } }); open.forEach(i => drop.add(i)); return [...t].filter((_, i) => !drop.has(i)).join(''); };
+const unwrap = (t) => { t = t.trim(); if (t[0] !== '(') return t; let depth = 0; for (let i = 0; i < t.length; i++) { if (t[i] === '(') depth++; else if (t[i] === ')' && --depth === 0) { const rest = t.slice(i + 1).trim(); return /^[.!?,;:]*$/.test(rest) ? t.slice(1, i).trim() + rest : rest ? `${t.slice(1, i).trim()} (${rest.replace(/[.\s]+$/, '')})` : t.slice(1, i).trim(); } } return t; }; // "(All praise is for Allah ...)" -> the text without its outer brackets
+const tidy = (t) => unwrap(unpair(t.replace(/\(\(\s*/g, '').replace(/\s*\)\)/g, '').replace(/\bPBUH\b/g, 'peace be upon him')).replace(/([.!?:,])\(/g, '$1 (').replace(/\s{2,}/g, ' ').trim());
 let hisnText = null;
 async function loadHisnText() {
   if (hisnText) return hisnText;
