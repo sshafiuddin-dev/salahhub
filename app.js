@@ -296,7 +296,7 @@ function tick() {
   const sky = skyParams(weather, { now: nowMin, sunrise: day.sunrise, maghrib: day.rows[3].adhan }, parseInt(today.hijri, 10) || 15);
   const dim = currentDim();
   // no sky in the Handwritten and High contrast looks, nor at Dim unless the realistic sky can show by day
-  const skyOk = settings.look === 'paper' && (dim < 2 || (skyBack() === 'real' && (dim === 3 || !sky.night)));
+  const skyOk = settings.look === 'paper' && (dim < 3 || (skyBack() === 'real' && (dim === 3 || !sky.night))); // Dim is still a light page, so the printed sky stays; only Darkest is too dark for ink
   updateSky(sky, skyBack(), skyOk, root.dataset.theme === 'dark');
 
   // Alerts: only for moments crossed while the page is open
