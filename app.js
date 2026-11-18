@@ -214,7 +214,9 @@ const shownRows = () => fridayRows(day.rows, today.weekday, shownJumuah());
 
 function renderDay() {
   const sheet = ahead ? tomorrow : today, v = ahead ? tomorrow : day;
-  $('date').textContent = `${ahead ? 'Tomorrow, ' : ''}${sheet.weekday}, ${MONTHS[sheet.m - 1]} ${sheet.d}`;
+  // the header date always turns at midnight (the Hijri date beside it follows its own setting); only the table moves on after Isha
+  $('date').textContent = `${today.weekday}, ${MONTHS[today.m - 1]} ${today.d}`;
+  $('today').tHead.rows[0].cells[0].textContent = ahead ? 'Tomorrow' : 'Prayer';
   $('place').textContent = place().name;
   $('place-name').textContent = place().name;
 
