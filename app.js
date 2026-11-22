@@ -123,10 +123,35 @@ function applyLook() {
   root.dataset.clock = settings.clock;
   if (dim !== shownDim) { shownDim = dim; try { localStorage.setItem('iqama-dim', String(dim)); } catch (e) {} }
   syncDim();
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = getComputedStyle(root).getPropertyValue('--paper').trim() || '#0B2A33';
   redrawSky();
+  syncThemeColor();
 }
+// The browser's top bar takes the page's colour: the paper, except on Today while the live sky shows, where the sky runs up under
+// the status bar and the bar should be the sky's colour too, not a pale strip above it.
+function syncThemeColor() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  const cs = getComputedStyle(root);
+  let color = cs.getPropertyValue('--paper').trim() || '#0B2A33';
+  if (root.dataset.tab === 'today' && root.dataset.skymode === 'real') {
+    const probe = document.createElement('i'); // --sky can be a colour-mix(): let the browser turn it into a plain rgb()
+    probe.style.cssText = 'position:absolute;width:0;height:0;background:var(--sky)';
+    document.body.append(probe);
+    const sky = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    try { // a plain #rrggbb, which every browser takes for its top bar (the computed value can be a newer color(srgb …))
+      const g = Object.assign(document.createElement('canvas'), { width: 1, height: 1 }).getContext('2d');
+      g.fillStyle = '#010203'; g.fillStyle = sky; // a colour the canvas refuses leaves the marker colour in place
+      if (g.fillStyle === '#010203') throw new Error('colour not understood');
+      g.fillRect(0, 0, 1, 1);
+      const [r, gr, b, al] = g.getImageData(0, 0, 1, 1).data;
+      if (al === 255) color = `#${[r, gr, b].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+    } catch (e) { /* keep the paper colour */ }
+  }
+  if (meta.content !== color) meta.content = color;
+}
+// the sky mode and the tab change on their own (sky.js, the address): keep the bar in step
+new MutationObserver(syncThemeColor).observe(root, { attributes: true, attributeFilter: ['data-skymode', 'data-tab', 'data-night', 'data-sky', 'data-theme'] });
 let nowMinute = 0;
 applyLook();
 
@@ -279,13 +304,13 @@ function tick() {
   const left = (wallMs(today.y, today.m, today.d, ev.at, place().zone) - nowMs) / 1e3; // real seconds to it, the same clock as the time shown
   $('now').textContent = fmt(Math.floor(nowMin));
   const at = wxAt(ev, rows);
-  const html = renderClock(settings.clock, { sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, warn: warnLine(), fresh: freshNote() });
+  const html = renderClock(settings.clock, { sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
   $('clock').innerHTML = html;
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim) applyLook();
   if (displayOpen) {
-    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wx: wxLine(), wxAt: at, warn: warnLine(), fresh: freshNote(), card: dxCardFor(nowMin) });
+    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxNow: wxNow(), wxAt: at, warn: warnLine(), fresh: freshNote(), card: dxCardFor(nowMin) });
     else {
       $('dx-clock').innerHTML = html;
       if (c.sec % 10 === 0) fitDisplay(); // re-fit after late font loads or a change in what the clock shows
@@ -869,11 +894,12 @@ function wxAt(ev, rows) {
   const row = ev.at >= 1440 ? null : rows.find(r => r.key === ev.key);
   return { ...w, name: ev.key === 'sunrise' ? 'sunrise' : row?.jumuah ? 'Jumu’ah' : NAMES[ev.key] };
 }
-function wxLine() {
+// The weather right now for the block under the clock: { temp, unit, words, hi, lo, pop } or null
+function wxNow() {
   const w = weather;
-  if (!w) return '';
-  const u = settings.units, r = v => (v == null ? '–' : Math.round(v)), rain = w.today.pop ?? w.pop;
-  return `${r(w.temp)}°${u}${w.label ? ` ${esc(w.label.toLowerCase())}` : ''} &nbsp;·&nbsp; H ${r(w.today.max)}° L ${r(w.today.min)}°${rain == null ? '' : ` &nbsp;·&nbsp; Rain ${r(rain)}%`}`;
+  if (!w || w.temp == null) return null;
+  const r = v => (v == null ? null : Math.round(v)), rain = w.today.pop ?? w.pop;
+  return { temp: r(w.temp), unit: settings.units, words: w.label ? w.label.toLowerCase() : '', hi: r(w.today.max), lo: r(w.today.min), pop: r(rain) };
 }
 // What the card in the times-only full screen shows instead of the current prayer: after sunrise until Dhuhr (rest of today or a morning dua)
 // and, with duas chosen, from Maghrib until Isha (an evening dua). null keeps the current prayer.
@@ -898,6 +924,12 @@ function renderWeather() {
   document.querySelectorAll('[data-unit]').forEach(b => b.setAttribute('aria-pressed', b.dataset.unit === u));
 }
 $('weather').addEventListener('click', () => go('weather'));
+// A tap on the weather under the clock on Today opens the Weather tab. The clock is drawn again every second, which can replace the
+// pressed element between finger down and up and so swallow a click: the tap is read from the pointer instead. (Keyboards use the Weather tab.)
+let wxArmed = false;
+$('clock').addEventListener('pointerdown', (e) => { wxArmed = !!e.target.closest('[data-go="weather"]'); });
+$('clock').addEventListener('pointerup', (e) => { if (wxArmed && e.target.closest('[data-go="weather"]')) go('weather'); wxArmed = false; });
+$('clock').addEventListener('pointercancel', () => { wxArmed = false; });
 document.querySelectorAll('[data-unit]').forEach(b => b.addEventListener('click', () => {
   if (settings.units === b.dataset.unit) return;
   settings.units = b.dataset.unit;
