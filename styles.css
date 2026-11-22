@@ -399,7 +399,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .sh .sh-tt td { font-size: calc(var(--u) * 4.2); }
   .sh .sh-tt .sh-iq td { font-size: calc(var(--u) * 4.6); }
   .sh .sh-tt td em { font-size: calc(var(--u) * 2.8); }
-  .sh .sh-tt tr > :first-child { width: 3rem; }
+  .sh .sh-tt tr > :first-child { width: 3.6rem; }
   .sh .sh-tt thead th, .sh .sh-tt tbody th { letter-spacing: .04em; }
 }
 
@@ -432,6 +432,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 #today tr.next { background: transparent; }
 .iq-note { margin-top: .75rem; font-size: .9rem; color: var(--muted); max-width: 60ch; }
 .iq-note .iq-warn { color: var(--clear); font-weight: 600; } /* last sync failed or is over a day old */
+.sh-past { opacity: .45; } /* a Friday khutbah time that has passed */
 .iq-def, .sh-def { display: block; font: italic 400 .7em/1.1 var(--display); color: var(--muted); letter-spacing: 0; text-transform: none; } /* the visitor's default offset, not the masjid's time */
 #alert-log { white-space: pre-line; }
 .table-scroll { width: 100%; overflow-x: auto; margin-top: .75rem; }
@@ -529,6 +530,8 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .al-min { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; font-size: .9rem; color: var(--muted); }
 .iqama .al-row input[type="number"] { width: 4.25rem; }
 .al-copy { justify-self: start; margin: .2rem 0 0; }
+.al-time-list { display: grid; gap: .4rem; }
+.al-time { display: inline-flex; align-items: center; gap: .5rem; }
 .al-note { font-size: .85rem; color: var(--muted); }
 
 /* Weather panel */

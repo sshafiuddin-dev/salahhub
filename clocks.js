@@ -14,11 +14,13 @@ const untilNext = (d) => fmtSpan(leftOf(d));
 const nextAt = (d) => `at ${fmt(d.next.at)}${d.next.at >= 1440 ? ' tomorrow' : ''}`;
 const JUM = 'Jumu’ah';
 const nameOf = (r) => (r.jumuah ? JUM : NAMES[r.key]);
-const khutbahs = (list, f = fmt) => list.map(f).join(' and ');
+const khutbahs = (list, f = fmt) => (list.length > 1 ? `${list.slice(0, -1).map(f).join(', ')} and ${f(list[list.length - 1])}` : list.map(f).join('')); // "12:00 PM", "12:00 PM and 1:10 PM", "12:00 PM, 1:10 PM and 2:00 PM"
 const jumRow = (d) => d.rows.find(r => r.jumuah);
+// "khutbah", or "khutbah 2 of 3" when the day has several and this is one of them (nextEvent gives n and of)
+const khutbahWord = (n) => (n.of > 1 ? `khutbah ${n.n} of ${n.of}` : 'khutbah');
 const nextName = (d) => {
   const r = d.next.at < 1440 && d.rows.find(x => x.key === d.next.key);
-  return r?.jumuah ? `${JUM} ${d.next.kind === 'iqama' ? 'khutbah' : d.next.kind}` : `${NAMES[d.next.key]} ${d.next.kind}`.trim();
+  return r?.jumuah ? `${JUM} ${d.next.kind === 'iqama' ? khutbahWord(d.next) : d.next.kind}` : `${NAMES[d.next.key]} ${d.next.kind}`.trim();
 };
 // the countdown blinks (soft, once a second) in its last 15 minutes
 // from 15 minutes out the countdown sits on a highlighter mark; in the last 3 minutes the mark blinks (once a second)
@@ -93,7 +95,7 @@ const units = (t) => t.replace(/(\d)([hms])/g, '$1<i>$2</i>');
 function nextLine(d) {
   const row = d.next.at >= 1440 ? d.tomorrowFajr : d.rows.find(r => r.key === d.next.key);
   if (!row) return `<p class="sh-at">${nextAt(d)}</p>`; // sunrise
-  const low = row.jumuah ? `Khutbah <b>${khutbahs(row.jumuah)}</b>` : `Iqama <b>${row.iqama == null ? 'not set' : row.iqama === row.adhan ? 'on time' : fmt(row.iqama)}</b>${row.def ? ' (default)' : ''}`;
+  const low = row.jumuah ? (d.next.of > 1 && !d.isAhead ? `${khutbahWord(d.next).replace(/^k/, 'K')} <b>${fmt(d.next.at)}</b>` : `Khutbah <b>${khutbahs(row.jumuah)}</b>`) : `Iqama <b>${row.iqama == null ? 'not set' : row.iqama === row.adhan ? 'on time' : fmt(row.iqama)}</b>${row.def ? ' (default)' : ''}`;
   const when = d.next.at >= 1440 || d.isAhead ? ' tomorrow' : ''; // after Isha this is tomorrow's Fajr
   return `<p class="sh-at">Adhan <b>${fmt(row.adhan)}</b>${when} &nbsp;·&nbsp; ${low}</p>`;
 }
@@ -123,7 +125,7 @@ function sheetTable(d) {
   const calledNow = d.next.kind === 'iqama' && d.next.at < 1440; // the adhan time has passed: the Iqama cell carries the mark
   const adhan = d.rows.map(r => `<td${nx(r) ? ` class="${calledNow ? 'is-passed' : 'is-next'}"` : ''}>${hm(r.adhan)}</td>`).join('');
   const iqama = d.rows.map(r => {
-    const v = r.jumuah ? r.jumuah.map(hm).join('<br>') : r.iqama == null ? '<em>not set</em>' : r.iqama === r.adhan && !r.def ? '<em>on time</em>' : r.def ? `${hm(r.iqama)}<small class="sh-def">default</small>` : hm(r.iqama);
+    const v = r.jumuah ? r.jumuah.map(t => (!d.isAhead && t <= d.now ? `<span class="sh-past">${hm(t)}</span>` : hm(t))).join('<br>') : r.iqama == null ? '<em>not set</em>' : r.iqama === r.adhan && !r.def ? '<em>on time</em>' : r.def ? `${hm(r.iqama)}<small class="sh-def">default</small>` : hm(r.iqama);
     return `<td${nx(r) ? ' class="is-next"' : ''}>${v}</td>`;
   }).join('');
   const low = jumRow(d) ? 'Iqama, khutbah' : 'Iqama';
@@ -139,9 +141,12 @@ function nextHead(d) {
   const r = d.next.at < 1440 && d.rows.find(x => x.key === d.next.key);
   const name = r?.jumuah ? JUM : NAMES[d.next.key];
   const ar = r?.jumuah ? AR_JUM : d.next.key === 'sunrise' ? AR_RISE : AR[d.next.key];
-  const kind = r?.jumuah ? 'khutbah' : d.next.kind;
   const called = d.next.kind === 'iqama' && d.next.at < 1440; // the adhan has been called: the wait is for the iqama
-  return `<p class="sh-l${called ? ' is-called' : ''}"><span class="sh-nm">${name}</span><span class="sh-nar" lang="ar">${ar}</span><span class="sh-kind">${called ? 'Adhan called · iqama in' : kind ? `${kind} in` : 'in'}</span></p>`;
+  // Jumu'ah waits for the khutbah, not an iqama; the second and later khutbahs say which they are
+  const wait = r?.jumuah && called ? khutbahWord(d.next) : 'iqama', first = !(d.next.n > 1);
+  const kind = r?.jumuah ? (called ? wait : d.next.kind) : d.next.kind;
+  const text = called ? (first ? `Adhan called · ${wait} in` : `${wait} in`) : kind ? `${kind} in` : 'in';
+  return `<p class="sh-l${called ? ' is-called' : ''}"><span class="sh-nm">${name}</span><span class="sh-nar" lang="ar">${ar}</span><span class="sh-kind">${text}</span></p>`;
 }
 // The weather now, under the clock: "54°F fog · H 61° L 49° · Rain 34%". On Today a tap opens the Weather tab (data-go; app.js).
 function wxNow(d) {
