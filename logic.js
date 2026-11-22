@@ -79,19 +79,37 @@ export function wallMs(y, m, d, min, zone) {
 
 // What to count down to: the next adhan or iqama today, else tomorrow's Fajr adhan.
 // sunrise (optional) is counted down to after Fajr, as an event of its own with no kind.
+// On a Friday the Jumu'ah row carries a list of khutbahs (r.jumuah): after the adhan the count goes to the first, then on to
+// each next one that comes before the next prayer's adhan (Asr), then to that adhan. With more than one, the event says
+// which: n of the total. The first khutbah always counts, wherever it falls.
+// Khutbahs that count for the day: the first always, later ones only before the next prayer's adhan (Asr)
+export const khutbahsBefore = (list, limit = 1440) => list.filter((t, j) => j === 0 || t < limit);
+
 export function nextEvent(rows, tomorrowFajrAdhan, nowMin, sunrise) {
-  for (const r of rows) {
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
     if (nowMin < r.adhan) return { key: r.key, kind: 'adhan', at: r.adhan };
-    if (r.iqama != null && nowMin < r.iqama) return { key: r.key, kind: 'iqama', at: r.iqama };
+    if (r.jumuah?.length) {
+      const ks = khutbahsBefore(r.jumuah, rows[i + 1]?.adhan);
+      const j = ks.findIndex(t => nowMin < t);
+      if (j >= 0) return { key: r.key, kind: 'iqama', at: ks[j], ...(ks.length > 1 ? { n: j + 1, of: ks.length } : {}) };
+    } else if (r.iqama != null && nowMin < r.iqama) return { key: r.key, kind: 'iqama', at: r.iqama };
     if (r.key === 'fajr' && sunrise != null && nowMin < sunrise) return { key: 'sunrise', kind: '', at: sunrise };
   }
   return { key: 'fajr', kind: 'adhan', at: tomorrowFajrAdhan + 1440 };
 }
 
 // On a Friday with known khutbah times (minutes), the Dhuhr row becomes Jumu'ah: it carries the khutbahs and
-// counts down to the first one in place of the Dhuhr iqama. Any other day, or no khutbah times, leaves rows as they are.
+// counts down to each khutbah in turn (see nextEvent) in place of the Dhuhr iqama. Any other day, or no khutbah times, leaves rows as they are.
 // May the page reload itself to update? Only when nothing is sounding, nobody has touched it for a minute, and no adhan or iqama is within 2 minutes.
 export const safeToReload = ({ audio, alert, idleMs, minToEvent }) => !audio && !alert && idleMs >= 60e3 && (minToEvent == null || minToEvent > 2);
+
+// The khutbah times a visitor types in: valid times only, earliest first, once each, at most six, as "HH:MM".
+export function cleanKhutbahTimes(list) {
+  if (!Array.isArray(list)) return [];
+  const ok = list.filter(t => typeof t === 'string' && parseHM(t) != null).map(t => t.padStart(5, '0'));
+  return [...new Set(ok)].sort((a, b) => parseHM(a) - parseHM(b)).slice(0, 6);
+}
 
 export function fridayRows(rows, weekday, khutbahs) {
   const k = (khutbahs || []).filter(v => v != null).sort((a, b) => a - b);
@@ -164,15 +182,16 @@ export function cleanStep(s, def, sounds, withMin) {
 const stepType = (s) => (typeof s === 'string' ? s : s && s.on !== false ? s.type : 'off');
 export function alertsBetween(rows, cfg, fromSec, toSec) {
   const out = [];
-  const add = (min, kind, key, type, mins) => {
+  const add = (min, kind, key, type, mins, r) => {
     const s = min * 60;
-    if (type && type !== 'off' && fromSec < s && s <= toSec && toSec - s < 90) out.push({ kind, key, type, min: mins });
+    // a row that is one of several khutbahs says which, so the message can too
+    if (type && type !== 'off' && fromSec < s && s <= toSec && toSec - s < 90) out.push({ kind, key, type, min: mins, ...(r?.of > 1 ? { n: r.n, of: r.of } : {}) });
   };
   for (const r of rows) {
     const c = cfg[r.key];
     if (!c || !c.on) continue;
     add(r.adhan, 'adhan', r.key, stepType(c.adhan));
-    if (c.before) add(r.adhan - c.before.min, 'before', r.key, stepType(c.before), c.before.min);
+    if (c.before) add(r.adhan - c.before.min, 'before', r.key, stepType(c.before), c.before.min, r);
     if (c.iqama && r.iqama != null) add(r.iqama - c.iqama.min, 'iqama', r.key, stepType(c.iqama), c.iqama.min);
   }
   return out;

@@ -1,6 +1,6 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
+import { cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
@@ -81,13 +81,13 @@ if (!['auto', 'times', 'full'].includes(settings.dxLayout)) settings.dxLayout = 
 
 // Alerts for each prayer and for Jumu'ah
 const blankAlert = (key) => key === 'jumuah'
-  ? { on: false, before: { on: true, type: 'message', min: 15 }, time: null }
+  ? { on: false, before: { on: true, type: 'message', min: 15 }, times: [] }
   : { on: true, adhan: { on: true, type: 'message' }, before: { on: false, type: 'beep', min: 10 }, iqama: { on: false, type: 'beep', min: 5 } };
 function cleanAlert(key, a) {
   const d = blankAlert(key);
   if (!a || typeof a !== 'object') return d;
   const step = (part, withMin = true) => cleanStep(a[part], d[part], SOUND_KEYS, withMin);
-  if (key === 'jumuah') return { on: a.on === true, before: step('before'), time: parseHM(a.time) != null ? a.time : null };
+  if (key === 'jumuah') return { on: a.on === true, before: step('before'), times: cleanKhutbahTimes(Array.isArray(a.times) ? a.times : [a.time]) }; // a.time: the single time saved before there could be several
   return { on: a.on !== false, adhan: step('adhan', false), before: step('before'), iqama: step('iqama') };
 }
 const savedAlerts = settings.alerts && typeof settings.alerts === 'object' ? settings.alerts : {};
@@ -241,9 +241,10 @@ function loadDay(c) {
   renderWeather();
 }
 
-const jumuahMins = () => (near() ? masjid.jumuah.map(parseHM).filter(v => v != null) : []);
-// Khutbah times to show: the visitor's own khutbah time (set under Jumu'ah alerts), else ISCJ's nearby, else none
-const shownJumuah = () => { const own = parseHM(settings.alerts.jumuah.time); return own != null ? [own] : jumuahMins(); };
+const jumuahMins = () => (near() ? [...new Set(masjid.jumuah.map(parseHM).filter(v => v != null))].sort((a, b) => a - b) : []);
+// Khutbah times to show: the visitor's own khutbah times (set under Jumu'ah alerts), else ISCJ's nearby, else none
+const ownKhutbahs = () => settings.alerts.jumuah.times.map(parseHM).filter(v => v != null);
+const shownJumuah = () => { const own = ownKhutbahs(); return own.length ? own : jumuahMins(); };
 const jumuah = () => shownJumuah().map(fmt).join(', ');
 // Rows the clocks show: on a Friday with khutbah times, Dhuhr is shown as Jumu'ah
 const shownRows = () => fridayRows(day.rows, today.weekday, shownJumuah());
@@ -279,9 +280,11 @@ function renderDay() {
   tick();
 }
 
-// Friday khutbah for the Jumu'ah alert: the visitor's own time, else ISCJ's first khutbah nearby
-const khutbah = () => parseHM(settings.alerts.jumuah.time) ?? jumuahMins()[0] ?? null;
-const alertRows = () => (today.weekday === 'Fri' && khutbah() != null ? [...day.rows, { key: 'jumuah', adhan: khutbah(), iqama: null }] : day.rows);
+// Fridays: one row per khutbah for the Jumu'ah alert (the visitor's own times, else ISCJ's nearby), numbered when there are several
+const alertRows = () => {
+  const list = today.weekday === 'Fri' ? khutbahsBefore([...shownJumuah()].sort((a, b) => a - b), day.rows.find(r => r.key === 'asr')?.adhan) : [];
+  return list.length ? [...day.rows, ...list.map((m, i) => ({ key: 'jumuah', adhan: m, iqama: null, ...(list.length > 1 ? { n: i + 1, of: list.length } : {}) }))] : day.rows;
+};
 
 // One line for the wall display: where iqama comes from and how fresh it is. Turns "late" after a day without a check.
 const freshNote = () => {
@@ -570,6 +573,9 @@ const soundOptions = (sel) => {
   const opts = (map) => Object.keys(map).map(t => `<option value="${t}"${t === sel ? ' selected' : ''}>${map === SOUNDS ? SOUNDS[t] : RECORDINGS[t]}</option>`).join('');
   return `${opts(SOUNDS)}<optgroup label="A named adhan recording">${opts(RECORDINGS)}</optgroup>`;
 };
+// Khutbah times typed in under Jumu'ah alerts: one time input per khutbah (a blank one when none is set yet)
+const khutbahRows = (times) => (times.length ? times : ['']).map((t, i) => `<span class="al-time"><input class="d-input d-input-sm" type="time" id="al-jumuah-time-${i}" data-k="jumuah" data-jt aria-label="Khutbah ${i + 1} time" value="${t ? t.padStart(5, '0') : ''}">`
+  + `<button class="d-btn d-btn-sm d-btn-ghost" type="button" data-rm-khutbah aria-label="Remove khutbah ${i + 1}">Remove</button></span>`).join('');
 function alertCard(k) {
   const a = settings.alerts[k], id = (part) => `al-${k}-${part}`, name = k === 'jumuah' ? 'Jumu’ah' : NAMES[k];
   // each step has its own switch and its own sound; the two "before" steps also have minutes
@@ -578,7 +584,8 @@ function alertCard(k) {
     + (part === 'adhan' ? '' : `<span class="al-min"><input class="d-input d-input-sm" type="number" id="${id(`${part}-min`)}" data-k="${k}" min="1" max="60" step="1" inputmode="numeric" value="${a[part].min}" aria-label="${name}, ${label.toLowerCase()}, minutes"><span>min</span></span>`)
     + '</div>';
   const body = k === 'jumuah'
-    ? `${step('before', 'Before khutbah')}<div class="al-row"><label for="${id('time')}">Khutbah time</label><input class="d-input d-input-sm" type="time" id="${id('time')}" data-k="${k}" value="${a.time ? a.time.padStart(5, '0') : ''}"></div><p class="al-note" id="al-jumuah-note"></p>`
+    ? `${step('before', 'Before khutbah')}<div class="al-row al-times"><label for="al-jumuah-time-0">Khutbah times</label><span class="al-time-list" id="al-jumuah-times">${khutbahRows(a.times)}</span></div>`
+      + `<div class="al-row"><button class="d-btn d-btn-sm d-btn-ghost" type="button" data-add-khutbah>Add another khutbah</button></div><p class="al-note" id="al-jumuah-note"></p>`
     : `${step('adhan', 'At adhan')}${step('before', 'Before adhan')}${step('iqama', 'Before iqama')}<button class="d-btn d-btn-sm d-btn-ghost al-copy" type="button" data-copy="${k}">Use for all prayers</button>`;
   return `<div class="al-card d-collapse d-collapse-arrow" id="${id('card')}"><input type="checkbox" class="al-open" aria-label="Show ${name} settings">`
     + `<div class="d-collapse-title al-title"><input class="d-toggle d-toggle-success d-toggle-sm" type="checkbox" role="switch" id="${id('on')}" data-k="${k}" aria-label="${name} alerts"${a.on ? ' checked' : ''}><span class="al-name">${name}</span><span class="al-sum" id="${id('sum')}">${alertSummary(k, a)}</span></div>`
@@ -605,9 +612,10 @@ function buildAlerts() { $('alert-cards').innerHTML = ALERT_KEYS.map(alertCard).
 function jumuahNote() {
   const el = $('al-jumuah-note');
   if (!el) return;
-  const own = parseHM(settings.alerts.jumuah.time), first = jumuahMins()[0];
-  el.textContent = own != null ? `Fridays, before your khutbah time of ${fmt(own)}.`
-    : first != null ? `Uses ISCJ’s first khutbah, ${fmt(first)}, unless you set a time.` : 'Set your khutbah time to get this alert.';
+  const own = ownKhutbahs(), iscj = jumuahMins(), list = (m) => (m.length > 1 ? `${m.slice(0, -1).map(fmt).join(', ')} and ${fmt(m[m.length - 1])}` : fmt(m[0]));
+  el.textContent = own.length > 1 ? `Fridays, before each khutbah: ${list(own)}.`
+    : own.length ? `Fridays, before your khutbah time of ${fmt(own[0])}.`
+    : iscj.length ? `Uses ISCJ’s khutbahs, ${list(iscj)}, unless you set your own times.` : 'Set your khutbah times to get this alert.';
 }
 $('alert-cards').addEventListener('change', (e) => {
   const k = e.target.dataset.k;
@@ -617,7 +625,7 @@ $('alert-cards').addEventListener('change', (e) => {
   a.on = v('on').checked;
   const step = (part) => ({ on: v(`${part}-on`).checked, type: v(`${part}-type`).value, ...(part === 'adhan' ? {} : { min: mins(`${part}-min`, a[part].min) }) });
   a.before = step('before');
-  if (k === 'jumuah') a.time = parseHM(v('time').value) != null ? v('time').value : null;
+  if (k === 'jumuah') a.times = [...$('al-jumuah-times').querySelectorAll('[data-jt]')].map(i => i.value);
   else { a.adhan = step('adhan'); a.iqama = step('iqama'); }
   settings.alerts[k] = cleanAlert(k, a);
   save();
@@ -625,7 +633,26 @@ $('alert-cards').addEventListener('change', (e) => {
   jumuahNote();
   try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (err) {}
 });
+// Adding shows a blank time to fill in (nothing is saved until it has a time); removing saves at once
+function showKhutbahRows(times) { $('al-jumuah-times').innerHTML = khutbahRows(times); syncCard('jumuah'); }
 $('alert-cards').addEventListener('click', (e) => {
+  const a = settings.alerts.jumuah;
+  if (e.target.closest('[data-add-khutbah]')) {
+    const have = [...$('al-jumuah-times').querySelectorAll('[data-jt]')].map(i => i.value);
+    if (have.length >= 6) return say('Up to six khutbahs.');
+    showKhutbahRows([...have.filter(Boolean), '']);
+    $('al-jumuah-times').querySelector('.al-time:last-child input').focus();
+    return;
+  }
+  if (e.target.closest('[data-rm-khutbah]')) {
+    const row = e.target.closest('.al-time'), inputs = [...$('al-jumuah-times').querySelectorAll('[data-jt]')];
+    row.querySelector('input').value = '';
+    a.times = cleanKhutbahTimes(inputs.map(i => i.value));
+    save();
+    showKhutbahRows(a.times);
+    jumuahNote();
+    return;
+  }
   const k = e.target.dataset.copy;
   if (!k) return;
   for (const other of PRAYERS) if (other !== k) settings.alerts[other] = cleanAlert(other, JSON.parse(JSON.stringify(settings.alerts[k])));
@@ -640,14 +667,14 @@ function notify(text) {
 }
 const MESSAGES = {
   adhan: (n) => `Time for ${n}.`,
-  before: (n, m, k) => `${n} ${k === 'jumuah' ? 'khutbah' : 'adhan'} in ${m} minutes.`,
+  before: (n, m, k, o) => `${n} ${k === 'jumuah' ? `khutbah${o?.of > 1 ? ` ${o.n} of ${o.of}` : ''}` : 'adhan'} in ${m} minutes.`,
   iqama: (n, m) => `${n} iqama in ${m} minutes.`,
 };
-function fire({ kind, key, type, min }) {
+function fire({ kind, key, type, min, n, of }) {
   const name = key === 'jumuah' ? 'Jumu’ah' : NAMES[key], label = kind === 'adhan' ? `${name} adhan` : `${name} alert`;
   const note = (result) => logAlert({ last: { what: label, when: stamp(), result } });
   if (settings.muted) return note('skipped, alerts are off');
-  const text = MESSAGES[kind](name, min, key);
+  const text = MESSAGES[kind](name, min, key, { n, of });
   say(text);
   if (document.hidden) notify(text);
   note('message shown'); // play() adds what became of the sound

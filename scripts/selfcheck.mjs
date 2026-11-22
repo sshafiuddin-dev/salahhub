@@ -5,7 +5,7 @@ import { handle } from '../functions/api/iqama.js';
 import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
 import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from '../logic.js';
+import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -212,8 +212,9 @@ assert.equal(pickAlerts(feats, nov17.getTime())[1].until, '2026-11-17T23:00:00-0
 }
 const { renderTimes } = await import('../clocks.js');
 const tm = (now, sec) => renderTimes({ sec, now, rows: five, sunrise: 400, next: nextEvent(five, 313, now, 400), tomorrowFajr: five[0], card: null });
-assert.ok(tm(340, 340 * 60).includes('Sunrise in'), 'sunrise countdown after the Fajr iqama');
-assert.ok(tm(390, 390 * 60).includes('ck-blink') && !tm(340, 340 * 60).includes('ck-blink'), 'countdown blinks only in the last 15 minutes');
+assert.match(tm(340, 340 * 60), /sh-nm">Sunrise<[\s\S]*sh-kind">in</, 'sunrise countdown after the Fajr iqama'); // the board draws the name and "in" as separate elements
+// from 15 minutes out the countdown sits on a highlighter mark; in the last 3 minutes the mark blinks (clocks.js soon())
+assert.ok(tm(390, 390 * 60).includes('ck-hl') && !tm(390, 390 * 60).includes('ck-blink') && tm(398, 398 * 60).includes('ck-blink') && !tm(340, 340 * 60).includes('ck-hl'), 'the mark from 15 minutes out, blinking in the last 3');
 assert.deepEqual(nextEvent(rows, 313, 350, 400), { key: 'sunrise', kind: '', at: 400 });
 assert.deepEqual(nextEvent(rows, 313, 320, 400), { key: 'fajr', kind: 'iqama', at: 345 });
 assert.deepEqual(nextEvent(rows, 313, 400, 400), { key: 'isha', kind: 'adhan', at: 1090 });
@@ -428,6 +429,34 @@ console.log('selfcheck ok');
   assert.deepEqual(f[1], { key: 'dhuhr', adhan: 480, iqama: 720, jumuah: [720, 790] });
   assert.deepEqual(nextEvent(f, 300, 600, 400), { key: 'dhuhr', kind: 'iqama', at: 720 }, 'counts down to the first khutbah');
   assert.equal(rows[1].iqama, 510, 'the day rows used for alerts are left alone');
+}
+// Friday with several khutbahs: the countdown goes from one to the next, until Asr
+{
+  const week = (...k) => fridayRows([{ key: 'fajr', adhan: 333, iqama: 360 }, { key: 'dhuhr', adhan: 704, iqama: 750 }, { key: 'asr', adhan: 856, iqama: 885 }, { key: 'maghrib', adhan: 1000, iqama: 1000 }, { key: 'isha', adhan: 1075, iqama: 1200 }], 'Fri', k);
+  const f2 = week(720, 790);
+  assert.deepEqual(nextEvent(f2, 333, 700, 400), { key: 'dhuhr', kind: 'adhan', at: 704 }, 'the adhan first');
+  assert.deepEqual(nextEvent(f2, 333, 710, 400), { key: 'dhuhr', kind: 'iqama', at: 720, n: 1, of: 2 }, 'then the first khutbah');
+  assert.deepEqual(nextEvent(f2, 333, 725, 400), { key: 'dhuhr', kind: 'iqama', at: 790, n: 2, of: 2 }, 'then the second');
+  assert.deepEqual(nextEvent(f2, 333, 800, 400), { key: 'asr', kind: 'adhan', at: 856 }, 'then Asr');
+  assert.deepEqual(nextEvent(week(720, 790, 840), 333, 800, 400), { key: 'dhuhr', kind: 'iqama', at: 840, n: 3, of: 3 }, 'any number of khutbahs');
+  assert.deepEqual(nextEvent(week(720), 333, 710, 400), { key: 'dhuhr', kind: 'iqama', at: 720 }, 'one khutbah: as before, no numbering');
+  assert.deepEqual(nextEvent(week(720, 900), 333, 725, 400), { key: 'asr', kind: 'adhan', at: 856 }, 'a later khutbah at or after Asr is not counted');
+  assert.deepEqual(nextEvent(week(900), 333, 710, 400), { key: 'dhuhr', kind: 'iqama', at: 900 }, 'a single khutbah is counted wherever it is, as before');
+  // the board says which khutbah, and dims the ones that have passed
+  const t2 = (now) => renderTimes({ sec: now * 60, now, rows: f2, sunrise: 400, next: nextEvent(f2, 333, now, 400), tomorrowFajr: f2[0], jumuah: [720, 790], card: null });
+  assert.match(t2(725), /khutbah 2 of 2 in/, 'the heading names the khutbah');
+  assert.match(t2(725), /sh-past">12:00/, 'the passed khutbah is dimmed');
+  assert.doesNotMatch(t2(710), /sh-past/, 'nothing is dimmed before the first');
+  assert.doesNotMatch(renderTimes({ sec: 710 * 60, now: 710, rows: week(720), sunrise: 400, next: nextEvent(week(720), 333, 710, 400), tomorrowFajr: f2[0], jumuah: [720], card: null }), /\d of \d/, 'one khutbah: no numbering');
+  // Jumu'ah alerts: one before each khutbah, and a message that says which
+  const jrows = [{ key: 'jumuah', adhan: 720, iqama: null, n: 1, of: 2 }, { key: 'jumuah', adhan: 790, iqama: null, n: 2, of: 2 }];
+  const jcfg = { jumuah: { on: true, before: { type: 'message', min: 15 } } };
+  assert.deepEqual(tick(jrows, jcfg, 705), [{ kind: 'before', key: 'jumuah', type: 'message', min: 15, n: 1, of: 2 }]);
+  assert.deepEqual(tick(jrows, jcfg, 775), [{ kind: 'before', key: 'jumuah', type: 'message', min: 15, n: 2, of: 2 }]);
+  // the khutbah times a visitor types in: valid times only, in order, once each
+  assert.deepEqual(cleanKhutbahTimes(['13:10', '12:00', '12:00', 'soon', null, '9:05']), ['09:05', '12:00', '13:10']);
+  assert.deepEqual(cleanKhutbahTimes('12:00'), [], 'not a list: nothing');
+  assert.equal(cleanKhutbahTimes(['01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00']).length, 6, 'at most six');
 }
 console.log('friday ok');
 
