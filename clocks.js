@@ -83,7 +83,7 @@ function sun(d) {
 
 // Masjid board: the day as one printed sheet. The time beside the countdown, then the timetable (adhan above, iqama below,
 // English and Arabic names), then sunrise and Jumu'ah. When d.card holds a dua, the dua takes the timetable's place.
-// d.tomorrowFajr (a row) is used after Isha; d.wx is an optional weather line for the foot; d.wxAt the weather at the next prayer;
+// d.tomorrowFajr (a row) is used after Isha; d.wxNow ({ temp, unit, words, hi, lo, pop }) is the weather now, shown under the clock (d.wxLink makes it a button); d.wxAt the weather at the next prayer;
 // d.warn ({ event, until, more, sender }) an official warning, shown as a red-ruled line at the top while one is in force.
 const AR = { fajr: 'الفجر', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
 const AR_JUM = 'الجمعة';
@@ -143,6 +143,15 @@ function nextHead(d) {
   const called = d.next.kind === 'iqama' && d.next.at < 1440; // the adhan has been called: the wait is for the iqama
   return `<p class="sh-l${called ? ' is-called' : ''}"><span class="sh-nm">${name}</span><span class="sh-nar" lang="ar">${ar}</span><span class="sh-kind">${called ? 'Adhan called · iqama in' : kind ? `${kind} in` : 'in'}</span></p>`;
 }
+// The weather now, under the clock: "54°F fog · H 61° L 49° · Rain 34%". On Today a tap opens the Weather tab (data-go; app.js).
+function wxNow(d) {
+  const w = d.wxNow;
+  if (!w) return '';
+  const hl = w.hi != null && w.lo != null ? `H ${w.hi}° L ${w.lo}°` : '';
+  const sub = [hl, w.pop != null ? `Rain ${w.pop}%` : ''].filter(Boolean).join(' &nbsp;·&nbsp; ');
+  return `<p class="sh-wxnow"${d.wxLink ? ' data-go="weather"' : ''}>`
+    + `<span class="sh-wxt">${w.temp}°${w.unit}</span>${w.words ? `<span class="sh-wxc">${esc(w.words)}</span>` : ''}${sub ? `<span class="sh-wxr">${sub}</span>` : ''}</p>`;
+}
 function board(real) {
   const d = real.ahead && real.next.at >= 1440 ? aheadView(real) : real;
   const m = Math.floor(real.now), k = d.card;
@@ -154,11 +163,11 @@ function board(real) {
   const w = d.warn;
   const warn = w ? `<p class="sh-warn"><b>${esc(w.event)}</b><span>${esc(w.until)}${w.more ? ` · ${w.more} more` : ''}</span><small>${esc(w.sender)}</small></p>` : '';
   return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}${w ? ' sh-w' : ''}">${warn}<div class="sh-mid">`
-    + `<p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side">${leftOf(d) < 900 ? `<span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span>` : ''}<span>${ampm(m)}</span></span></p>`
+    + `<div class="sh-clk"><p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side">${leftOf(d) < 900 ? `<span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span>` : ''}<span>${ampm(m)}</span></span></p>${wxNow(d)}</div>`
     + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${nextLine(d)}${wxAt(d.wxAt)}`
     + `${ruler(d)}</div></div>`
     + body
-    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.wx ? `<span class="sh-wx">${d.wx}</span>` : ''}${d.month ? `<a class="sh-month" href="#month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</p></div>`;
+    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.month ? `<a class="sh-month" href="#month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</p></div>`;
 }
 
 function timeline(d) {
