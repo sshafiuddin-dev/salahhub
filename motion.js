@@ -19,9 +19,11 @@ export const spring = (name) => (M ? { type: M.spring, ...T.spring[name] } : { d
 const stagger = () => (M ? M.stagger(T.gap) : 0);
 
 // animate(el or [els], keyframes, options). Returns the Motion animation (it has a .finished promise), or null.
+// The E-ink look changes everything at once, like an e-ink page: no animation at all, not even a fade
+const still = () => document.documentElement.dataset.palette === 'eink';
 export function animate(target, keyframes, options = {}) {
   const none = !target || (target.length === 0);
-  if (!M || none) return null;
+  if (!M || none || still()) return null;
   try {
     if (calm()) {
       if (!keyframes.opacity) return null;

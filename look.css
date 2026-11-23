@@ -32,6 +32,13 @@
 :root[data-palette="hand"][data-dim="2"] { --paper: #BAA582; --surface: #C2AE8C; --ink: #1C2132; --muted: #3D3A38; --line: #A08B67; --clear: #6B1D10; --risk: #6B1D10; --margin: #8E4A3A; }
 :root[data-palette="hand"][data-dim="3"] { --paper: #000000; --surface: #08080A; --ink: #9E9175; --muted: #8A806C; --line: #1A1A1E; --clear: #B98A5A; --risk: #C96A4E; --margin: #2A1C18; color-scheme: dark; }
 
+/* E-ink: matte warm-grey paper and black ink, no colour at all; at night black with grey type, nothing bright.
+   Measured against the page: ink 15.5 / 12.5 / 8.7 / 7.5 to 1 (Bright, Soft, Dim, Darkest), greyed times 7.9 / 7.5 / 6.3 / 4.6. */
+:root[data-palette="eink"] { --paper: #F4F2EC; --surface: #F4F2EC; --ink: #1A1A1A; --muted: #4A4A4A; --line: #C9C6BE; --clear: #1A1A1A; --risk: #1A1A1A; }
+:root[data-palette="eink"][data-dim="1"] { --paper: #D9D6CF; --surface: #D9D6CF; --ink: #161616; --muted: #3D3D3D; --line: #AEABA3; --clear: #161616; --risk: #161616; }
+:root[data-palette="eink"][data-dim="2"] { --paper: #B3B0A8; --surface: #B3B0A8; --ink: #111111; --muted: #2E2E2E; --line: #8F8C85; --clear: #111111; --risk: #111111; }
+:root[data-palette="eink"][data-dim="3"] { --paper: #000000; --surface: #000000; --ink: #9A9A9A; --muted: #767676; --line: #262626; --clear: #9A9A9A; --risk: #9A9A9A; color-scheme: dark; }
+
 /* High contrast: white and black, and black and white from Dim */
 :root[data-palette="contrast"] { --paper: #FFFFFF; --surface: #FFFFFF; --ink: #000000; --muted: #262626; --line: #595959; --clear: #0037B3; --risk: #A4001D; --rule-w: 2px; }
 :root[data-palette="contrast"][data-dim="1"] { --paper: #E6E6E6; --surface: #EDEDED; }
@@ -125,6 +132,16 @@ body { font-feature-settings: "kern", "liga"; }
 .sh .sh-n.ck-hl i { color: inherit; }
 :root .ck-hl.ck-blink { animation: ck-mark 1s infinite; opacity: 1; }
 @media (prefers-reduced-motion: reduce) { :root .ck-hl.ck-blink { animation: none; color: var(--alert-ink); } }
+/* E-ink: the last 15 minutes are an ink label (paper-coloured numbers on ink) that stays still; at night a ruled box, so no
+   block of light appears */
+:root[data-palette="eink"] { --alert: var(--ink); --alert-ink: var(--paper); }
+:root[data-palette="eink"][data-dim="3"] { --alert: transparent; --alert-ink: var(--ink); }
+:root[data-palette="eink"][data-dim="3"] .ck-hl { box-shadow: inset 0 0 0 2px var(--ink); }
+
+/* E-ink: nothing moves. Every change is instant, like a page on an e-ink reader: no transitions, no flashing, no sky
+   (app.js keeps the weather picture off in this look, and motion.js does not animate) */
+:root[data-palette="eink"] *, :root[data-palette="eink"] *::before, :root[data-palette="eink"] *::after { transition: none !important; animation: none !important; }
+:root[data-palette="eink"]::view-transition-old(root), :root[data-palette="eink"]::view-transition-new(root) { animation: none !important; }
 
 /* Keep the top bar to one row on a tablet: the date line wraps under itself instead of pushing the buttons down */
 @media (min-width: 48.01rem) {
