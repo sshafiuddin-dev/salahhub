@@ -168,6 +168,8 @@ function progress(real) {
 }
 // Phones held upright: the timetable folds away under the next prayer; this button opens it (app.js keeps the choice)
 const FOLD_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+// The board's larger number swaps between the clock and the countdown (app.js keeps the choice; d.big is the one shown)
+const swapBtn = (big) => `<button class="sh-swap" type="button" data-swap>${big === 'count' ? 'Bigger clock' : 'Bigger countdown'}</button>`;
 const foldBtn = (open) => `<button class="sh-fold" type="button" data-fold aria-expanded="${open ? 'true' : 'false'}"><span>${open ? 'Hide prayer times' : 'All prayer times'}</span>${FOLD_ICON}</button>`;
 function board(real) {
   const d = real.ahead && real.next.at >= 1440 ? aheadView(real) : real;
@@ -184,7 +186,7 @@ function board(real) {
     + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${progress(real)}${nextLine(d)}${wxAt(d.wxAt)}`
     + `${ruler(d)}</div></div>`
     + body
-    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.month ? `<a class="sh-month" href="#month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</p></div>`;
+    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.big ? swapBtn(d.big) : ''}${d.month ? `<a class="sh-month" href="#month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</p></div>`;
 }
 
 function timeline(d) {

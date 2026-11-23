@@ -413,6 +413,23 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 @media (max-width: 79.99rem), (max-height: 44.99rem) { .sh-rule { display: none; } .sh-prog { display: block; } }
 /* Phones held upright: the timetable folds away under the next prayer, opened by a full-width button (app.js keeps
    the choice). It opens at once: the board is redrawn every second, which would cut an opening animation short. */
+/* The larger number (app.js sets data-big on the clock's container). "count": the countdown is the hero and takes the wider
+   column; the clock steps down. Sizes only, no animation of them: the swap itself is a short cross-fade (app.js). */
+[data-big="count"] .sh-mid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.5fr); }
+[data-big="count"] .sh-hm { font-size: calc(var(--u) * 14); }
+[data-big="count"] .sh-side { padding-top: calc(var(--u) * 2.4); font-size: max(.9rem, calc(var(--u) * 3)); }
+[data-big="count"] .sh-nm, [data-big="count"] .sh-nar { font-size: calc(var(--u) * 9); }
+[data-big="count"] .sh-n { font-size: calc(var(--u) * 24); }
+@media (max-width: 48rem) and (orientation: portrait) {
+  [data-big="count"] .sh-mid { grid-template-columns: minmax(0, 1fr); } /* stays stacked, clock above */
+  [data-big="count"] .sh-hm { font-size: calc(var(--u) * 13); }
+  [data-big="count"] .sh-n { font-size: calc(var(--u) * 21); }
+}
+@media (max-height: 34rem) { [data-big="count"] .sh-n { font-size: calc(var(--u) * 19); } }
+.sh-foot .sh-swap {
+  min-height: 44px; padding: .5rem .25rem; margin: -.5rem 0; background: none; border: 0; font: inherit; color: var(--ink);
+  text-decoration: underline; text-underline-offset: .2em; text-decoration-thickness: 1px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
 .sh-fold { display: none; }
 @media (max-width: 48rem) and (orientation: portrait) {
   #clock .sh-fold {

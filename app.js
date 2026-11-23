@@ -3,6 +3,7 @@ import { CalculationMethods } from './lib/CalculationMethods.js';
 import { pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
+import { animate } from './motion.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
 import { HISN, hisnUrl } from './hisn.js';
@@ -31,7 +32,7 @@ const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
   tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightLevel: 2, level: 0, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
-  defIqama: null, tableOpen: false, adhkar: true, translit: true, wxBack: 'auto', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
+  defIqama: null, tableOpen: false, big: 'auto', adhkar: true, translit: true, wxBack: 'auto', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -307,17 +308,17 @@ function tick() {
   const left = (wallMs(today.y, today.m, today.d, ev.at, place().zone) - nowMs) / 1e3; // real seconds to it, the same clock as the time shown
   $('now').textContent = fmt(Math.floor(nowMin));
   const at = wxAt(ev, rows);
-  const html = renderClock(settings.clock, { fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
-  const foldFocused = document.activeElement?.matches?.('#clock [data-fold]'); // the board is redrawn every second: keep keyboard focus
-  $('clock').innerHTML = html;
-  if (foldFocused) $('clock').querySelector('[data-fold]')?.focus({ preventScroll: true });
+  const big = bigNow();
+  for (const id of BIG_HOSTS) $(id).dataset.big = big;
+  const html = renderClock(settings.clock, { big, fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
+  redraw($('clock'), html);
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim) applyLook();
   if (displayOpen) {
-    if (timesLayout()) $('dx-small').innerHTML = renderTimes({ sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxNow: wxNow(), wxAt: at, warn: warnLine(), fresh: freshNote(), card: dxCardFor(nowMin) });
+    if (timesLayout()) redraw($('dx-small'), renderTimes({ big, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxNow: wxNow(), wxAt: at, warn: warnLine(), fresh: freshNote(), card: dxCardFor(nowMin) }));
     else {
-      $('dx-clock').innerHTML = html;
+      redraw($('dx-clock'), html);
       if (c.sec % 10 === 0) fitDisplay(); // re-fit after late font loads or a change in what the clock shows
     }
   }
@@ -958,6 +959,33 @@ $('weather').addEventListener('click', () => go('weather'));
 // pressed element between finger down and up and so swallow a click: the tap is read from the pointer instead. (Keyboards use the Weather tab.)
 let wxArmed = false;
 $('clock').addEventListener('pointerdown', (e) => { wxArmed = !!e.target.closest('[data-go="weather"]'); });
+// The board is redrawn every second; a keyboard user on one of its buttons keeps focus on the new copy
+function redraw(el, html) {
+  const f = document.activeElement, key = f && el.contains(f) ? ['data-fold', 'data-swap'].find(k => f.hasAttribute(k)) : null;
+  el.innerHTML = html;
+  if (key) el.querySelector(`[${key}]`)?.focus({ preventScroll: true });
+}
+// The larger number on the board: Automatic is the countdown where the day ruler is hidden (phones, 7-inch tablets:
+// the same sizes as in styles.css) and the clock on bigger screens. The Bigger clock/countdown button swaps it.
+const BIG_HOSTS = ['clock', 'dx-clock', 'dx-small'];
+const smallBoard = matchMedia('(max-width: 79.99rem), (max-height: 44.99rem)');
+const bigAuto = () => (smallBoard.matches ? 'count' : 'time');
+const bigNow = () => (settings.big === 'time' || settings.big === 'count' ? settings.big : bigAuto());
+function swapBig() {
+  const next = bigNow() === 'count' ? 'time' : 'count';
+  settings.big = next === bigAuto() ? 'auto' : next; // swapping back to this screen's usual returns to Automatic
+  save(); $('set-big').value = settings.big;
+  tick();
+  if (displayOpen && !timesLayout()) fitDisplay();
+  // a quiet cross-fade with a 4px settle, on the container (it outlives the redraws); under reduce motion, the fade only
+  for (const id of BIG_HOSTS) if ($(id).offsetParent) animate($(id), { opacity: [0, 1], transform: ['translateY(4px)', 'none'] }, { duration: 0.3, ease: [0.2, 0, 0, 1] }); // transform, not translate: burn-in care owns translate
+}
+for (const id of BIG_HOSTS) {
+  let armed = false;
+  $(id).addEventListener('pointerdown', (e) => { armed = !!e.target.closest('[data-swap]'); });
+  $(id).addEventListener('pointerup', (e) => { if (armed && e.target.closest('[data-swap]')) swapBig(); armed = false; });
+  $(id).addEventListener('click', (e) => { if (e.detail === 0 && e.target.closest('[data-swap]')) swapBig(); });
+}
 // The fold button on phones (see clocks.js): read from the pointer like the weather link, and from Enter or Space (detail 0)
 let foldArmed = false;
 const applyFold = () => { $('clock').dataset.fold = settings.tableOpen ? 'open' : 'closed'; };
@@ -1050,6 +1078,8 @@ $('set-wxback').addEventListener('change', () => { settings.wxBack = $('set-wxba
 $('set-translit').addEventListener('change', () => { settings.translit = $('set-translit').checked; save(); tick(); });
 $('set-dxcard').value = settings.dxCard;
 $('set-dxcard').addEventListener('change', () => { settings.dxCard = $('set-dxcard').value; save(); tick(); });
+$('set-big').value = ['time', 'count'].includes(settings.big) ? settings.big : 'auto';
+$('set-big').addEventListener('change', () => { settings.big = $('set-big').value; save(); tick(); if (displayOpen && !timesLayout()) fitDisplay(); });
 $('set-dxlayout').value = settings.dxLayout;
 $('set-dxlayout').addEventListener('change', () => { settings.dxLayout = $('set-dxlayout').value; save(); applyLayout(); });
 $('set-arsize').addEventListener('input', () => { const i = +$('set-arsize').value; settings.arSize = AR_SIZES[i]; $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[i]); save(); tick(); });
