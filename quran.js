@@ -26,7 +26,9 @@ const IC = {
   up: svg('M6 15l6-6 6 6'), down: svg('M6 9l6 6 6-6'), left: svg('M15 5l-7 7 7 7'), close: svg('M6 6l12 12M18 6L6 18'),
   grip: '<svg viewBox="0 0 24 24" aria-hidden="true" class="qp-dots"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></svg>',
   vol: svg('M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7'),
+  dl: svg('M12 4v11M7 10.5l5 5 5-5M5 19.5h14'), done: svg('M5 12.5l4.5 4.5L19 7.5'), stop: svg('M9 9h6v6H9z'),
 };
+const MB = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.max(.1, b / 1e6).toFixed(b < 1e7 ? 1 : 0)} MB`);
 const REPEAT_TEXT = { off: 'Repeat is off', all: 'Repeating the whole list', one: 'Repeating this surah' };
 const btn = (q, icon, label, cls = '') => `<button class="qp-ic ${cls}" type="button" data-q="${q}" aria-label="${label}" title="${label}">${IC[icon]}</button>`;
 const eq = '<span class="qp-eq" aria-hidden="true"><i></i><i></i><i></i></span>';
@@ -105,7 +107,14 @@ export function initQuran({ say, stopOthers }) {
       return cat;
     }).catch((e) => { catP = null; failed = true; console.warn('Iqama Times: Quran list failed', e); throw e; });
   }
-  const info = (id) => trackInfo(cat, id);
+  // What a track is: from mp3quran's lists, or, with none (offline), from what was kept with the recitation
+  function savedInfo(id) {
+    const hit = Object.entries(off.list()).find(([, e]) => e.id === id);
+    if (!hit) return null;
+    const [url, e] = hit, cut = e.sub.indexOf(' · ');
+    return { id, n: +id.split(':')[1], title: e.title.replace(/^\d+\.\s*/, ''), reciter: cut < 0 ? e.sub : e.sub.slice(0, cut), style: cut < 0 ? '' : e.sub.slice(cut + 3), url };
+  }
+  const info = (id) => (cat && trackInfo(cat, id)) || savedInfo(id);
   const label = (i) => `${i.n}. ${i.title}`, sub = (i) => `${i.reciter} · ${i.style}`;
   function setCurrent(i, at) {
     cur = { id: i.id, label: label(i), sub: sub(i), url: i.url };
@@ -202,16 +211,29 @@ export function initQuran({ say, stopOthers }) {
     }
     start();
   }
+  // Offline, only what is kept on this device can play: the queue passes over the rest
+  const offline = () => navigator.onLine === false;
+  const playable = (id) => { const i = info(id); return !!i && (!offline() || off.has(i.url)); };
+  function nextPos(dir) {
+    let p = q.pos;
+    for (let k = 0; k < q.ids.length; k++) {
+      p = stepPos({ ...q, pos: p }, dir, store.repeat);
+      if (p < 0 || playable(q.ids[q.order[p]])) return p;
+    }
+    return -1;
+  }
   function step(dir) {
-    ensureCat().then(() => {
+    const go = () => {
       restoreQueue();
       if (!q) return;
       if (dir < 0 && audio.currentTime > 3) { audio.currentTime = 0; return; }
-      const p = stepPos(q, dir, store.repeat);
-      if (p < 0) return say(dir > 0 ? 'That was the last surah in this list.' : 'This is the first surah in this list.');
+      const p = nextPos(dir);
+      if (p < 0) return say(offline() ? 'No other surah in this list is saved on this tablet.' : dir > 0 ? 'That was the last surah in this list.' : 'This is the first surah in this list.');
       q.pos = p;
       load(current(q), 0, true);
-    }).catch(() => say('Could not load the list. Check the connection.'));
+    };
+    if (q) return go(); // the queue is already there: no need for the lists (they may not load offline)
+    ensureCat().then(go).catch(() => say('Could not load the list. Check the connection.'));
   }
   const seekBy = (s) => { if (Number.isFinite(audio.duration)) audio.currentTime = Math.min(Math.max(0, audio.currentTime + s), audio.duration - .25); };
   function dismiss() {
@@ -230,7 +252,7 @@ export function initQuran({ say, stopOthers }) {
     paintTime();
   });
   audio.addEventListener('ended', () => {
-    const r = q ? afterEnd(q, store.repeat) : -1;
+    const r = q ? (store.repeat === 'one' ? 'again' : nextPos(1)) : -1;
     if (r === 'again') { audio.currentTime = 0; return start(); }
     if (r >= 0) { q.pos = r; return load(current(q), 0, true); }
     wanted = false;
@@ -453,6 +475,60 @@ export function initQuran({ say, stopOthers }) {
     showDlg(`<h3 id="qp-dlg-h">Delete “${esc(l.name)}”?</h3><p class="qp-dlg-sub">This removes the playlist and its list of ${count(l.tracks.length, 'surah')} from this device. It cannot be undone.</p>`
       + `<div class="qp-dlg-foot"><button class="d-btn d-btn-ghost" type="button" data-d="cancel">Keep it</button><button class="d-btn d-btn-error" type="button" data-d="delete" data-id="${esc(l.id)}">Delete playlist</button></div>`, '[data-d="cancel"]');
   }
+  // A saved surah: what it is, and the way to remove it
+  function openSaved(i) {
+    const e = off.entry(i.url);
+    if (!e) return;
+    showDlg(`<h3 id="qp-dlg-h">Saved on this tablet</h3><p class="qp-dlg-sub">${esc(label(i))} · ${esc(i.reciter)} · ${MB(e.bytes)}</p>`
+      + `<p class="iq-note">${e.kind === 'download' ? 'You downloaded it, so it stays until you remove it.' : 'Saved when it was played. If the tablet runs short of space, the surahs played longest ago are removed first.'}</p>`
+      + `<div class="qp-dlg-foot"><button class="d-btn d-btn-ghost" type="button" data-d="cancel">Close</button>`
+      + (e.kind === 'download' ? '' : `<button class="d-btn d-btn-outline" type="button" data-d="pin" data-u="${esc(i.url)}">Keep it for good</button>`)
+      + `<button class="d-btn d-btn-error" type="button" data-d="unsave" data-u="${esc(i.url)}">Remove from this tablet</button></div>`, '[data-d="cancel"]');
+  }
+  // Download a whole recitation: say how much it is first
+  function openDlAll(m) {
+    if (!m) return;
+    if (offline()) return say('Connect to the internet to download.');
+    const todo = m.surahs.map(s => info(trackId(m.id, s))).filter(i => i && !off.has(i.url));
+    showDlg(`<h3 id="qp-dlg-h">Download ${count(todo.length, 'surah')}?</h3><p class="qp-dlg-sub">${esc(m.reciter)} · ${esc(m.style)}</p>`
+      + '<p class="iq-note" id="qp-dl-size">Checking the size…</p>'
+      + `<div class="qp-dlg-foot"><button class="d-btn d-btn-ghost" type="button" data-d="cancel">Cancel</button><button class="d-btn d-btn-primary" type="button" data-d="dl-go" data-m="${m.id}">Download</button></div>`, '[data-d="dl-go"]');
+    const sizes = new Array(todo.length).fill(0);
+    let next = 0;
+    const worker = async () => { while (next < todo.length) { const k = next++; sizes[k] = await off.size(todo[k].url); } };
+    Promise.all([Promise.all(Array.from({ length: 6 }, worker)), off.space()]).then(([, sp]) => {
+      const el = $('qp-dl-size');
+      if (!el || !dlg.open) return;
+      const total = sizes.reduce((a, b) => a + b, 0), known = sizes.every(Boolean);
+      el.textContent = (total ? `About ${MB(total)}${known ? '' : ' or more'}.` : 'The size is not known.')
+        + (sp && sp.quota ? ` This tablet has ${MB(sp.free)} free.` : '')
+        + (sp && sp.quota && total > sp.free - 300e6 ? ' That is not enough room for all of it.' : ' They download one at a time; you can keep using the app.');
+    });
+  }
+  function openClear() {
+    const n = Object.keys(off.list()).length;
+    if (!n) return;
+    showDlg(`<h3 id="qp-dlg-h">Remove all ${count(n, 'surah')} from this tablet?</h3><p class="qp-dlg-sub">They will need the internet to play again. Your favorites and playlists stay.</p>`
+      + '<div class="qp-dlg-foot"><button class="d-btn d-btn-ghost" type="button" data-d="cancel">Keep them</button><button class="d-btn d-btn-error" type="button" data-d="clear">Remove all</button></div>', '[data-d="cancel"]');
+  }
+  dlg.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-d]');
+    if (!b) return;
+    const d = b.dataset.d;
+    if (d === 'unsave') { off.remove(b.dataset.u); say('Removed from this tablet.'); closeDlg(); }
+    else if (d === 'pin') { const en = off.entry(b.dataset.u); if (en) off.keep(b.dataset.u, en, 'download'); say('It stays on this tablet until you remove it.'); closeDlg(); }
+    else if (d === 'dl-go') {
+      const m = cat.moshaf.get(+b.dataset.m);
+      for (const s of m.surahs) { const i = info(trackId(m.id, s)); if (i) off.keep(i.url, { id: i.id, title: label(i), sub: sub(i) }, 'download'); }
+      say('Downloading. You can keep using the app.');
+      closeDlg();
+      renderDetail();
+    } else if (d === 'clear') {
+      for (const url of Object.keys(off.list())) off.remove(url);
+      say('Removed from this tablet.');
+      closeDlg();
+    }
+  });
   dlg.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-d]');
     if (!b) return;
@@ -494,12 +570,22 @@ export function initQuran({ say, stopOthers }) {
     return `<li class="qp-row${open ? ' is-open' : ''}">${main('open-reciter', `data-id="${r.id}"`, null, r.name, ms.length === 1 ? ms[0].style : count(ms.length, 'recitation'))}${heart('fav-r', store.favR.includes(r.id), `Favorite reciter: ${r.name}`, `data-id="${r.id}"`)}</li>`;
   };
   const surahRow = (s) => `<li class="qp-row${detail?.type === 'surah' && detail.n === s.n ? ' is-open' : ''}">${main('open-surah', `data-n="${s.n}"`, s.n, s.name, s.makki ? 'Makki' : 'Madani')}</li>`;
-  const trackRow = (id, no, title, small) => `<li class="qp-row" data-track="${id}">${main('play', '', no, title, small)}`
-    + `${heart('fav-t', store.favT.includes(id), `Favorite: ${title}`)}<button class="qp-ic" type="button" data-act="add" aria-label="Add ${esc(title)} to a playlist" title="Add to a playlist">${IC.add}</button></li>`;
+  // The download button: an arrow (not on this tablet), a ring filling up (downloading) or a tick (saved here)
+  const DL_TEXT = { none: 'Download for offline listening', busy: 'Downloading. Tap to cancel', kept: 'Saved on this tablet' };
+  function dlBtn(i, title) {
+    const st = (i && off.state(i.url)) || 'none';
+    return `<button class="qp-ic qp-dl" type="button" data-act="dl" data-state="${st}" style="--p:${i ? off.progress(i.url) : 0}" aria-label="${esc(`${DL_TEXT[st]}: ${title}`)}" title="${DL_TEXT[st]}"${i && off.ok ? '' : ' disabled'}>${st === 'kept' ? IC.done : st === 'busy' ? IC.stop : IC.dl}</button>`;
+  }
+  const savedAttr = (id) => { const i = info(id); return i && off.has(i.url) ? ' data-saved' : ''; };
+  const trackRow = (id, no, title, small) => `<li class="qp-row" data-track="${id}"${savedAttr(id)}>${main('play', '', no, title, small)}`
+    + `${heart('fav-t', store.favT.includes(id), `Favorite: ${title}`)}<button class="qp-ic" type="button" data-act="add" aria-label="Add ${esc(title)} to a playlist" title="Add to a playlist">${IC.add}</button>${dlBtn(info(id), title)}</li>`;
   const empty = (text) => `<p class="qp-empty">${text}</p>`;
 
   function renderList(animateIn) {
     tabEl.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-selected', String(!query && b.dataset.view === view)));
+    tabEl.toggleAttribute('data-offline', offline());
+    const note = offline() ? `<p class="qp-offline">You are offline. Surahs saved on this tablet still play; the others are greyed out.</p>` : '';
+    if (view === 'downloads' && !query) { listEl.innerHTML = note + downloadsHtml(); markRows(); fillSpace(); if (animateIn) { listEl.scrollTop = 0; mo.rows(listEl.querySelectorAll('.qp-row')); } return; }
     if (!cat) {
       listEl.innerHTML = failed ? `${empty('Could not load the reciters. Check the connection.')}<button class="d-btn d-btn-primary" type="button" data-act="retry">Try again</button>` : empty('Loading reciters and surahs…');
       return;
@@ -525,9 +611,36 @@ export function initQuran({ say, stopOthers }) {
         + (store.lists.length ? `<ul class="qp-rows">${store.lists.map(l => `<li class="qp-row${detail?.type === 'list' && detail.id === l.id ? ' is-open' : ''}">${main('open-list', `data-id="${esc(l.id)}"`, null, l.name, count(l.tracks.length, 'surah'))}</li>`).join('')}</ul>`
           : empty('A playlist is your own list of surahs, from any reciters, in the order you choose.'));
     }
-    listEl.innerHTML = html;
+    listEl.innerHTML = note + html;
     markRows();
     if (animateIn) { listEl.scrollTop = 0; mo.rows(listEl.querySelectorAll('.qp-row')); }
+  }
+
+  // ---- Downloads: everything saved on this tablet, by recitation ----
+  function downloadsHtml() {
+    const entries = Object.entries(off.list());
+    const waiting = off.pending().length;
+    const total = entries.reduce((n, [, e]) => n + e.bytes, 0);
+    let html = `<p class="qp-count" id="qp-space">${count(entries.length, 'surah')} saved · ${MB(total)}</p>`;
+    if (waiting) html += `<div class="qp-chips"><span class="qp-busy">Downloading ${count(waiting, 'surah')}…</span><button class="d-btn d-btn-sm d-btn-outline" type="button" data-act="dl-stop">Cancel</button></div>`;
+    if (!entries.length) return html + empty('Surahs you play are saved here on their own, so they play again with no connection. To save more, tap the arrow beside a surah, or “Download all” on a reciter.');
+    const groups = new Map();
+    for (const [url, e] of entries.sort((a, b) => a[1].sub.localeCompare(b[1].sub) || +a[1].id.split(':')[1] - +b[1].id.split(':')[1])) {
+      if (!groups.has(e.sub)) groups.set(e.sub, []);
+      groups.get(e.sub).push([url, e]);
+    }
+    html += [...groups].map(([sub2, rows]) => `<h3 class="qp-h">${esc(sub2 || 'Recitation')}</h3><ul class="qp-rows">${rows.map(([, e]) => {
+      const t = e.title.replace(/^\d+\.\s*/, '');
+      return `<li class="qp-row" data-track="${e.id}" data-saved>${main('play', '', e.id.split(':')[1], t, `${MB(e.bytes)} · ${e.kind === 'download' ? 'Downloaded' : 'Saved when played'}`)}`
+        + `<button class="qp-ic" type="button" data-act="unsave" aria-label="${esc(`Remove ${t} from this tablet`)}" title="Remove from this tablet">${IC.close}</button></li>`;
+    }).join('')}</ul>`).join('');
+    return html + '<div class="qp-chips"><button class="d-btn d-btn-sm d-btn-outline" type="button" data-act="clear-saved">Remove all from this tablet</button></div>';
+  }
+  function fillSpace() {
+    off.space().then(sp => {
+      const el = $('qp-space');
+      if (el && sp && sp.quota) el.textContent += ` · ${MB(sp.free)} free for more`;
+    });
   }
 
   function renderDetail(animateIn) {
@@ -542,7 +655,7 @@ export function initQuran({ say, stopOthers }) {
         detail.m = m.id;
         html = `<div class="qp-head">${back}<h3>${esc(r.name)}</h3>${heart('fav-r', store.favR.includes(r.id), `Favorite reciter: ${r.name}`, `data-id="${r.id}"`)}</div>`
           + (ms.length > 1 ? `<div class="qp-chips" role="group" aria-label="Recitation">${ms.map(x => `<button class="d-btn d-btn-sm${x.id === m.id ? ' d-btn-primary' : ' d-btn-outline'}" type="button" data-act="moshaf" data-m="${x.id}" aria-pressed="${x.id === m.id}">${esc(x.style)}</button>`).join('')}</div>` : `<p class="qp-dlg-sub">${esc(m.style)}</p>`)
-          + `<p class="qp-count">${count(m.surahs.length, 'surah')}</p><ul class="qp-rows">${m.surahs.map(s => { const su = cat.surahs.get(s); return trackRow(trackId(m.id, s), s, su ? su.name : `Surah ${s}`, su ? (su.makki ? 'Makki' : 'Madani') : ''); }).join('')}</ul>`;
+          + `<p class="qp-count">${count(m.surahs.length, 'surah')}</p>${dlAllBtn(m)}<ul class="qp-rows">${m.surahs.map(s => { const su = cat.surahs.get(s); return trackRow(trackId(m.id, s), s, su ? su.name : `Surah ${s}`, su ? (su.makki ? 'Makki' : 'Madani') : ''); }).join('')}</ul>`;
       }
     } else if (detail.type === 'surah') {
       const s = cat.surahs.get(detail.n);
@@ -565,6 +678,16 @@ export function initQuran({ say, stopOthers }) {
     markRows();
     if (animateIn) { detailEl.scrollTop = 0; mo.fade(detailEl.querySelector('.qp-head')); mo.rows(detailEl.querySelectorAll('.qp-row')); }
   }
+  // "Download all" for one recitation: how many are saved already, or a cancel while they come in
+  function dlAllBtn(m) {
+    if (!off.ok) return '';
+    const urls = m.surahs.map(s => info(trackId(m.id, s))).filter(Boolean).map(i => i.url);
+    const kept = urls.filter(off.has).length, coming = urls.filter(u => off.state(u) === 'busy').length;
+    if (coming) return `<div class="qp-chips" data-dlall="${m.id}"><span class="qp-busy">Downloading: ${kept} of ${urls.length} saved</span><button class="d-btn d-btn-sm d-btn-outline" type="button" data-act="dl-stop">Cancel</button></div>`;
+    if (kept === urls.length) return `<div class="qp-chips" data-dlall="${m.id}"><span class="qp-busy">All ${urls.length} saved on this tablet</span></div>`;
+    return `<div class="qp-chips" data-dlall="${m.id}"><button class="d-btn d-btn-sm d-btn-outline" type="button" data-act="dl-all" data-m="${m.id}">${IC.dl.replace('<svg', '<svg class="qp-btn-ic"')}Download all${kept ? ` (${kept} of ${urls.length} saved)` : ''}</button></div>`;
+  }
+
   // On a narrow screen only one of the two panes shows at a time
   const setPane = (p) => { tabEl.dataset.pane = p; };
   function openDetail(d) {
@@ -574,7 +697,7 @@ export function initQuran({ say, stopOthers }) {
     renderDetail(true);
     if (getComputedStyle(listEl).display === 'none') detailEl.querySelector('.qp-back')?.focus();
   }
-  const queueFrom = (li) => { const ids = [...li.parentElement.querySelectorAll(':scope > li[data-track]')].map(x => x.dataset.track).filter(id => info(id)); return [ids, ids.indexOf(li.dataset.track)]; };
+  const queueFrom = (li) => { const ids = [...li.parentElement.querySelectorAll(':scope > li[data-track]')].map(x => x.dataset.track).filter(playable); return [ids, ids.indexOf(li.dataset.track)]; };
 
   tabEl.addEventListener('click', (e) => {
     const v = e.target.closest('[data-view]');
@@ -583,6 +706,18 @@ export function initQuran({ say, stopOthers }) {
     if (!b) return;
     const a = b.dataset.act, li = b.closest('li[data-track]');
     if (a === 'retry') { failed = false; open(); }
+    else if (li && a === 'dl') {
+      const i = info(li.dataset.track);
+      if (!i) return;
+      const st = off.state(i.url);
+      if (st === 'busy') { off.cancel(i.url); say('Download cancelled.'); }
+      else if (st === 'kept') openSaved(i);
+      else if (offline()) say('Connect to the internet to download this surah.');
+      else { off.keep(i.url, { id: i.id, title: label(i), sub: sub(i) }, 'download'); say(`Downloading ${i.title}.`); }
+    } else if (a === 'dl-all') openDlAll(cat.moshaf.get(+b.dataset.m));
+    else if (a === 'dl-stop') { off.cancelAll(); say('Downloads cancelled. What came in is kept.'); }
+    else if (li && a === 'unsave') { const i = info(li.dataset.track); if (i) { off.remove(i.url); say(`${i.title} removed from this tablet.`); } }
+    else if (a === 'clear-saved') openClear();
     else if (a === 'open-reciter') openDetail({ type: 'reciter', id: +b.dataset.id });
     else if (a === 'open-surah') openDetail({ type: 'surah', n: +b.dataset.n });
     else if (a === 'open-list') openDetail({ type: 'list', id: b.dataset.id });
@@ -595,6 +730,7 @@ export function initQuran({ say, stopOthers }) {
     else if (a === 'play-all') { const ids = listById(detail.id).tracks.filter(id => info(id)); if (ids.length) playQueue(ids, 0); }
     else if (li && a === 'play') {
       if (cur && cur.id === li.dataset.track && audio.getAttribute('src')) return togglePlay();
+      if (!playable(li.dataset.track)) return say('This surah is not saved on this tablet. Connect to the internet to play it.');
       const [ids, i] = queueFrom(li);
       if (i >= 0) playQueue(ids, i);
     } else if (li && a === 'fav-t') { favTrack(li.dataset.track); mo.pop(b.firstElementChild); }
@@ -655,6 +791,36 @@ export function initQuran({ say, stopOthers }) {
     say(`Moved to place ${to + 1}.`);
   });
 
+  // Downloads report back: update the buttons in place; redraw lists only when something starts, ends or goes
+  let redraw = 0;
+  off.on((url, id, what) => {
+    if (what === 'full') return say('This tablet is out of room. Remove some saved surahs to download more.');
+    if (what === 'failed') say('A download did not finish. Check the connection and try again.');
+    if (id) {
+      const i = info(id), st = (i && off.state(i.url)) || 'none';
+      document.querySelectorAll(`li[data-track="${id}"]`).forEach(li => {
+        li.toggleAttribute('data-saved', st === 'kept');
+        const btn = li.querySelector('[data-act="dl"]');
+        if (!btn) return;
+        btn.style.setProperty('--p', i ? off.progress(i.url) : 0);
+        if (btn.dataset.state !== st) {
+          btn.dataset.state = st;
+          btn.innerHTML = st === 'kept' ? IC.done : st === 'busy' ? IC.stop : IC.dl;
+          btn.title = DL_TEXT[st];
+          btn.setAttribute('aria-label', `${DL_TEXT[st]}: ${i ? i.title : ''}`);
+          if (st === 'kept') mo.pop(btn.firstElementChild); else mo.swap(btn.firstElementChild);
+        }
+      });
+    }
+    if (what === 'progress') return;
+    clearTimeout(redraw);
+    redraw = setTimeout(() => {
+      if (view === 'downloads' && !query) renderList();
+      if (detail?.type === 'reciter') { const box = detailEl.querySelector('[data-dlall]'); const m = box && cat && cat.moshaf.get(+box.dataset.dlall); if (m) box.outerHTML = dlAllBtn(m); }
+    }, 300);
+  });
+  for (const ev of ['online', 'offline']) addEventListener(ev, () => { if (!tabEl.hidden) { renderList(); renderDetail(); } });
+
   $('qp-search').addEventListener('input', (e) => { query = e.target.value.trim(); setPane('list'); renderList(); });
   $('qp-riwaya').addEventListener('change', (e) => {
     store.riwaya = e.target.value === 'all' ? 'all' : +e.target.value; save();
@@ -670,7 +836,7 @@ export function initQuran({ say, stopOthers }) {
       if (cur) showPlayer();
       paint(); paintTime();
       renderList(true); renderDetail(true);
-    }).catch(() => renderList());
+    }).catch(() => { if (offline() && Object.keys(off.list()).length) view = 'downloads'; renderList(); }); // offline with no lists: show what is saved
   }
   addEventListener('hashchange', () => { if (location.hash === '#quran') open(); });
   if (location.hash === '#quran') open();

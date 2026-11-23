@@ -795,6 +795,19 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .qp-ic svg.qp-dots { stroke-width: 2.8; }
 .qp-ic[aria-pressed="true"] { color: var(--clear); }
 .qp-heart[aria-pressed="true"] svg { fill: currentColor; }
+/* Download button: an arrow; while downloading a ring fills round a small stop square (--p is 0 to 1); a tick once saved */
+.qp-dl { position: relative; color: var(--muted); }
+.qp-dl[data-state="kept"] { color: var(--clear); }
+.qp-dl[data-state="busy"] { color: var(--ink); }
+.qp-dl[data-state="busy"] svg { width: 1.05rem; height: 1.05rem; fill: currentColor; stroke: none; }
+.qp-dl[data-state="busy"]::before { content: ""; position: absolute; inset: .45rem; border-radius: 50%;
+  background: conic-gradient(var(--clear) calc(var(--p, 0) * 1turn), color-mix(in srgb, var(--ink) 14%, transparent) 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); transition: background var(--qp-fast); }
+.qp-btn-ic { width: 1.1rem; height: 1.1rem; margin-inline-end: .35rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.2rem; }
+.qp-busy { align-self: center; font-size: .88rem; color: var(--muted); }
+/* Offline: only what is saved here can play; the rest is greyed out (still readable, still focusable) */
+.qp-offline { margin: .4rem .6rem .6rem; padding: .55rem .75rem; border-radius: .6rem; font-size: .9rem; background: color-mix(in srgb, var(--clear) 12%, transparent); color: var(--ink); }
+.qp[data-offline] li[data-track]:not([data-saved]) .qp-main { opacity: .45; }
 .qp-ic[data-q="repeat"][aria-pressed="true"], .qp-ic[data-q="shuffle"][aria-pressed="true"] { background: color-mix(in srgb, var(--clear) 16%, transparent); }
 .qp-play { width: 3.25rem; height: 3.25rem; background: var(--ink); color: var(--paper); }
 .qp-play:hover { background: color-mix(in srgb, var(--ink) 86%, var(--paper)); }
