@@ -882,18 +882,17 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .qp-row.is-drag .qp-grip { cursor: grabbing; }
 
 /* The bars that mark the surah that is playing */
-.qp-eq { flex: none; display: none; align-items: flex-end; justify-content: center; gap: 2px; width: 2rem; height: 1rem; }
-.qp-eq i { width: 3px; height: 100%; border-radius: 2px; background: var(--clear); transform-origin: bottom; transform: scaleY(.35); }
+.qp-eq { flex: none; display: none; align-items: center; justify-content: center; width: 2rem; height: 1.25rem; }
+.qp-eq svg { width: 1.25rem; height: 1.25rem; transform: rotate(-90deg); } /* the ring starts at twelve o'clock */
+.qp-ring-bg, .qp-ring { fill: none; stroke-width: 2.5; }
+.qp-ring-bg { stroke: var(--line); }
+.qp-ring { stroke: var(--muted); stroke-linecap: round; transition: stroke-dashoffset .3s linear, stroke .15s ease-out; } /* paused: grey */
+.qp-row.is-playing .qp-ring, [data-state="playing"] .qp-ring { stroke: var(--clear); } /* playing: the accent */
 .qp-row.is-cur .qp-eq, .qp-player .qp-eq, .qp-now .qp-eq { display: flex; }
 .qp-row.is-cur .qp-no { display: none; }
 @media (prefers-reduced-motion: no-preference) {
-  .qp-row.is-playing .qp-eq i, [data-state="playing"] > .qp-ctl .qp-eq i, [data-state="playing"] .qp-now-title .qp-eq i { animation: qp-eq .9s ease-in-out infinite alternate; }
-  .qp-eq i:nth-child(2) { animation-delay: -.3s; } .qp-eq i:nth-child(3) { animation-delay: -.6s; }
   [data-state="loading"] .qp-play { animation: dx-sound-pulse 1.2s ease-in-out infinite; }
 }
-@keyframes qp-eq { from { transform: scaleY(.25); } to { transform: scaleY(1); } }
-.qp-row.is-playing .qp-eq i:nth-child(2), [data-state="playing"] .qp-eq i:nth-child(2) { transform: scaleY(.9); }
-.qp-row.is-playing .qp-eq i:nth-child(3), [data-state="playing"] .qp-eq i:nth-child(3) { transform: scaleY(.6); }
 
 /* Timeline: the fill and the buffered range are scaled, never resized; a real range input sits on top for touch and keyboard */
 .qp-time { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr) 3.2rem; align-items: center; gap: .5rem; font-size: .8rem; font-variant-numeric: tabular-nums; color: var(--muted); }
@@ -931,7 +930,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 /* the bar can be swiped sideways to close it (quran.js): vertical scrolling stays with the page */
 .qp-player { touch-action: pan-y; }
 .qp-now-title { display: grid; justify-items: center; gap: .35rem; text-align: center; padding-block: .5rem; }
-.qp-now-title .qp-eq { height: 1.6rem; width: 2.4rem; gap: 4px; } .qp-now-title .qp-eq i { width: 5px; }
+.qp-now-title .qp-eq { height: 2rem; width: 2.4rem; } .qp-now-title .qp-eq svg { width: 2rem; height: 2rem; }
 .qp-now-title h2 { max-width: none; font: 700 clamp(1.6rem, 5vw, 2.4rem)/1.1 var(--display); }
 .qp-now-title p { color: var(--muted); overflow-wrap: anywhere; }
 .qp-btns-lg { justify-content: center; gap: clamp(.15rem, 2vw, .9rem); }
