@@ -1,6 +1,6 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
+import { bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { animate } from './motion.js';
@@ -310,7 +310,7 @@ function tick() {
   const at = wxAt(ev, rows);
   const big = bigNow();
   for (const id of BIG_HOSTS) $(id).dataset.big = big;
-  const html = renderClock(settings.clock, { big, fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
+  const html = renderClock(settings.clock, { bells: bellsNow(), big, fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
   redraw($('clock'), html);
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
@@ -986,6 +986,21 @@ for (const id of BIG_HOSTS) {
   $(id).addEventListener('pointerup', (e) => { if (armed && e.target.closest('[data-swap]')) swapBig(); armed = false; });
   $(id).addEventListener('click', (e) => { if (e.detail === 0 && e.target.closest('[data-swap]')) swapBig(); });
 }
+// The bell beside each prayer on the board: its alerts at a glance; a tap opens that prayer's card under Adhan and alerts
+const bellsNow = () => Object.fromEntries(ALERT_KEYS.map(k => [k, bellState(settings.alerts[k], settings.muted, k === 'jumuah')]));
+function openAlertCard(k) {
+  const card = $(`al-${k}-card`);
+  if (card) card.querySelector('.al-open').checked = true;
+  // the screen changes with the address (route), so scroll and focus once it is showing
+  const show = () => requestAnimationFrame(() => { card?.scrollIntoView({ block: 'start' }); $(`al-${k}-on`)?.focus({ preventScroll: true }); });
+  if (location.hash.slice(1) !== 'settings') addEventListener('hashchange', show, { once: true });
+  go('settings', 'alerts');
+  if (location.hash.slice(1) === 'settings' && !card?.matches(':focus-within')) show();
+}
+let bellArmed = null;
+$('clock').addEventListener('pointerdown', (e) => { bellArmed = e.target.closest('[data-bell]')?.dataset.bell || null; });
+$('clock').addEventListener('pointerup', (e) => { const k = e.target.closest('[data-bell]')?.dataset.bell; if (k && k === bellArmed) openAlertCard(k); bellArmed = null; });
+$('clock').addEventListener('click', (e) => { const b = e.detail === 0 && e.target.closest('[data-bell]'); if (b) openAlertCard(b.dataset.bell); });
 // The fold button on phones (see clocks.js): read from the pointer like the weather link, and from Enter or Space (detail 0)
 let foldArmed = false;
 const applyFold = () => { $('clock').dataset.fold = settings.tableOpen ? 'open' : 'closed'; };
