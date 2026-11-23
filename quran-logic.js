@@ -120,6 +120,16 @@ export function legacyTrack(cat, legacy) {
   }
   return null;
 }
+// A dropped connection: how long to wait (seconds) before trying the recitation again, and whether to keep trying.
+// MediaError codes: 2 network, 3 decode, 4 source not usable (also what a connection lost at the very start gives);
+// 0 here means the player stalled with no error. Offline, it always waits; online, a network fault or a stall is
+// tried up to 8 times (about 4 minutes), while a file that will not play is tried once more and then given up.
+const RETRY_WAITS = [2, 5, 10, 20, 30, 60];
+export const retryWait = (attempt) => RETRY_WAITS[Math.min(Math.max(0, attempt | 0), RETRY_WAITS.length - 1)];
+export function shouldRetry(code, attempt, online) {
+  if (online === false) return true;
+  return code === 2 || code === 0 ? attempt < 8 : attempt < 1;
+}
 export const nextRepeat = (r) => REPEATS[(REPEATS.indexOf(r) + 1) % REPEATS.length];
 export const nextRate = (r) => RATES[(RATES.indexOf(r) + 1) % RATES.length];
 export const toggle = (arr, id) => (arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]);

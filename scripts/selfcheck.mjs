@@ -286,6 +286,15 @@ assert.deepEqual(tick([{ key: 'jumuah', adhan: 720, iqama: null }], { jumuah: { 
   assert.deepEqual(Q.search(cat, 'maher', 2).reciters, [], 'search respects the riwayah filter');
   assert.deepEqual(Q.search(cat, '  '), { reciters: [], surahs: [] });
   assert.deepEqual([0, 59.9, 61, 3600, 3725, NaN].map(Q.fmtTime), ['0:00', '0:59', '1:01', '1:00:00', '1:02:05', '0:00']);
+  // a dropped connection: waits grow and stop growing; offline never gives up; a broken file is not retried for ever
+  assert.deepEqual([-1, 0, 1, 2, 3, 4, 5, 9, NaN].map(Q.retryWait), [2, 2, 5, 10, 20, 30, 60, 60, 2]);
+  assert.equal(Q.shouldRetry(2, 50, false), true, 'offline: keep waiting');
+  assert.equal(Q.shouldRetry(2, 7, true), true);
+  assert.equal(Q.shouldRetry(2, 8, true), false, 'network fault: give up after 8 tries');
+  assert.equal(Q.shouldRetry(0, 3, true), true, 'a stall counts like a network fault');
+  assert.equal(Q.shouldRetry(4, 0, true), true, 'a file that will not play: one more try');
+  assert.equal(Q.shouldRetry(4, 1, true), false);
+  assert.equal(Q.shouldRetry(3, 1, undefined), false, 'unknown connection state counts as online');
 
   const ids = ['102:1', '102:2', '102:18', '102:114'];
   let q = Q.makeQueue(ids, 2);
