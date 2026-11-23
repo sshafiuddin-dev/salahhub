@@ -82,6 +82,29 @@ export function wallMs(y, m, d, min, zone) {
 // On a Friday the Jumu'ah row carries a list of khutbahs (r.jumuah): after the adhan the count goes to the first, then on to
 // each next one that comes before the next prayer's adhan (Asr), then to that adhan. With more than one, the event says
 // which: n of the total. The first khutbah always counts, wherever it falls.
+// Where the wait for the next event began, for the progress bar on small screens: the time before it on the sheet.
+// Waiting for an iqama (or a later khutbah) it is the adhan (or the khutbah before); waiting for an adhan it is the
+// last time of the prayer before (its iqama, else its adhan; for Jumu'ah its last khutbah before this adhan), Sunrise
+// before Dhuhr, and last night's Isha (taken as today's, a day earlier) before Fajr. Minutes, like the rows.
+const lastOf = (r, limit) => (r.jumuah?.length ? Math.max(...khutbahsBefore([...r.jumuah].sort((a, b) => a - b), limit))
+  : r.iqama != null && r.iqama > r.adhan ? r.iqama : r.adhan);
+export function prevEventAt(rows, next, sunrise) {
+  const isha = rows[rows.length - 1];
+  if (next.at >= 1440) return lastOf(isha, 1440);
+  if (next.key === 'sunrise') return lastOf(rows[0], sunrise);
+  const i = rows.findIndex(r => r.key === next.key), r = rows[i];
+  if (!r) return next.at;
+  if (next.kind === 'iqama') {
+    if (r.jumuah?.length && next.n > 1) return khutbahsBefore([...r.jumuah].sort((a, b) => a - b), rows[i + 1]?.adhan)[next.n - 2];
+    return r.adhan;
+  }
+  if (i === 0) return lastOf(isha, 1440) - 1440;
+  if (r.key === 'dhuhr' && sunrise != null) return sunrise;
+  return lastOf(rows[i - 1], r.adhan);
+}
+// How far along the wait is, 0 to 1
+export const progressOf = (now, from, at) => (at > from ? Math.min(1, Math.max(0, (now - from) / (at - from))) : 1);
+
 // Which of the day's times have already gone by, for fading them on the timetable: everything before the next event
 // (an adhan that has been called, but whose iqama is still to come, is not past yet). Sunrise counts as its own time.
 // When the sheet shows tomorrow (after Isha) nothing is past; once the next event is tomorrow's Fajr, all of today is.

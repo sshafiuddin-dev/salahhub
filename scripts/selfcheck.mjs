@@ -5,7 +5,7 @@ import { handle } from '../functions/api/iqama.js';
 import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
 import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys } from '../logic.js';
+import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -113,6 +113,22 @@ assert.deepEqual([...pastKeys({ key: 'sunrise', kind: '', at: 400 }, false)], ['
 assert.deepEqual([...pastKeys({ key: 'asr', kind: 'adhan', at: 870 }, false)], ['fajr', 'sunrise', 'dhuhr']);
 assert.deepEqual([...pastKeys({ key: 'fajr', kind: 'adhan', at: 1440 + 312 }, false)].length, 6, 'after Isha, all of today');
 assert.deepEqual([...pastKeys({ key: 'fajr', kind: 'adhan', at: 1440 + 312 }, true)], [], 'tomorrow sheet: nothing past');
+// Where the wait began, for the progress bar
+const day5 = [{ key: 'fajr', adhan: 334, iqama: 360 }, { key: 'dhuhr', adhan: 705, iqama: 750 }, { key: 'asr', adhan: 856, iqama: 885 },
+  { key: 'maghrib', adhan: 996, iqama: 996 }, { key: 'isha', adhan: 1075, iqama: 1200 }];
+assert.equal(prevEventAt(day5, { key: 'dhuhr', kind: 'iqama', at: 750 }, 413), 705, 'waiting for the iqama: since the adhan');
+assert.equal(prevEventAt(day5, { key: 'asr', kind: 'adhan', at: 856 }, 413), 750, 'waiting for Asr: since the Dhuhr iqama');
+assert.equal(prevEventAt(day5, { key: 'dhuhr', kind: 'adhan', at: 705 }, 413), 413, 'waiting for Dhuhr: since sunrise');
+assert.equal(prevEventAt(day5, { key: 'sunrise', kind: '', at: 413 }, 413), 360, 'waiting for sunrise: since the Fajr iqama');
+assert.equal(prevEventAt(day5, { key: 'isha', kind: 'adhan', at: 1075 }, 413), 996, 'Maghrib on time: since its adhan');
+assert.equal(prevEventAt(day5, { key: 'fajr', kind: 'adhan', at: 1440 + 334 }, 413), 1200, 'after Isha: since its iqama');
+assert.equal(prevEventAt(day5, { key: 'fajr', kind: 'adhan', at: 334 }, 413), 1200 - 1440, 'before Fajr: since last night');
+const fri = day5.map(r => (r.key === 'dhuhr' ? { ...r, iqama: 720, jumuah: [790, 720] } : r));
+assert.equal(prevEventAt(fri, { key: 'dhuhr', kind: 'iqama', at: 790, n: 2, of: 2 }, 413), 720, 'second khutbah: since the first');
+assert.equal(prevEventAt(fri, { key: 'asr', kind: 'adhan', at: 856 }, 413), 790, 'Asr on a Friday: since the last khutbah');
+assert.equal(progressOf(730, 705, 750).toFixed(3), '0.556');
+assert.equal(progressOf(800, 705, 750), 1);
+assert.equal(progressOf(600, 705, 750), 0);
 const dy = (date, max, pop, kind = 'clear') => ({ date, max, pop, kind });
 assert.equal(dayName('2026-11-12'), 'Thursday');
 assert.equal(outlook([dy('2026-11-11', 55, 10), dy('2026-11-12', 48, 70, 'rain'), dy('2026-11-13', 46, 20)], 'F'), 'Next two days: turning colder, rain tomorrow.');

@@ -406,7 +406,24 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 
 /* The day ruler repeats the timetable, so it only stays where there is room to spare: screens at least 1280 wide and 720 tall.
    On phones and 7-inch tablets the space goes to the next prayer and its countdown instead. */
-@media (max-width: 79.99rem), (max-height: 44.99rem) { .sh-rule { display: none; } }
+/* In its place, the wait as one thin printed rule filling left to right (clocks.js). It moves once a second with the
+   clock, so it needs no transition; transform only, so the Fire 7 does no layout work for it. */
+.sh-prog { display: none; position: relative; height: 3px; margin-block: calc(var(--u) * 1.4) calc(var(--u) * .4); background: var(--line); overflow: hidden; }
+.sh-prog span { position: absolute; inset: 0; background: var(--ink); transform-origin: left center; }
+@media (max-width: 79.99rem), (max-height: 44.99rem) { .sh-rule { display: none; } .sh-prog { display: block; } }
+/* Phones held upright: the timetable folds away under the next prayer, opened by a full-width button (app.js keeps
+   the choice). It opens at once: the board is redrawn every second, which would cut an opening animation short. */
+.sh-fold { display: none; }
+@media (max-width: 48rem) and (orientation: portrait) {
+  #clock .sh-fold {
+    display: flex; align-items: center; justify-content: center; gap: .45rem; width: 100%; min-height: 44px; margin-top: calc(var(--u) * 2.5);
+    padding: .65rem 1rem; background: none; border: 0; border-top: var(--rule-w, 1px) solid var(--ink); color: var(--ink);
+    font: 500 1rem/1 var(--body); cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  #clock .sh-fold svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; } /* about 1.8px drawn, to match 500-weight text */
+  #clock[data-fold="open"] .sh-fold svg { transform: rotate(180deg); }
+  #clock[data-fold="closed"] .sh-tt { display: none; }
+}
 /* Short screens (a phone on its side, a 7-inch tablet with the bars showing): the small lines keep a little less than 1rem so
    the next-prayer column always fits above the timetable */
 @media (max-height: 34rem) {
