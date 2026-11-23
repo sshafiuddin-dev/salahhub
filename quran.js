@@ -3,7 +3,7 @@
 // The recitation has its own audio element, so an adhan or alert can pause it and hand it back afterwards.
 import {
   trackId, trackInfo, buildCatalog, moshafOf, recitersFor, search, fmtTime, makeQueue, current, reshuffle, stepPos, afterEnd,
-  cleanStore, legacyTrack, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
+  cleanStore, legacyTrack, retryWait, shouldRetry, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
 } from './quran-logic.js';
 import * as mo from './motion.js';
 import { esc } from './logic.js';
@@ -43,10 +43,14 @@ export function initQuran({ say, stopOthers }) {
   let view = 'reciters', query = '', detail = null; // detail: { type: 'reciter', id, m } | { type: 'surah', n } | { type: 'list', id }
   let q = null, cur = store.last ? { id: store.last.id, label: store.last.title, sub: store.last.sub, url: store.last.url } : null;
   let startAt = 0, scrubbing = false, interrupted = false, lastSaved = 0, wasPlaying = false;
+  // wanted: the listener means it to be playing (not paused by them, by an adhan, or finished).
+  // rec: set while getting over a dropped connection: { t: where to pick up, attempt, timer }.
+  let wanted = false, rec = null, stallTimer = 0;
   const audio = new Audio();
   audio.preload = 'metadata';
   audio.volume = store.vol;
   const isPlaying = () => !!audio.src && !audio.paused && !audio.ended;
+  const active = () => isPlaying() || !!rec;
 
   // ---- Markup that lives outside the tab: the docked player, the now-playing screen and one dialog ----
   const tabEl = $('tab-quran'), listEl = $('qp-list'), detailEl = $('qp-detail');
@@ -109,15 +113,56 @@ export function initQuran({ say, stopOthers }) {
   function start() {
     stopOthers();
     interrupted = false;
+    wanted = true;
+    audio.preload = 'auto'; // once playing, let the browser read well ahead, so a short drop is not heard at all
+    // the last try failed (or the connection went while it was paused): load it again from the same place
+    if (audio.error && cur && cur.url) { rec ||= { t: audio.currentTime || store.last?.t || 0, attempt: 0, timer: 0 }; return retry(); }
     audio.play().catch((err) => {
       if (err && err.name === 'AbortError') return;
+      if (rec || audio.error) return paint(); // the 'error' event has it: either a retry is planned, or it already said why not
       say(err && err.name === 'NotAllowedError' ? 'Tap play to start the recitation.' : 'This recitation could not play. Check the connection.');
       paint();
     });
   }
+  // ---- Getting over a dropped connection: keep the place, try again with longer and longer waits, and at once
+  // when the device says it is back online; then carry on from the same second ----
+  function stopRecover() {
+    clearTimeout(stallTimer); stallTimer = 0;
+    if (rec) { clearTimeout(rec.timer); rec = null; }
+  }
+  function retry() {
+    if (!rec || !cur || !cur.url) return;
+    clearTimeout(rec.timer); rec.timer = 0;
+    if (navigator.onLine !== false) rec.attempt++; // tries made while offline do not count against the limit
+    startAt = rec.t;
+    audio.src = cur.url;
+    audio.playbackRate = store.rate;
+    audio.play().catch(() => {}); // a failure comes back as an 'error' event, which plans the next try
+    paint();
+  }
+  // Returns false when it is not worth trying again (then the caller says so)
+  function lost(code) {
+    if (!wanted || !cur || !cur.url) return false;
+    const online = navigator.onLine !== false;
+    if (!shouldRetry(code, rec ? rec.attempt : 0, online)) { stopRecover(); wanted = false; return false; }
+    if (!rec) {
+      rec = { t: audio.currentTime || startAt || 0, attempt: 0, timer: 0 };
+      say('The connection dropped. The recitation will carry on from here when it is back.');
+    } else if (audio.currentTime > 0) rec.t = audio.currentTime;
+    clearTimeout(rec.timer);
+    // offline the 'online' event usually comes first; the slow timer is there for devices that never send it
+    rec.timer = setTimeout(retry, (online ? retryWait(rec.attempt) : 30) * 1000);
+    paint(); paintTime();
+    return true;
+  }
+  // The user (or an adhan) paused: nothing to get back to
+  function pause() { wanted = false; stopRecover(); audio.pause(); paint(); }
+  addEventListener('online', () => { if (rec) retry(); });
+
   function load(id, at, autoplay) {
     const i = info(id);
     if (!i) return say('That recitation is no longer on mp3quran.net.');
+    stopRecover();
     setCurrent(i, at);
     save();
     startAt = at;
@@ -134,7 +179,7 @@ export function initQuran({ say, stopOthers }) {
   }
   function togglePlay() {
     if (!cur) return;
-    if (isPlaying()) return audio.pause();
+    if (active()) return pause(); // also stops waiting for a dropped connection
     if (!audio.src) { // first play after a reload: start from the saved place at once, and fetch the lists behind it
       const at = store.last?.t || 0;
       if (!cur.url) return void ensureCat().then(() => { restoreQueue(); load(cur.id, at, true); }).catch(() => say('Could not load the reciters. Check the connection.'));
@@ -159,6 +204,7 @@ export function initQuran({ say, stopOthers }) {
   }
   const seekBy = (s) => { if (Number.isFinite(audio.duration)) audio.currentTime = Math.min(Math.max(0, audio.currentTime + s), audio.duration - .25); };
   function dismiss() {
+    wanted = false; stopRecover();
     audio.pause();
     audio.removeAttribute('src');
     audio.load();
@@ -176,13 +222,31 @@ export function initQuran({ say, stopOthers }) {
     const r = q ? afterEnd(q, store.repeat) : -1;
     if (r === 'again') { audio.currentTime = 0; return start(); }
     if (r >= 0) { q.pos = r; return load(current(q), 0, true); }
+    wanted = false;
     if (store.last) { store.last.t = 0; save(); }
     paint();
   });
-  audio.addEventListener('error', () => { if (audio.getAttribute('src')) say('This recitation could not load. Check the connection, or try another reciter.'); paint(); });
+  audio.addEventListener('error', () => {
+    if (!audio.getAttribute('src')) return;
+    if (!lost(audio.error ? audio.error.code : 0)) say('This recitation could not load. Check the connection, or try another reciter.');
+    paint();
+  });
+  // Some browsers never raise an error when the connection goes mid-surah; they just wait. After 20 seconds of
+  // waiting (3 when the device already knows it is offline), start again from the same place.
+  const watchStall = () => {
+    clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => { if (wanted && !audio.paused && audio.readyState < 3) lost(0); }, navigator.onLine === false ? 3000 : 20000);
+  };
+  audio.addEventListener('waiting', watchStall);
+  audio.addEventListener('stalled', () => { if (wanted && !audio.paused && audio.readyState < 3) watchStall(); });
+  audio.addEventListener('playing', () => {
+    clearTimeout(stallTimer); stallTimer = 0;
+    if (rec) { stopRecover(); say('Back online. Carrying on.'); }
+  });
   for (const ev of ['play', 'playing', 'pause', 'waiting', 'canplay']) audio.addEventListener(ev, paint);
   for (const ev of ['timeupdate', 'durationchange', 'progress', 'seeked']) audio.addEventListener(ev, paintTime);
   audio.addEventListener('timeupdate', () => {
+    if (rec || startAt) return; // reloading after a drop sends the clock to 0 for a moment: that is not the place to keep
     if (store.last && Math.abs(audio.currentTime - lastSaved) >= 5) { lastSaved = store.last.t = audio.currentTime; save(); }
   });
   const keepPlace = () => { if (store.last && audio.getAttribute('src') && !audio.ended && audio.currentTime > 0) { store.last.t = audio.currentTime; save(); } };
@@ -198,7 +262,7 @@ export function initQuran({ say, stopOthers }) {
   }
   if ('mediaSession' in navigator) {
     const on = (name, fn) => { try { navigator.mediaSession.setActionHandler(name, fn); } catch (e) {} };
-    on('play', togglePlay); on('pause', () => audio.pause());
+    on('play', togglePlay); on('pause', pause);
     on('previoustrack', () => step(-1)); on('nexttrack', () => step(1));
     on('seekbackward', (d) => seekBy(-(d.seekOffset || 10))); on('seekforward', (d) => seekBy(d.seekOffset || 10));
     on('seekto', (d) => { if (Number.isFinite(d.seekTime)) audio.currentTime = d.seekTime; });
@@ -212,7 +276,7 @@ export function initQuran({ say, stopOthers }) {
     mo.rise(player, mo.T.dist.lg);
   }
   function paint() {
-    const playing = isPlaying(), busy = playing && audio.readyState < 3;
+    const playing = active(), busy = !!rec || (playing && audio.readyState < 3);
     for (const el of [player, now]) el.dataset.state = busy ? 'loading' : playing ? 'playing' : 'paused';
     all('.qp-label').forEach(el => { el.textContent = cur ? cur.label : ''; });
     all('.qp-sub').forEach(el => { el.textContent = cur ? cur.sub : ''; });
@@ -243,7 +307,7 @@ export function initQuran({ say, stopOthers }) {
   }
   function paintTime() {
     const d = audio.duration, has = Number.isFinite(d) && d > 0;
-    const t = audio.getAttribute('src') ? audio.currentTime : (store.last?.t || 0);
+    const t = rec ? rec.t : audio.getAttribute('src') ? (startAt || audio.currentTime) : (store.last?.t || 0);
     let buf = 0;
     try { for (let i = 0; i < audio.buffered.length; i++) if (audio.buffered.start(i) <= t + 1) buf = Math.max(buf, audio.buffered.end(i)); } catch (e) {}
     all('.qp-fill').forEach(el => { if (!scrubbing) el.style.transform = `scaleX(${has ? Math.min(1, t / d) : 0})`; });
@@ -593,10 +657,18 @@ export function initQuran({ say, stopOthers }) {
   paint(); paintTime();
 
   return {
-    isPlaying,
+    isPlaying: active, // waiting for a dropped connection counts, so the app does not reload itself in the middle
+
     // Another sound (an adhan, an alert, an adhkar recording) is about to play: step aside, and remember to come back
-    interrupt() { if (isPlaying()) { interrupted = true; audio.pause(); } },
-    resume() { if (interrupted) { interrupted = false; if (audio.getAttribute('src')) audio.play().catch(() => {}); } },
+    // (a recitation waiting for a dropped connection counts as playing: it steps aside too, and comes back from its place)
+    interrupt() {
+      if (!active()) return;
+      interrupted = true;
+      if (rec) { const t = rec.t; stopRecover(); startAt = t; }
+      wanted = false;
+      audio.pause();
+    },
+    resume() { if (interrupted) { interrupted = false; if (audio.getAttribute('src')) start(); } },
     // A modal dialog would sit on top of the alert's Stop button, so it closes when an alert starts
     closeDialogs: closeDlg,
   };
