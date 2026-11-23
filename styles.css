@@ -318,6 +318,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .sh-warn b { font: 600 max(.9rem, calc(var(--u) * 2.4))/1.2 var(--body); letter-spacing: .01em; }
 .sh-warn span { font: italic 500 max(1rem, calc(var(--u) * 2.8))/1.2 var(--display); color: var(--ink); }
 .sh-warn small { margin-left: auto; font: 500 max(.72rem, calc(var(--u) * 1.8))/1.2 var(--body); letter-spacing: .06em; color: var(--muted); }
+.sh-mid { zoom: var(--fit, 1); } /* app.js fitBoard: only below 1 when the screen is too short */
 .sh-mid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: center; gap: calc(var(--u) * 3); min-height: 0; padding-block: calc(var(--u) * 1.5); }
 .sh-time { display: flex; align-items: flex-start; gap: calc(var(--u) * 1.2); line-height: 1; }
 .sh-hm { font: 400 calc(var(--u) * 25)/1 var(--display); letter-spacing: -.045em; margin-block: -.08em -.12em; }

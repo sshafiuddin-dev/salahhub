@@ -961,9 +961,23 @@ let wxArmed = false;
 $('clock').addEventListener('pointerdown', (e) => { wxArmed = !!e.target.closest('[data-go="weather"]'); });
 // The board is redrawn every second; a keyboard user on one of its buttons keeps focus on the new copy
 function redraw(el, html) {
-  const f = document.activeElement, key = f && el.contains(f) ? ['data-fold', 'data-swap'].find(k => f.hasAttribute(k)) : null;
+  const f = document.activeElement, key = f && el.contains(f) ? ['data-fold', 'data-swap', 'data-bell'].find(k => f.hasAttribute(k)) : null;
   el.innerHTML = html;
-  if (key) el.querySelector(`[${key}]`)?.focus({ preventScroll: true });
+  fitBoard(el);
+  if (key) el.querySelector(key === 'data-bell' ? `[data-bell="${f.dataset.bell}"]` : `[${key}]`)?.focus({ preventScroll: true });
+}
+// On a short screen (a phone on its side, a small window, a warning line taking room) the clock and the next prayer can
+// be taller than their share of the board and run into the timetable. Then the two scale down together (zoom, as the
+// full screen view does), in 5% steps to no less than 60%, and grow back once there is room. --fit lives on the
+// container, which outlives the redraws; the steps are read and undone before the frame is painted.
+function fitBoard(el) {
+  const mid = el.querySelector('.sh-mid');
+  if (!mid) return;
+  const over = () => mid.scrollHeight - mid.clientHeight > 1;
+  let fit = +el.style.getPropertyValue('--fit') || 1;
+  const set = (v) => { fit = Math.round(v * 100) / 100; el.style.setProperty('--fit', fit); };
+  if (over()) { while (over() && fit > 0.6) set(fit - 0.05); return; }
+  while (fit < 1) { set(fit + 0.05); if (over()) { set(fit - 0.05); return; } }
 }
 // The larger number on the board: Automatic is the countdown where the day ruler is hidden (phones, 7-inch tablets:
 // the same sizes as in styles.css) and the clock on bigger screens. The Bigger clock/countdown button swaps it.
