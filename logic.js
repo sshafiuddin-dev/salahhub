@@ -293,7 +293,9 @@ export function weatherKind(code) {
 // Burn-in care for a screen kept on all day: the clock and table step 2 px around a 3 × 3 grid,
 // one step every 3 minutes, so no edge stays on the same pixels for long. Returns [x, y] in px.
 const SHIFT_PATH = [[0, 0], [2, 0], [2, 2], [0, 2], [-2, 2], [-2, 0], [-2, -2], [0, -2], [2, -2]];
-export const burnShift = (sec) => SHIFT_PATH[Math.floor(sec / 180) % SHIFT_PATH.length];
+// Burn-in care: the step on the path changes every 2 minutes; amp is the furthest it goes, in pixels (4, or 6 on a dark screen,
+// where a lit pixel next to an unlit one wears the screen fastest)
+export const burnShift = (sec, amp = 4) => SHIFT_PATH[Math.floor(sec / 120) % SHIFT_PATH.length].map(v => v * amp / 2);
 
 // Weather at the next prayer, from the hourly forecast: hours are [{ today, min, temp, code, pop }] starting at the current hour.
 // at is minutes after today's midnight; 1440 and over is tomorrow (Fajr after Isha). Returns { temp, words, pop } or null.
