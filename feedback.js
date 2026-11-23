@@ -129,7 +129,7 @@ export function initFeedback({ details, snapTarget }) {
     fd.set('message', msg);
     if ($('fb-include').checked) fd.set('details', JSON.stringify(fillDetails()));
     if (shot) fd.set('screenshot', shot.blob, shot.blob.type === 'image/png' ? 'screenshot.png' : 'screenshot.jpg');
-    if (!navigator.onLine) { status('This tablet is offline. Your feedback is still here: send it when the internet is back.', true); return; }
+    if (!navigator.onLine) { status('This device is offline. Your feedback is still here: send it when the internet is back.', true); return; }
     $('fb-send').disabled = true;
     status('Sending…');
     try {
