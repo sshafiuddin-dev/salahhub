@@ -81,7 +81,13 @@ body { font-feature-settings: "kern", "liga"; }
 
 /* Today's table */
 #today th, #today td { border-color: var(--line); }
-#today tr.next th, #today tr.next td { color: var(--clear); background: transparent; box-shadow: inset 0 2px 0 var(--clear), inset 0 -2px 0 var(--clear); } /* the next prayer sits between two red rules, like the board */
+/* Phase 1 polish: the next prayer is a solid ink bar, like a highlighter on the printed sheet, readable across a room.
+   On a dark screen (Darkest, or High contrast from Dim) a light block would glare at night, so it keeps the two accent
+   rules instead; the Handwritten look keeps its own marks. Times gone by fade to --muted (4.6:1 or more in every look). */
+#today tr.past th, #today tr.past td { color: var(--muted); }
+#today tr.next th, #today tr.next td { color: var(--paper); background: var(--ink); box-shadow: none; }
+:root[data-theme="dark"] #today tr.next th, :root[data-theme="dark"] #today tr.next td,
+:root[data-palette="hand"] #today tr.next th, :root[data-palette="hand"] #today tr.next td { color: var(--clear); background: transparent; box-shadow: inset 0 2px 0 var(--clear), inset 0 -2px 0 var(--clear); } /* the next prayer sits between two red rules, like the board */
 
 /* Full screen */
 .display { background: var(--paper); }
@@ -328,6 +334,13 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .sh-l.is-called .sh-kind { font: 600 max(1.15rem, calc(var(--u) * 4.4))/1.25 var(--display); font-style: normal; color: var(--clear); }
 .sh-l.is-called .sh-kind::before { content: ""; display: inline-block; width: .55em; height: .55em; margin-right: .5em; border-radius: 50%; background: var(--clear); vertical-align: .05em; }
 .sh .sh-tt tbody tr:first-child td.is-passed { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+/* Phase 1 polish: the board's next prayer is a solid ink column (see #today above for why dark screens and Handwritten differ) */
+.sh .sh-tt .is-past, .sh .sh-tt .is-past .sh-ar { color: var(--muted); }
+:root:not([data-theme="dark"]):not([data-palette="hand"]) .sh .sh-tt .nx-col { background-color: var(--ink); box-shadow: none; }
+:root:not([data-theme="dark"]):not([data-palette="hand"]) .sh .sh-tt .nx-col,
+:root:not([data-theme="dark"]):not([data-palette="hand"]) .sh .sh-tt .nx-col .sh-ar,
+:root:not([data-theme="dark"]):not([data-palette="hand"]) .sh .sh-tt tbody tr:first-child td.nx-col.is-passed,
+:root:not([data-theme="dark"]):not([data-palette="hand"]) .sh .sh-tt .nx-col em { color: var(--paper); }
 :root[data-palette="hand"] .sh-l.is-called .sh-kind { font-family: var(--hand); font-weight: 400; }
 
 /* Phase 8: the other clock styles speak the board's language (name in English and Arabic, adhan called, countdown, adhan and iqama) */

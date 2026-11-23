@@ -1,6 +1,6 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
+import { pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
@@ -260,7 +260,7 @@ function renderDay() {
   let body = '';
   for (const r of v.rows) {
     body += `<tr data-k="${r.key}"><th scope="row">${NAMES[r.key]}</th><td>${fmt(r.adhan)}</td><td>${r.iqama == null ? 'Not set' : `${fmt(r.iqama)}${r.def ? ' <small class="iq-def">default</small>' : ''}`}</td></tr>`;
-    if (r.key === 'fajr') body += `<tr class="minor"><th scope="row">Sunrise</th><td>${fmt(v.sunrise)}</td><td></td></tr>`;
+    if (r.key === 'fajr') body += `<tr class="minor" data-k="sunrise"><th scope="row">Sunrise</th><td>${fmt(v.sunrise)}</td><td></td></tr>`;
   }
   if (jumuah()) body += `<tr class="minor${sheet.weekday === 'Fri' ? ' friday' : ''}"><th scope="row">Jumu&rsquo;ah khutbah</th><td colspan="2">${jumuah()}</td></tr>`;
   $('today').tBodies[0].innerHTML = body;
@@ -320,7 +320,8 @@ function tick() {
     }
   }
   renderAdhkar(nowMin);
-  for (const tr of $('today').tBodies[0].rows) tr.classList.toggle('next', tr.dataset.k === ev.key);
+  const past = pastKeys(ev, ahead);
+  for (const tr of $('today').tBodies[0].rows) { tr.classList.toggle('next', tr.dataset.k === ev.key); tr.classList.toggle('past', past.has(tr.dataset.k)); }
   const sky = skyParams(weather, { now: nowMin, sunrise: day.sunrise, maghrib: day.rows[3].adhan }, parseInt(today.hijri, 10) || 15);
   const dim = currentDim();
   // no sky in the Handwritten and High contrast looks, nor at Dim unless the realistic sky can show by day

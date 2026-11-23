@@ -5,7 +5,7 @@ import { handle } from '../functions/api/iqama.js';
 import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
 import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes } from '../logic.js';
+import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -107,6 +107,12 @@ const rows = [{ key: 'fajr', adhan: 312, iqama: 345 }, { key: 'isha', adhan: 109
 assert.deepEqual(nextEvent(rows, 313, 300), { key: 'fajr', kind: 'adhan', at: 312 });
 assert.deepEqual(nextEvent(rows, 313, 320), { key: 'fajr', kind: 'iqama', at: 345 });
 assert.deepEqual(nextEvent(rows, 313, 400), { key: 'isha', kind: 'adhan', at: 1090 });
+// Times gone by, for fading: everything before the next event; a called adhan waiting for its iqama is not past
+assert.deepEqual([...pastKeys({ key: 'fajr', kind: 'iqama', at: 345 }, false)], []);
+assert.deepEqual([...pastKeys({ key: 'sunrise', kind: '', at: 400 }, false)], ['fajr']);
+assert.deepEqual([...pastKeys({ key: 'asr', kind: 'adhan', at: 870 }, false)], ['fajr', 'sunrise', 'dhuhr']);
+assert.deepEqual([...pastKeys({ key: 'fajr', kind: 'adhan', at: 1440 + 312 }, false)].length, 6, 'after Isha, all of today');
+assert.deepEqual([...pastKeys({ key: 'fajr', kind: 'adhan', at: 1440 + 312 }, true)], [], 'tomorrow sheet: nothing past');
 const dy = (date, max, pop, kind = 'clear') => ({ date, max, pop, kind });
 assert.equal(dayName('2026-11-12'), 'Thursday');
 assert.equal(outlook([dy('2026-11-11', 55, 10), dy('2026-11-12', 48, 70, 'rain'), dy('2026-11-13', 46, 20)], 'F'), 'Next two days: turning colder, rain tomorrow.');
