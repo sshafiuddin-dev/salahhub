@@ -112,6 +112,37 @@ export function cleanStore(raw) {
   else if (!last && o.legacy && typeof o.legacy.reciter === 'string' && Number.isInteger(o.legacy.surah)) out.legacy = { reciter: o.legacy.reciter, surah: o.legacy.surah };
   return out;
 }
+// Recitations kept on this device for listening offline, by their mp3quran.net address: { id, title, sub, bytes, at, kind }.
+// kind 'played' is kept because it was played (or was next in the queue); 'download' because the listener asked for it.
+const SAVED_URL = /^https:\/\/([a-z0-9-]+\.)*mp3quran\.net\/[^\s"'<>?#]+\.mp3$/i;
+export const isSavedUrl = (url) => typeof url === 'string' && SAVED_URL.test(url);
+export function cleanSaved(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [url, e] of Object.entries(raw)) {
+    if (!isSavedUrl(url) || !e || !isTrack(e.id)) continue;
+    out[url] = {
+      id: e.id, title: String(e.title || '').slice(0, 80), sub: String(e.sub || '').slice(0, 160),
+      bytes: Number.isFinite(e.bytes) && e.bytes > 0 ? Math.round(e.bytes) : 0,
+      at: Number.isFinite(e.at) && e.at > 0 ? e.at : 0,
+      kind: e.kind === 'download' ? 'download' : 'played',
+    };
+  }
+  return out;
+}
+// Space is short: which kept recitations to remove, so that `need` more bytes still leave `reserve` free.
+// Only played ones go, longest unplayed first; downloads the listener asked for, and anything in `protect`, stay.
+export function toEvict(saved, need, free, reserve, protect = []) {
+  let room = free - need - reserve;
+  if (room >= 0) return [];
+  const out = [];
+  for (const [url, e] of Object.entries(saved).filter(([u, e]) => e.kind !== 'download' && !protect.includes(u)).sort((a, b) => a[1].at - b[1].at)) {
+    out.push(url);
+    room += e.bytes;
+    if (room >= 0) break;
+  }
+  return out;
+}
 // The old player saved the dropdown's label: the reciter's name, with "(recitation name)" after it when the reciter had several
 export function legacyTrack(cat, legacy) {
   if (!legacy) return null;
