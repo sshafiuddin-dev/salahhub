@@ -146,11 +146,12 @@ assert.equal(outlook([dy('2026-11-11', 20, 0), dy('2026-11-12', 24, 0), dy('2026
 assert.equal(outlook([dy('2026-11-11', 20, 0)], 'C'), '');
 const five = [312, 700, 860, 1000, 1090].map((adhan, i) => ({ key: PRAYERS[i], adhan, iqama: adhan + 20 }));
 assert.deepEqual([399, 400, 699, 700, 999, 1000, 1089, 1090].map(n => cardWindow(n, five, 400)), [null, 'morning', 'morning', null, null, 'evening', 'evening', null]);
-// Burn-in shift: 2 px steps every 3 minutes, a 27-minute cycle, never more than 2 px from centre
-const path = Array.from({ length: 10 }, (_, i) => burnShift(i * 180));
+// Burn-in shift: a step every 2 minutes on a 9-point path (an 18-minute cycle), up to 4 px from centre, or 6 px on a dark screen
+const path = Array.from({ length: 10 }, (_, i) => burnShift(i * 120));
 assert.deepEqual(path[0], [0, 0]); assert.deepEqual(path[9], [0, 0]);
-assert.deepEqual(burnShift(179), [0, 0]); assert.deepEqual(burnShift(180), [2, 0]);
-assert.ok(path.every(([x, y]) => Math.abs(x) <= 2 && Math.abs(y) <= 2) && new Set(path.slice(0, 9).map(String)).size === 9);
+assert.deepEqual(burnShift(119), [0, 0]); assert.deepEqual(burnShift(120), [4, 0]); assert.deepEqual(burnShift(120, 6), [6, 0]);
+assert.ok(path.every(([x, y]) => Math.abs(x) <= 4 && Math.abs(y) <= 4) && new Set(path.slice(0, 9).map(String)).size === 9);
+assert.ok(Array.from({ length: 9 }, (_, i) => burnShift(i * 120, 6)).every(([x, y]) => Math.abs(x) <= 6 && Math.abs(y) <= 6));
 // Weather at the next prayer, from hourly rows starting at the current hour
 const hrs = [[true, 11, 45, 61, 80], [true, 12, 44, 3, 40], [true, 13, 46, 2, 5], [false, 5, 30, 71, 70]].map(([today, h, temp, code, pop]) => ({ today, min: h * 60, temp, code, pop }));
 assert.deepEqual(prayerWeather(hrs, 703), { temp: 45, words: 'rain likely', pop: 80 });

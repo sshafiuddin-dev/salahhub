@@ -1180,7 +1180,7 @@ async function updateLock() {
 }
 // Slow pixel shift while the screen is kept on (Keep screen on, or Full screen); centred otherwise
 function applyShift() {
-  const [x, y] = wantAwake() ? burnShift(clock(new Date(), place().zone).sec) : [0, 0];
+  const [x, y] = wantAwake() ? burnShift(clock(new Date(), place().zone).sec, root.dataset.theme === 'dark' ? 6 : 4) : [0, 0];
   root.style.setProperty('--shift', `${x}px ${y}px`);
 }
 function syncAwake() {

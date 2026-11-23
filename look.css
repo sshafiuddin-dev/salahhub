@@ -30,7 +30,7 @@
 }
 :root[data-palette="hand"][data-dim="1"] { --paper: #DCD6C6; --surface: #E4DECF; --ink: #22304D; --muted: #46506A; --line: #AAB2C2; --clear: #8F2520; --margin: #C98E86; }
 :root[data-palette="hand"][data-dim="2"] { --paper: #BAA582; --surface: #C2AE8C; --ink: #1C2132; --muted: #3D3A38; --line: #A08B67; --clear: #6B1D10; --risk: #6B1D10; --margin: #8E4A3A; }
-:root[data-palette="hand"][data-dim="3"] { --paper: #000000; --surface: #08080A; --ink: #9E9175; --muted: #8A806C; --line: #1A1A1E; --clear: #B98A5A; --risk: #C96A4E; --margin: #2A1C18; color-scheme: dark; }
+:root[data-palette="hand"][data-dim="3"] { --paper: #000000; --surface: #08080A; --ink: #9E9175; --muted: #7F7664; /* 4.7:1, set well apart from the ink */ --line: #1A1A1E; --clear: #B98A5A; --risk: #C96A4E; --margin: #2A1C18; color-scheme: dark; }
 
 /* E-ink: matte warm-grey paper and black ink, no colour at all; at night black with grey type, nothing bright.
    Measured against the page: ink 15.5 / 12.5 / 8.7 / 7.5 to 1 (Bright, Soft, Dim, Darkest), greyed times 7.9 / 7.5 / 6.3 / 4.6. */
@@ -389,3 +389,12 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 
 /* Phase 11: the dock's More item is as wide as a tap target needs */
 .dockbar details.more { min-width: 4rem; }
+
+/* Burn-in care at night (any dark screen: Darkest, Black, High contrast from Dim). The rules that never move fade to the
+   faint line colour, so no bright line sits in one place all night; app.js also moves the page up to 6 px. Times that have
+   passed drop to regular weight as well as grey, since at Darkest the grey cannot go lower and stay readable. */
+:root[data-theme="dark"] .app .topbar, :root[data-theme="dark"] .display .dx-top { border-bottom-color: var(--line); }
+:root[data-theme="dark"] .app > .tabbar { border-top-color: var(--line); }
+:root[data-theme="dark"] .sh .sh-tt { border-top-color: var(--line); border-bottom-color: var(--line); }
+:root[data-theme="dark"] .sh-next, :root[data-theme="dark"] .sh-dua, :root[data-theme="dark"] #clock .sh-fold { border-color: var(--line); }
+:root[data-theme="dark"] .sh .sh-tt .is-past { font-weight: 400; }
