@@ -3,6 +3,7 @@
 //          and the moon at the Hijri date's phase; the default. Needs the page's look to match the sky (light by day,
 //          dark at night) and a device fast enough; otherwise it falls back to print.
 //   print  the same weather as moving printed texture: ink hatching, stipple and halftone, moved by the compositor only.
+//   real-still  the realistic sky as one still frame, redrawn when the scene changes (Movement off).
 //   still  the printed texture, not moving (also what a device set to reduce motion gets instead of print).
 //   off    plain paper.
 // app.js calls updateSky() on each clock tick with the scene from logic.js skyParams(); this file decides what to draw.
@@ -136,10 +137,10 @@ function realLoop(now) {
     }
   }
 }
-function realStart() {
+function realStart(freeze = false) {
   if (!realSetup()) return false;
   if (real.cv.parentElement !== box) box.append(real.cv);
-  real.still = calm.matches;
+  real.still = calm.matches || freeze;
   cancelAnimationFrame(real.raf);
   if (real.still) requestAnimationFrame(realDraw); // a device set to reduce motion gets one still frame, redrawn when the scene changes
   else { real.last = 0; real.raf = requestAnimationFrame(realLoop); }
@@ -228,10 +229,12 @@ let want = 'real', allowed = true, dark = false;
 function refresh() {
   ensureBox();
   let m = !allowed || want === 'off' ? 'off' : want;
+  const freeze = m === 'real-still'; // Movement off: the realistic sky as one still frame
+  if (freeze) m = 'real';
   if (m === 'real' && scene && (scene.night !== dark || real.failed || tier() === 'print')) m = 'print'; // a dark sky needs the dark look, and the reverse
-  if (m === 'print' && calm.matches) m = 'still';
+  if (m === 'print' && (calm.matches || freeze)) m = 'still';
   if (m === 'print' && dark) m = 'off'; // the printed sky is ink on paper; the dark look keeps a still page, as before
-  if (m === 'real' && !realStart()) m = calm.matches ? 'still' : 'print';
+  if (m === 'real' && !realStart(freeze)) m = calm.matches || freeze ? 'still' : 'print';
   if (m !== 'real') realStop();
   if (m === 'print' && scene) printShow(scene); else printStop();
   if (m !== mode) { mode = m; root.dataset.skymode = m; }
