@@ -5,7 +5,7 @@ import { handle } from '../functions/api/iqama.js';
 import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
 import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf } from '../logic.js';
+import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf, bellState } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -129,6 +129,15 @@ assert.equal(prevEventAt(fri, { key: 'asr', kind: 'adhan', at: 856 }, 413), 790,
 assert.equal(progressOf(730, 705, 750).toFixed(3), '0.556');
 assert.equal(progressOf(800, 705, 750), 1);
 assert.equal(progressOf(600, 705, 750), 0);
+// The bell beside each prayer
+const st = (on, type = 'message') => ({ on, type, min: 5 });
+assert.equal(bellState({ on: true, adhan: st(true), before: st(false), iqama: st(true) }, false), 'msg');
+assert.equal(bellState({ on: true, adhan: st(true, 'adhan'), before: st(false), iqama: st(true) }, false), 'sound');
+assert.equal(bellState({ on: true, adhan: st(false, 'adhan'), before: st(false), iqama: st(true) }, false), 'msg', 'a sound on a step that is off does not count');
+assert.equal(bellState({ on: true, adhan: st(true, 'adhan'), before: st(false), iqama: st(false) }, true), 'off', 'everything muted');
+assert.equal(bellState({ on: false, adhan: st(true, 'adhan'), before: st(true), iqama: st(true) }, false), 'off');
+assert.equal(bellState({ on: true, adhan: st(false), before: st(false), iqama: st(false) }, false), 'off', 'no step on');
+assert.equal(bellState({ on: true, before: st(true, 'beep'), times: [] }, false, true), 'sound', "Jumu'ah: the step before the khutbah");
 const dy = (date, max, pop, kind = 'clear') => ({ date, max, pop, kind });
 assert.equal(dayName('2026-11-12'), 'Thursday');
 assert.equal(outlook([dy('2026-11-11', 55, 10), dy('2026-11-12', 48, 70, 'rain'), dy('2026-11-13', 46, 20)], 'F'), 'Next two days: turning colder, rain tomorrow.');

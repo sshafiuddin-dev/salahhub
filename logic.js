@@ -82,6 +82,15 @@ export function wallMs(y, m, d, min, zone) {
 // On a Friday the Jumu'ah row carries a list of khutbahs (r.jumuah): after the adhan the count goes to the first, then on to
 // each next one that comes before the next prayer's adhan (Asr), then to that adhan. With more than one, the event says
 // which: n of the total. The first khutbah always counts, wherever it falls.
+// A prayer's alerts at a glance, for the bell on the timetable: 'off' (its alerts or all alerts are off, or no step is on),
+// 'sound' (any step that is on makes a sound) or 'msg' (only messages). Jumu'ah has the one step before the khutbah.
+export function bellState(a, muted, isJumuah = false) {
+  if (muted || !a?.on) return 'off';
+  const steps = (isJumuah ? [a.before] : [a.adhan, a.before, a.iqama]).filter(s => s?.on);
+  if (!steps.length) return 'off';
+  return steps.some(s => s.type !== 'message') ? 'sound' : 'msg';
+}
+
 // Where the wait for the next event began, for the progress bar on small screens: the time before it on the sheet.
 // Waiting for an iqama (or a later khutbah) it is the adhan (or the khutbah before); waiting for an adhan it is the
 // last time of the prayer before (its iqama, else its adhan; for Jumu'ah its last khutbah before this adhan), Sunrise

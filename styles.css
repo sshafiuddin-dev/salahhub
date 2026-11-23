@@ -431,6 +431,20 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   text-decoration: underline; text-underline-offset: .2em; text-decoration-thickness: 1px; cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .sh-fold { display: none; }
+/* The bell beside each prayer's name (Today's board only; full screen has nowhere to go). The drawing is about 1.1em; its
+   tap area reaches 44px with a pseudo-element, so the printed header keeps its height. Outline = message only,
+   filled = an alert sounds, struck through and faded = off. currentColor, so it follows the column (ink bar included). */
+.sh-bell { display: none; }
+#clock .sh-bell {
+  position: relative; display: inline-grid; place-items: center; width: 1.15em; height: 1.15em; margin-left: .3em; padding: 0; vertical-align: -.18em;
+  background: none; border: 0; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+#clock .sh-bell::before { content: ""; position: absolute; inset: 50% auto auto 50%; width: 44px; height: 44px; translate: -50% -50%; }
+#clock .sh-bell svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; } /* about 1.9px drawn, beside 600-weight capitals */
+#clock .sh-bell .b-off { display: none; }
+#clock .sh-bell[data-state="sound"] .b-body { fill: currentColor; }
+#clock .sh-bell[data-state="off"] { opacity: .6; }
+#clock .sh-bell[data-state="off"] .b-off { display: inline; }
 @media (max-width: 48rem) and (orientation: portrait) {
   #clock .sh-fold {
     display: flex; align-items: center; justify-content: center; gap: .45rem; width: 100%; min-height: 44px; margin-top: calc(var(--u) * 2.5);

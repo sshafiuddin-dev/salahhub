@@ -3,6 +3,15 @@
 // A row with jumuah (a list of khutbah minutes) is Friday's Dhuhr, shown as Jumu'ah; its iqama is the first khutbah.
 import { NAMES, fmt, fmtSpan, esc, pastKeys, prevEventAt, progressOf } from './logic.js';
 
+// The bell beside each prayer on the board (Today only): one outline drawing, filled when an alert sounds, struck
+// through when off. A tap opens that prayer's card under Settings, Adhan and alerts (app.js).
+const BELL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="b-body" d="M6 9a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15.5 6 9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/><path class="b-off" d="M3 3l18 18"/></svg>';
+const BELL_SAYS = { sound: 'sound', msg: 'message only', off: 'off' };
+const bell = (r, bells) => {
+  const k = r.jumuah ? 'jumuah' : r.key, s = bells[k] || 'off';
+  return `<button class="sh-bell" type="button" data-bell="${k}" data-state="${s}" aria-label="${nameOf(r)} alerts: ${BELL_SAYS[s]}. Open alert settings">${BELL}</button>`;
+};
+
 export const CLOCKS = { board: 'Masjid board', dial: '24-hour dial', analog: 'Analog clock face', sun: 'Sun path', timeline: 'Day timeline', bedside: 'Bedside, low glare' };
 
 const hm = (min) => fmt(min).replace(/ [AP]M$/, '');
@@ -124,7 +133,7 @@ function sheetTable(d) {
   // the next prayer's column is marked on every cell (nx-col: the solid bar); the times already gone by are faded (is-past)
   const past = pastKeys(d.next, d.isAhead);
   const cls = (r, own) => { const c = [own, nx(r) ? 'nx-col' : '', past.has(r.key) ? 'is-past' : ''].filter(Boolean).join(' '); return c ? ` class="${c}"` : ''; };
-  const th = d.rows.map(r => `<th scope="col"${cls(r, nx(r) ? 'is-next' : '')}>${nameOf(r)}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
+  const th = d.rows.map(r => `<th scope="col"${cls(r, nx(r) ? 'is-next' : '')}>${nameOf(r)}${d.bells && !d.isAhead ? bell(r, d.bells) : ''}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
   const calledNow = d.next.kind === 'iqama' && d.next.at < 1440; // the adhan time has passed: the Iqama cell carries the mark
   const adhan = d.rows.map(r => `<td${cls(r, nx(r) ? (calledNow ? 'is-passed' : 'is-next') : '')}>${hm(r.adhan)}</td>`).join('');
   const iqama = d.rows.map(r => {
