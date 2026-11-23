@@ -31,7 +31,10 @@ const IC = {
 const MB = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.max(.1, b / 1e6).toFixed(b < 1e7 ? 1 : 0)} MB`);
 const REPEAT_TEXT = { off: 'Repeat is off', all: 'Repeating the whole list', one: 'Repeating this surah' };
 const btn = (q, icon, label, cls = '') => `<button class="qp-ic ${cls}" type="button" data-q="${q}" aria-label="${label}" title="${label}">${IC[icon]}</button>`;
-const eq = '<span class="qp-eq" aria-hidden="true"><i></i><i></i><i></i></span>';
+// What is playing: a ring that fills as the surah plays (the current surah only), red while it plays and grey when paused.
+// pathLength 100, so the dash offset is 100 minus the percentage played. The timeline carries the same news for screen readers.
+const eq = '<span class="qp-eq" aria-hidden="true"><svg viewBox="0 0 22 22"><circle class="qp-ring-bg" cx="11" cy="11" r="9"/>'
+  + '<circle class="qp-ring" cx="11" cy="11" r="9" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg></span>';
 const timeline = () => `<div class="qp-time"><span class="qp-cur">0:00</span><div class="qp-track"><div class="qp-buf"></div><div class="qp-fill"></div>`
   + `<input class="qp-seek" type="range" min="0" max="1000" step="1" value="0" aria-label="Position in the surah" disabled></div><span class="qp-dur">0:00</span></div>`;
 const transport = () => `${btn('shuffle', 'shuffle', 'Shuffle', 'qp-extra')}${btn('prev', 'prev', 'Previous surah')}${btn('back', 'back', 'Back 10 seconds', 'qp-extra')}`
@@ -372,6 +375,8 @@ export function initQuran({ say, stopOthers }) {
     all('.qp-buf').forEach(el => { el.style.transform = `scaleX(${has ? Math.min(1, buf / d) : 0})`; });
     all('.qp-cur').forEach(el => { if (!scrubbing) el.textContent = fmtTime(t); });
     all('.qp-dur').forEach(el => { el.textContent = has ? fmtTime(d) : '–:––'; });
+    const ring = String(100 - (has ? Math.min(1, t / d) : 0) * 100); // the bar, Now playing and the current row in the list
+    document.querySelectorAll('.qp-ring').forEach(el => { if (el.getAttribute('stroke-dashoffset') !== ring) el.setAttribute('stroke-dashoffset', ring); });
     all('.qp-seek').forEach(el => {
       el.disabled = !has;
       if (!scrubbing) el.value = has ? Math.round(t / d * 1000) : 0;
@@ -412,8 +417,9 @@ export function initQuran({ say, stopOthers }) {
     renderQueue();
     now.hidden = false;
     app.inert = true;
+    now.scrollTop = 0; // open at the top: the title, the ring and the controls
     mo.sheetIn(now.firstElementChild);
-    now.querySelector('[data-q="close"]').focus();
+    now.querySelector('[data-q="close"]').focus({ preventScroll: true }); // the sheet is still below the screen as it slides in: focusing must not scroll it
     ensureCat().then(() => { restoreQueue(); renderQueue(); }).catch(() => {});
   }
   function closeNow(fromHistory = false) {
