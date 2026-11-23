@@ -11,7 +11,8 @@ export const T = {
   scale: { press: .95, pop: 1.3 },
   gap: .05, // seconds between list rows; the motion rules keep this between .05 and .10
   staggerMax: 14, // only the first screenful of a list animates in
-  spring: { snappy: { bounce: .12, duration: .4 }, gentle: { bounce: .2, duration: .55 }, bouncy: { bounce: .5, duration: .6 } },
+  // no bounce: a calm hub settles, it does not wobble. bouncy is kept only for the favourite heart's pop, by choice.
+  spring: { snappy: { bounce: 0, duration: .4 }, gentle: { bounce: 0, duration: .55 }, bouncy: { bounce: .5, duration: .6 } },
 };
 export const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const spring = (name) => (M ? { type: M.spring, ...T.spring[name] } : { duration: T.dur.normal, ease: T.ease });
