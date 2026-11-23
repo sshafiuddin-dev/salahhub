@@ -47,8 +47,8 @@
 
 /* The weather sky stays a faint wash over the paper, and goes away at Darkest */
 :root { --sky: color-mix(in srgb, var(--sky-base) 28%, var(--paper)); --board-bg: var(--surface); --board-fg: var(--ink); }
-:root[data-dim="3"] .sky-tint, :root[data-dim="3"] .sky-print, :root[data-dim="2"]:not([data-palette="contrast"]) .sky-tint, :root[data-dim="2"]:not([data-palette="contrast"]) .sky-print { display: none; } /* a still, warm page at night */
-:root[data-nightsky="0"][data-dim="3"] .sky-live, :root[data-nightsky="0"][data-dim="3"] .sky-real, :root[data-nightsky="0"][data-dim="2"]:not([data-palette="contrast"]) .sky-live, :root[data-nightsky="0"][data-dim="2"]:not([data-palette="contrast"]) .sky-real { display: none; } /* a brightness you set by hand (Dim, Darkest) is a still page; the night sky shows when the realistic sky is on and night brings its own dark look */
+:root[data-dim="3"] .sky-tint, :root[data-dim="3"] .sky-print, :root[data-dim="2"]:not([data-palette="contrast"]):not([data-tab="weather"]) .sky-tint, :root[data-dim="2"]:not([data-palette="contrast"]):not([data-tab="weather"]) .sky-print { display: none; } /* a still, warm page at night */
+:root[data-nightsky="0"][data-dim="3"] .sky-live, :root[data-nightsky="0"][data-dim="3"] .sky-real, :root[data-nightsky="0"][data-dim="2"]:not([data-palette="contrast"]):not([data-tab="weather"]) .sky-live, :root[data-nightsky="0"][data-dim="2"]:not([data-palette="contrast"]):not([data-tab="weather"]) .sky-real { display: none; } /* a brightness you set by hand (Dim, Darkest) is a still page; the night sky shows when the realistic sky is on and night brings its own dark look */
 
 /* Print, not app: square corners, hairlines, no filled pills */
 :root { --radius-selector: 2px; --radius-field: 2px; --radius-box: 2px; }

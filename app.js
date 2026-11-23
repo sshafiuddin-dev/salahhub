@@ -134,8 +134,12 @@ const night = () => timesKnown && (nowMinute >= day.rows[3].adhan || nowMinute <
 // Weather background: the realistic sky (the default: the sun on its real path by day, stars and the moon at the Hijri
 // date's phase at night), the printed sky, or off; each moving or still. sky.js draws the realistic sky only where the page
 // matches it (light by day, Darkest at night) and the printed one otherwise. dim is the level on show (Black shows as Darkest).
-const skyBack = (dim = Number(root.dataset.dim) || 0) => (settings.wxSky === 'off' ? 'off'
-  : settings.wxSky === 'real' ? (settings.wxMove ? 'real' : 'real-still') : settings.wxMove ? 'print' : 'still');
+// The Weather tab always shows the weather it describes: its picture follows the setting, and is the realistic sky even when
+// the setting is Off (Off is about Today). Only the Printed timetable look has a sky, on every screen.
+const onWeather = () => root.dataset.tab === 'weather'; // the tab on show (set by route; safe before the tabs are set up)
+const skyStyle = () => (onWeather() && settings.wxSky === 'off' ? 'real' : settings.wxSky);
+const skyBack = (dim = Number(root.dataset.dim) || 0) => (skyStyle() === 'off' ? 'off'
+  : skyStyle() === 'real' ? (settings.wxMove ? 'real' : 'real-still') : settings.wxMove ? 'print' : 'still');
 // The level asked for: 0 Bright to 3 Darkest, or 4 Black (no light)
 const currentDim = () => (timesKnown || settings.autoDim === 'off' ? dimLevel(settings, nightNow(), dimOverride) : shownDim ?? 0);
 // Black (no light): the page is covered in black after 30 s with no touch or key press, and drawn at Darkest underneath.
@@ -155,7 +159,7 @@ function applyLook() {
   root.dataset.palette = settings.look;
   root.dataset.dim = String(dim);
   root.dataset.black = blackNow() ? '1' : '0';
-  root.dataset.nightsky = settings.wxSky === 'real' && dim === 3 && night() ? '1' : '0'; // the realistic night sky is on show
+  root.dataset.nightsky = skyStyle() === 'real' && dim === 3 && night() ? '1' : '0'; // the realistic night sky is on show
   root.dataset.theme = dim === 3 || (dim === 2 && settings.look === 'contrast') ? 'dark' : 'light'; // Dim is a warm light page, except in High contrast
   root.dataset.clock = settings.clock;
   if (lvl !== shownDim) { shownDim = lvl; try { localStorage.setItem('iqama-dim', String(lvl)); } catch (e) {} }
@@ -375,7 +379,10 @@ function tick() {
   const sky = skyParams(weather, { now: nowMin, sunrise: day.sunrise, maghrib: day.rows[3].adhan }, parseInt(today.hijri, 10) || 15);
   const dim = Math.min(currentDim(), 3);
   // no sky in the Handwritten and High contrast looks, nor at Dim; at Darkest only the realistic night sky
-  const skyOk = settings.look === 'paper' && (dim < 2 || (settings.wxSky === 'real' && (dim === 3 || !sky.night)));
+  // the Weather tab: by day at Bright, Soft and Dim; at night at Soft and Dim (the printed sky) and at Darkest (the moon and stars)
+  wxBand();
+  const skyOk = settings.look === 'paper' && (onWeather() ? dim < 3 || (skyStyle() === 'real' && sky.night)
+    : dim < 2 || (skyStyle() === 'real' && (dim === 3 || !sky.night)));
   updateSky(sky, skyBack(dim), skyOk && root.dataset.black !== '1', root.dataset.theme === 'dark'); // nothing is drawn under the black cover
 
   // Alerts: only for moments crossed while the page is open
@@ -422,6 +429,7 @@ function route() {
   if (h === 'tour') { history.replaceState(null, '', '#today'); h = 'today'; setTimeout(runTour, 400); } // the guide links here
   if (h === 'feedback') { history.replaceState(null, '', `#${tab}`); h = tab; setTimeout(() => feedback?.open(), 0); } // the guide links here
   tab = TAB_IDS.includes(h) ? h : 'today';
+  if (root.dataset.tab !== tab) setTimeout(() => { applyLook(); tick(); }, 0); // the Weather tab has its own sky rules
   root.dataset.tab = tab; // the stylesheet lays out Today as one sheet
   for (const id of TAB_IDS) $(`tab-${id}`).hidden = id !== tab;
   document.querySelectorAll('.tabbar a, .dockbar a').forEach(a => {
@@ -1066,6 +1074,15 @@ for (const id of BIG_HOSTS) {
   $(id).addEventListener('pointerdown', (e) => { armed = !!e.target.closest('[data-swap]'); });
   $(id).addEventListener('pointerup', (e) => { if (armed && e.target.closest('[data-swap]')) swapBig(); armed = false; });
   $(id).addEventListener('click', (e) => { if (e.detail === 0 && e.target.closest('[data-swap]')) swapBig(); });
+}
+// The Weather tab's sky is a band behind the current weather that scrolls away with it (styles.css reads --sky-y)
+// and ends just below it (--wx-band: where the current weather ends, measured as the weather is drawn)
+$('tab-weather').addEventListener('scroll', () => root.style.setProperty('--sky-y', `${$('tab-weather').scrollTop}px`), { passive: true });
+function wxBand() {
+  const nowEl = onWeather() && $('wx-body').querySelector('.wx-now');
+  if (!nowEl) return;
+  const end = Math.round(nowEl.getBoundingClientRect().bottom + $('tab-weather').scrollTop + 12);
+  if (root.style.getPropertyValue('--wx-band') !== `${end}px`) root.style.setProperty('--wx-band', `${end}px`);
 }
 // The bell beside each prayer on the board: its alerts at a glance; a tap opens that prayer's card under Adhan and alerts
 const bellsNow = () => Object.fromEntries(ALERT_KEYS.map(k => [k, bellState(settings.alerts[k], settings.muted, k === 'jumuah')]));
