@@ -1,7 +1,7 @@
 // The six clock styles. Each takes the same snapshot of the day and returns its markup; app.js redraws every second.
 // d = { sec, now (minutes, fractional), rows: [{ key, adhan, iqama, jumuah? }], sunrise, next: { key, kind, at }, jumuah: [minutes], date }
 // A row with jumuah (a list of khutbah minutes) is Friday's Dhuhr, shown as Jumu'ah; its iqama is the first khutbah.
-import { NAMES, fmt, fmtSpan, esc, pastKeys } from './logic.js';
+import { NAMES, fmt, fmtSpan, esc, pastKeys, prevEventAt, progressOf } from './logic.js';
 
 export const CLOCKS = { board: 'Masjid board', dial: '24-hour dial', analog: 'Analog clock face', sun: 'Sun path', timeline: 'Day timeline', bedside: 'Bedside, low glare' };
 
@@ -160,6 +160,15 @@ function wxNow(d) {
   return `<p class="sh-wxnow"${d.wxLink ? ' data-go="weather"' : ''}>`
     + `<span class="sh-wxt">${w.temp}°${w.unit}</span>${w.words ? `<span class="sh-wxc">${esc(w.words)}</span>` : ''}${sub ? `<span class="sh-wxr">${sub}</span>` : ''}</p>`;
 }
+// The wait as a thin printed rule filling from left to right, for screens too small for the day ruler (CSS shows one or
+// the other). No knob, so it never looks like a slider; the countdown and the line under it carry the meaning.
+function progress(real) {
+  const f = progressOf(real.now, prevEventAt(real.rows, real.next, real.sunrise), real.next.at);
+  return `<div class="sh-prog" aria-hidden="true"><span style="transform:scaleX(${f.toFixed(4)})"></span></div>`;
+}
+// Phones held upright: the timetable folds away under the next prayer; this button opens it (app.js keeps the choice)
+const FOLD_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const foldBtn = (open) => `<button class="sh-fold" type="button" data-fold aria-expanded="${open ? 'true' : 'false'}"><span>${open ? 'Hide prayer times' : 'All prayer times'}</span>${FOLD_ICON}</button>`;
 function board(real) {
   const d = real.ahead && real.next.at >= 1440 ? aheadView(real) : real;
   const m = Math.floor(real.now), k = d.card;
@@ -167,12 +176,12 @@ function board(real) {
   const body = k?.kind === 'dua'
     ? `<div class="sh-dua" data-dua><p class="sh-dua-h"><span>${k.title}</span><span>${k.pos} · tap for the next</span></p>`
       + `<p class="sh-dua-ar" lang="ar" dir="rtl">${esc(k.item.ar)}</p><p class="sh-dua-en">${esc(k.item.en)}</p></div>`
-    : sheetTable(d);
+    : ('fold' in d ? foldBtn(d.fold) : '') + sheetTable(d);
   const w = d.warn;
   const warn = w ? `<p class="sh-warn"><b>${esc(w.event)}</b><span>${esc(w.until)}${w.more ? ` · ${w.more} more` : ''}</span><small>${esc(w.sender)}</small></p>` : '';
   return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}${w ? ' sh-w' : ''}">${warn}<div class="sh-mid">`
     + `<div class="sh-clk"><p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side">${leftOf(d) < 900 ? `<span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span>` : ''}<span>${ampm(m)}</span></span></p>${wxNow(d)}</div>`
-    + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${nextLine(d)}${wxAt(d.wxAt)}`
+    + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${progress(real)}${nextLine(d)}${wxAt(d.wxAt)}`
     + `${ruler(d)}</div></div>`
     + body
     + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.month ? `<a class="sh-month" href="#month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</p></div>`;

@@ -31,7 +31,7 @@ const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
   tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightLevel: 2, level: 0, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
-  defIqama: null, adhkar: true, translit: true, wxBack: 'auto', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
+  defIqama: null, tableOpen: false, adhkar: true, translit: true, wxBack: 'auto', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -307,8 +307,10 @@ function tick() {
   const left = (wallMs(today.y, today.m, today.d, ev.at, place().zone) - nowMs) / 1e3; // real seconds to it, the same clock as the time shown
   $('now').textContent = fmt(Math.floor(nowMin));
   const at = wxAt(ev, rows);
-  const html = renderClock(settings.clock, { sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
+  const html = renderClock(settings.clock, { fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
+  const foldFocused = document.activeElement?.matches?.('#clock [data-fold]'); // the board is redrawn every second: keep keyboard focus
   $('clock').innerHTML = html;
+  if (foldFocused) $('clock').querySelector('[data-fold]')?.focus({ preventScroll: true });
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim) applyLook();
@@ -956,6 +958,14 @@ $('weather').addEventListener('click', () => go('weather'));
 // pressed element between finger down and up and so swallow a click: the tap is read from the pointer instead. (Keyboards use the Weather tab.)
 let wxArmed = false;
 $('clock').addEventListener('pointerdown', (e) => { wxArmed = !!e.target.closest('[data-go="weather"]'); });
+// The fold button on phones (see clocks.js): read from the pointer like the weather link, and from Enter or Space (detail 0)
+let foldArmed = false;
+const applyFold = () => { $('clock').dataset.fold = settings.tableOpen ? 'open' : 'closed'; };
+const toggleFold = () => { settings.tableOpen = !settings.tableOpen; save(); applyFold(); tick(); };
+applyFold();
+$('clock').addEventListener('pointerdown', (e) => { foldArmed = !!e.target.closest('[data-fold]'); });
+$('clock').addEventListener('pointerup', (e) => { if (foldArmed && e.target.closest('[data-fold]')) toggleFold(); foldArmed = false; });
+$('clock').addEventListener('click', (e) => { if (e.detail === 0 && e.target.closest('[data-fold]')) toggleFold(); });
 $('clock').addEventListener('pointerup', (e) => { if (wxArmed && e.target.closest('[data-go="weather"]')) go('weather'); wxArmed = false; });
 $('clock').addEventListener('pointercancel', () => { wxArmed = false; });
 document.querySelectorAll('[data-unit]').forEach(b => b.addEventListener('click', () => {
