@@ -31,7 +31,7 @@ const LOOKS = { paper: 'Printed timetable', hand: 'Handwritten', contrast: 'High
 const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
-  tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightStart: 'isha', nightLevel: 3, level: 0, seconds: true, wxPic: true, wxMove: true, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
+  tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightStart: 'isha', nightLevel: 3, level: 0, seconds: true, wxSky: 'real', wxMove: true, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
   defIqama: null, tableOpen: false, big: 'auto', adhkar: true, translit: true, arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -68,22 +68,25 @@ if (![0, 1, 2, 3].includes(settings.level)) settings.level = DEFAULTS.level;
 if (settings.units !== 'F' && settings.units !== 'C') settings.units = DEFAULTS.units;
 settings.muted = settings.muted === true;
 settings.adhkar = settings.adhkar !== false;
-// Display settings, second version: the five-way weather background becomes two switches (picture, movement); the By day level
+// Display settings, second version: the five-way weather background becomes a picture choice and a Movement switch; the By day level
 // counts by day; and night brightness comes only from At night (the realistic sky no longer forces Darkest after Maghrib).
 // Converted once, so each screen keeps showing what it showed: nights that the sky made Darkest stay Darkest.
-if (settings.dispV !== 2) {
+if (settings.dispV !== 2 && settings.dispV !== 3) {
   const wx = settings.wxBack === false ? 'off' : settings.wxBack ?? 'auto';
-  settings.wxPic = wx !== 'off';
+  settings.wxSky = wx === 'off' ? 'off' : wx === 'print' || wx === 'still' ? 'print' : 'real';
   settings.wxMove = wx !== 'still';
   if (settings.autoDim !== 'off') {
     settings.nightStart = settings.autoDim;
     if ((wx === 'auto' || wx === 'real') && settings.look === 'paper') settings.nightLevel = 3;
     settings.level = 0; // with Auto on, days were always Bright
   }
-  settings.dispV = 2;
+  settings.dispV = 3;
 }
-for (const k of ['wxBack', 'wxBackV']) delete settings[k];
-settings.wxPic = settings.wxPic !== false;
+// Third version: the realistic sky (the sun on its path by day, the moon at the Hijri date's phase at night) is the default
+// picture again, by day too. Screens on the second version had a plain on/off switch: on becomes the realistic sky.
+if (settings.dispV === 2) { settings.wxSky = settings.wxPic === false ? 'off' : 'real'; settings.dispV = 3; }
+for (const k of ['wxBack', 'wxBackV', 'wxPic']) delete settings[k];
+if (!['real', 'print', 'off'].includes(settings.wxSky)) settings.wxSky = DEFAULTS.wxSky;
 settings.wxMove = settings.wxMove !== false;
 settings.seconds = settings.seconds !== false;
 if (!['isha', 'maghrib'].includes(settings.nightStart)) settings.nightStart = settings.autoDim === 'maghrib' ? 'maghrib' : 'isha';
@@ -116,10 +119,11 @@ const nightNow = () => timesKnown && isNight(nowMinute, day.rows, day.sunrise, s
 // With the realistic sky, nights (Maghrib to sunrise) use the dark look, since the sky is dark then; a level picked by hand
 // still holds, and the sky then switches to its printed form. Auto off keeps the level the person set.
 const night = () => timesKnown && (nowMinute >= day.rows[3].adhan || nowMinute < day.sunrise);
-// Weather background: off, the printed sky (moving or still), or at Darkest from Maghrib to sunrise the realistic night sky,
-// which only shows while it may move. dim is the level on show (Black shows as Darkest under its cover).
-const skyBack = (dim = Number(root.dataset.dim) || 0) => (!settings.wxPic ? 'off'
-  : dim === 3 && night() ? (settings.wxMove ? 'real' : 'off') : settings.wxMove ? 'print' : 'still');
+// Weather background: the realistic sky (the default: the sun on its real path by day, stars and the moon at the Hijri
+// date's phase at night), the printed sky, or off; each moving or still. sky.js draws the realistic sky only where the page
+// matches it (light by day, Darkest at night) and the printed one otherwise. dim is the level on show (Black shows as Darkest).
+const skyBack = (dim = Number(root.dataset.dim) || 0) => (settings.wxSky === 'off' ? 'off'
+  : settings.wxSky === 'real' ? (settings.wxMove ? 'real' : 'real-still') : settings.wxMove ? 'print' : 'still');
 // The level asked for: 0 Bright to 3 Darkest, or 4 Black (no light)
 const currentDim = () => (timesKnown || settings.autoDim === 'off' ? dimLevel(settings, nightNow(), dimOverride) : shownDim ?? 0);
 // Black (no light): the page is covered in black after 30 s with no touch or key press, and drawn at Darkest underneath.
@@ -139,7 +143,7 @@ function applyLook() {
   root.dataset.palette = settings.look;
   root.dataset.dim = String(dim);
   root.dataset.black = blackNow() ? '1' : '0';
-  root.dataset.nightsky = skyBack(dim) === 'real' ? '1' : '0'; // the realistic night sky is on show
+  root.dataset.nightsky = settings.wxSky === 'real' && dim === 3 && night() ? '1' : '0'; // the realistic night sky is on show
   root.dataset.theme = dim === 3 || (dim === 2 && settings.look === 'contrast') ? 'dark' : 'light'; // Dim is a warm light page, except in High contrast
   root.dataset.clock = settings.clock;
   if (lvl !== shownDim) { shownDim = lvl; try { localStorage.setItem('iqama-dim', String(lvl)); } catch (e) {} }
@@ -348,7 +352,7 @@ function tick() {
   const sky = skyParams(weather, { now: nowMin, sunrise: day.sunrise, maghrib: day.rows[3].adhan }, parseInt(today.hijri, 10) || 15);
   const dim = Math.min(currentDim(), 3);
   // no sky in the Handwritten and High contrast looks, nor at Dim; at Darkest only the realistic night sky
-  const skyOk = settings.look === 'paper' && (dim < 2 || (skyBack(dim) === 'real' && (dim === 3 || !sky.night)));
+  const skyOk = settings.look === 'paper' && (dim < 2 || (settings.wxSky === 'real' && (dim === 3 || !sky.night)));
   updateSky(sky, skyBack(dim), skyOk && root.dataset.black !== '1', root.dataset.theme === 'dark'); // nothing is drawn under the black cover
 
   // Alerts: only for moments crossed while the page is open
@@ -1135,7 +1139,7 @@ $('dk-count').addEventListener('click', () => {
 $('dk-tr-toggle').addEventListener('click', () => { settings.translit = !settings.translit; $('set-translit').checked = settings.translit; save(); tick(); });
 $('dk-share').addEventListener('click', () => { const it = dkItem(); share(SETS[dk.key].title, [it.ar, it.tr, it.en, it.src].filter(Boolean).join('\n')); });
 $('set-adhkar').checked = settings.adhkar;
-$('set-wxpic').checked = settings.wxPic; $('set-wxmove').checked = settings.wxMove; $('set-wxmove').disabled = !settings.wxPic;
+$('set-wxsky').value = settings.wxSky; $('set-wxmove').checked = settings.wxMove; $('set-wxmove').disabled = settings.wxSky === 'off';
 $('set-seconds').checked = settings.seconds;
 $('bg-group').hidden = settings.look !== 'paper';
 $('set-translit').checked = settings.translit;
@@ -1143,7 +1147,7 @@ const AR_SIZES = ['s', 'm', 'l'], AR_NAMES = ['Small', 'Medium', 'Large'];
 $('set-arsize').value = AR_SIZES.indexOf(settings.arSize);
 $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[AR_SIZES.indexOf(settings.arSize)]);
 $('set-adhkar').addEventListener('change', () => { settings.adhkar = $('set-adhkar').checked; save(); tick(); });
-$('set-wxpic').addEventListener('change', () => { settings.wxPic = $('set-wxpic').checked; $('set-wxmove').disabled = !settings.wxPic; save(); applyLook(); tick(); });
+$('set-wxsky').addEventListener('change', () => { settings.wxSky = $('set-wxsky').value; $('set-wxmove').disabled = settings.wxSky === 'off'; save(); applyLook(); tick(); });
 $('set-wxmove').addEventListener('change', () => { settings.wxMove = $('set-wxmove').checked; save(); applyLook(); tick(); });
 $('set-seconds').addEventListener('change', () => { settings.seconds = $('set-seconds').checked; save(); tick(); });
 $('set-translit').addEventListener('change', () => { settings.translit = $('set-translit').checked; save(); tick(); });
