@@ -6,6 +6,7 @@ import {
   cleanStore, legacyTrack, retryWait, shouldRetry, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
 } from './quran-logic.js';
 import * as mo from './motion.js';
+import { initOffline } from './quran-offline.js';
 import { esc } from './logic.js';
 
 const API = 'https://mp3quran.net/api/v3';
@@ -46,6 +47,7 @@ export function initQuran({ say, stopOthers }) {
   // wanted: the listener means it to be playing (not paused by them, by an adhan, or finished).
   // rec: set while getting over a dropped connection: { t: where to pick up, attempt, timer }.
   let wanted = false, rec = null, stallTimer = 0;
+  const off = initOffline(); // recitations kept on this device
   const audio = new Audio();
   audio.preload = 'metadata';
   audio.volume = store.vol;
@@ -74,7 +76,16 @@ export function initQuran({ say, stopOthers }) {
   $('qp-vol').value = Math.round(store.vol * 100);
 
   // ---- Catalogue ----
-  const get = (path) => fetch(`${API}/${path}`).then(r => { if (!r.ok) throw new Error(`mp3quran answered ${r.status}`); return r.json(); });
+  // The lists are kept too (in the 'quran-audio' cache, beside the recitations), so the tab and the queue work offline
+  const get = (path) => fetch(`${API}/${path}`).then(r => {
+    if (!r.ok) throw new Error(`mp3quran answered ${r.status}`);
+    if ('caches' in window) { const copy = r.clone(); caches.open('quran-audio').then(c => c.put(`${API}/${path}`, copy)).catch(() => {}); }
+    return r.json();
+  }).catch(async (e) => {
+    const hit = 'caches' in window && await caches.match(`${API}/${path}`).catch(() => null);
+    if (hit) return hit.json();
+    throw e;
+  });
   function ensureCat() {
     if (cat) return Promise.resolve(cat);
     return catP ||= Promise.all([get('suwar?language=eng'), get('reciters?language=eng'), get('riwayat?language=eng')]).then(([s, r, w]) => {
@@ -135,7 +146,7 @@ export function initQuran({ say, stopOthers }) {
     clearTimeout(rec.timer); rec.timer = 0;
     if (navigator.onLine !== false) rec.attempt++; // tries made while offline do not count against the limit
     startAt = rec.t;
-    audio.src = cur.url;
+    audio.src = off.src(cur.url); // kept on the device by now? then it carries on with no connection at all
     audio.playbackRate = store.rate;
     audio.play().catch(() => {}); // a failure comes back as an 'error' event, which plans the next try
     paint();
@@ -166,7 +177,7 @@ export function initQuran({ say, stopOthers }) {
     setCurrent(i, at);
     save();
     startAt = at;
-    audio.src = i.url;
+    audio.src = off.src(i.url);
     audio.playbackRate = store.rate;
     showPlayer();
     paint(); paintTime(); mediaMeta();
@@ -184,7 +195,7 @@ export function initQuran({ say, stopOthers }) {
       const at = store.last?.t || 0;
       if (!cur.url) return void ensureCat().then(() => { restoreQueue(); load(cur.id, at, true); }).catch(() => say('Could not load the reciters. Check the connection.'));
       startAt = at;
-      audio.src = cur.url;
+      audio.src = off.src(cur.url);
       audio.playbackRate = store.rate;
       ensureCat().then(() => { restoreQueue(); if (!now.hidden) renderQueue(); }).catch(() => {});
       mediaMeta();
@@ -239,7 +250,17 @@ export function initQuran({ say, stopOthers }) {
   };
   audio.addEventListener('waiting', watchStall);
   audio.addEventListener('stalled', () => { if (wanted && !audio.paused && audio.readyState < 3) watchStall(); });
+  // Keep what is played, and fetch the next surah in the queue ahead, so the list carries on if the connection goes
+  function keepAhead() {
+    if (!cur || !cur.url) return;
+    const p = q && cat ? afterEnd(q, store.repeat) : -1;
+    const next = p === 'again' || p < 0 ? null : info(q.ids[q.order[p]]);
+    off.guard([cur.url, next && next.url]);
+    off.keep(cur.url, { id: cur.id, title: cur.label, sub: cur.sub });
+    if (next) off.keep(next.url, { id: next.id, title: label(next), sub: sub(next) });
+  }
   audio.addEventListener('playing', () => {
+    keepAhead();
     clearTimeout(stallTimer); stallTimer = 0;
     if (rec) { stopRecover(); say('Back online. Carrying on.'); }
   });

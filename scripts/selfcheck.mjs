@@ -295,6 +295,30 @@ assert.deepEqual(tick([{ key: 'jumuah', adhan: 720, iqama: null }], { jumuah: { 
   assert.equal(Q.shouldRetry(4, 0, true), true, 'a file that will not play: one more try');
   assert.equal(Q.shouldRetry(4, 1, true), false);
   assert.equal(Q.shouldRetry(3, 1, undefined), false, 'unknown connection state counts as online');
+  // recitations kept on the device
+  const sv = Q.cleanSaved({
+    'https://server8.mp3quran.net/afs/001.mp3': { id: '102:1', title: '1. Al-Fatihah', sub: 'Afasy', bytes: 800000, at: 5, kind: 'played' },
+    'https://cdn.mp3quran.net/x/002.mp3': { id: '102:2', bytes: 9e6, at: 1, kind: 'download' },
+    'https://cdn.mp3quran.net/x/018.mp3': { id: '102:18', bytes: 4e6, at: 3, kind: 'weird' },
+    'https://evil.example/001.mp3': { id: '102:1' }, 'https://cdn.mp3quran.net/x/003.mp3?a=1': { id: '102:3' },
+    'https://cdn.mp3quran.net/x/004.mp3': { id: 'nope' },
+  });
+  assert.deepEqual(Object.keys(sv), ['https://server8.mp3quran.net/afs/001.mp3', 'https://cdn.mp3quran.net/x/002.mp3', 'https://cdn.mp3quran.net/x/018.mp3'], 'only mp3quran.net files with a track id');
+  assert.equal(sv['https://cdn.mp3quran.net/x/018.mp3'].kind, 'played', 'an unknown kind counts as played');
+  assert.deepEqual(Q.cleanSaved('junk'), {});
+  const MB = 1e6;
+  assert.deepEqual(Q.toEvict(sv, 5 * MB, 500 * MB, 300 * MB), [], 'room enough: nothing goes');
+  assert.deepEqual(Q.toEvict(sv, 5 * MB, 304 * MB, 300 * MB), ['https://cdn.mp3quran.net/x/018.mp3'], 'longest unplayed first, and no more than needed');
+  assert.deepEqual(Q.toEvict(sv, 5 * MB, 300 * MB, 300 * MB), ['https://cdn.mp3quran.net/x/018.mp3', 'https://server8.mp3quran.net/afs/001.mp3'], 'a download is never removed');
+  assert.deepEqual(Q.toEvict(sv, 5 * MB, 300 * MB, 300 * MB, ['https://cdn.mp3quran.net/x/018.mp3']), ['https://server8.mp3quran.net/afs/001.mp3'], 'what is playing is kept');
+  // every adhan recording the app offers is one the service worker keeps for offline
+  {
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+    const kept = JSON.parse(/const ADHAN_FILES = (\[[^\]]*\])/.exec(sw)[1].replace(/'/g, '"'));
+    const onDisk = readdirSync(new URL('../audio/', import.meta.url)).filter(f => f.endsWith('.mp3')).map(f => f.slice(0, -4));
+    assert.deepEqual([...kept].sort(), onDisk.sort(), 'sw.js ADHAN_FILES matches audio/');
+  }
 
   const ids = ['102:1', '102:2', '102:18', '102:114'];
   let q = Q.makeQueue(ids, 2);

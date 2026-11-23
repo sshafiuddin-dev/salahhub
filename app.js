@@ -1214,7 +1214,7 @@ addEventListener('online', () => sync()); // the connection came back: bring eve
 // Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server
 // whether any of its files changed since it loaded; if so, it reloads itself at a quiet moment: no sound playing, no alert,
 // nobody touching it for a minute, no adhan or iqama within 2 minutes. The full screen view is restored after the reload.
-const WATCHED = ['./', 'boot.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'motion.js', 'feedback.js'];
+const WATCHED = ['./', 'boot.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'motion.js', 'feedback.js'];
 let loadedVersion = '', updateWaiting = false, lastTouch = Date.now();
 for (const t of ['pointerdown', 'keydown', 'touchstart']) addEventListener(t, () => { lastTouch = Date.now(); }, { passive: true });
 // A wall tablet comes back to Today by itself: after 2 minutes untouched, off any other screen (but not while audio plays,
