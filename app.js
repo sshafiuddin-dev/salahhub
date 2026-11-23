@@ -4,6 +4,7 @@ import { bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToR
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { animate } from './motion.js';
+import { startTour, tourOpen } from './tour.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
 import { HISN, hisnUrl } from './hisn.js';
@@ -110,6 +111,17 @@ function cleanAlert(key, a) {
 const savedAlerts = settings.alerts && typeof settings.alerts === 'object' ? settings.alerts : {};
 settings.alerts = Object.fromEntries(ALERT_KEYS.map(k => [k, cleanAlert(k, savedAlerts[k])]));
 const save = () => { try { localStorage.setItem('iqama-settings', JSON.stringify(settings)); } catch (e) {} };
+// The first-run tour (tour.js): flagged on a brand-new visitor's first load, shown once they have answered "where are you?"
+// and are on Today; existing devices never get it by surprise. "Take the tour again" (About, the guide's #tour link) runs it any time.
+const TOUR_KEY = 'iqama-tour';
+let tourPending = false;
+try { if (!settings.asked && !localStorage.getItem(TOUR_KEY)) localStorage.setItem(TOUR_KEY, 'pending'); tourPending = localStorage.getItem(TOUR_KEY) === 'pending'; } catch (e) {}
+function runTour() {
+  if (tourOpen()) return;
+  tourPending = false;
+  wake();
+  startTour({ onEnd: () => { try { localStorage.setItem(TOUR_KEY, 'done'); } catch (e) {} } });
+}
 
 // Look, brightness and clock style. Brightness follows the prayer times once they are known; until then, the last level shown.
 // A level picked by hand (the brightness button or slider) holds until day turns to night or back, then Auto takes over again.
@@ -347,6 +359,7 @@ function tick() {
     }
   }
   renderAdhkar(nowMin);
+  if (tourPending && settings.asked && tab === 'today' && !displayOpen && !document.querySelector('dialog[open]')) { tourPending = false; setTimeout(runTour, 800); }
   const past = pastKeys(ev, ahead);
   for (const tr of $('today').tBodies[0].rows) { tr.classList.toggle('next', tr.dataset.k === ev.key); tr.classList.toggle('past', past.has(tr.dataset.k)); }
   const sky = skyParams(weather, { now: nowMin, sunrise: day.sunrise, maghrib: day.rows[3].adhan }, parseInt(today.hijri, 10) || 15);
@@ -396,6 +409,7 @@ const HELP_SUB = { location: 'location', iqama: 'iqama', alerts: 'alerts', displ
 function route() {
   let h = location.hash.slice(1);
   if (h === 'alerts') { h = 'settings'; sub = 'alerts'; } // the old address for the alerts screen
+  if (h === 'tour') { history.replaceState(null, '', '#today'); h = 'today'; setTimeout(runTour, 400); } // the guide links here
   if (h === 'feedback') { history.replaceState(null, '', `#${tab}`); h = tab; setTimeout(() => feedback?.open(), 0); } // the guide links here
   tab = TAB_IDS.includes(h) ? h : 'today';
   root.dataset.tab = tab; // the stylesheet lays out Today as one sheet
@@ -804,6 +818,7 @@ const openLocation = () => { go('settings', 'location'); $('search').focus(); };
 $('use-here').addEventListener('click', locateMe);
 $('ask-here').addEventListener('click', locateMe);
 $('use-iscj').addEventListener('click', () => setPlace(null));
+$('tour-again').addEventListener('click', () => { go('today'); setTimeout(runTour, 400); });
 $('ask-iscj').addEventListener('click', () => { settings.asked = true; save(); $('ask').hidden = true; });
 $('ask-search').addEventListener('click', openLocation);
 $('change-place').addEventListener('click', openLocation);
@@ -1330,7 +1345,7 @@ addEventListener('online', () => sync()); // the connection came back: bring eve
 // Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server
 // whether any of its files changed since it loaded; if so, it reloads itself at a quiet moment: no sound playing, no alert,
 // nobody touching it for a minute, no adhan or iqama within 2 minutes. The full screen view is restored after the reload.
-const WATCHED = ['./', 'boot.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'motion.js', 'feedback.js'];
+const WATCHED = ['./', 'boot.js', 'tour.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'motion.js', 'feedback.js'];
 let loadedVersion = '', updateWaiting = false, lastTouch = Date.now();
 for (const t of ['pointerdown', 'keydown', 'touchstart']) addEventListener(t, () => { lastTouch = Date.now(); }, { passive: true });
 // A wall tablet comes back to Today by itself: after 2 minutes untouched, off any other screen (but not while audio plays,

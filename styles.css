@@ -1067,3 +1067,20 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .tabbar .more-menu { left: 0; top: auto; bottom: 100%; margin: 0 0 .35rem; }
   .app .tabbar .more-menu a { height: auto; min-height: 44px; padding: .7rem .9rem; letter-spacing: .08em; }
 }
+
+/* The first-run tour (tour.js): the page dims except one outlined element, with a small printed card beside it.
+   The veil catches every tap, so nothing under it is pressed by accident. */
+.tour { position: fixed; inset: 0; z-index: 70; }
+.tour-veil { position: absolute; inset: 0; }
+.tour-spot { position: fixed; border-radius: 2px; outline: 2px solid var(--paper); box-shadow: 0 0 0 2px var(--ink), 0 0 0 100vmax rgb(0 0 0 / .55); pointer-events: none; }
+.tour-card {
+  position: fixed; width: min(22rem, calc(100vw - 1rem)); display: grid; gap: .5rem; padding: 1rem 1.1rem .9rem;
+  background: var(--paper); color: var(--ink); border-top: 3px double var(--ink); border-radius: 2px; box-shadow: 0 .75rem 2rem rgb(0 0 0 / .35);
+}
+.tour-card h2 { margin: 0; font: 600 1.15rem/1.25 var(--display); max-width: none; }
+.tour-card p { margin: 0; font-size: .95rem; line-height: 1.45; }
+.tour-count { color: var(--muted); font-size: .8rem !important; letter-spacing: .04em; }
+.tour-actions { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .25rem; }
+.tour-skip { min-height: 44px; margin: 0; color: var(--muted); }
+.tour-nav { display: flex; gap: .5rem; }
+.tour-nav .d-btn { min-height: 44px; min-width: 4.5rem; }
