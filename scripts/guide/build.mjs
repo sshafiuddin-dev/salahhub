@@ -20,7 +20,7 @@ export const CHAPTERS = [
   { slug: 'iqama', title: 'Iqama times', blurb: 'Follow ISCJ, set a fixed time, or minutes after the adhan.' },
   { slug: 'alerts', title: 'Adhan and alerts', blurb: 'Adhan at prayer time, reminders before adhan and iqama.' },
   { slug: 'display', title: 'Display and night mode', blurb: 'Clock styles, looks, brightness, dimming after Isha.' },
-  { slug: 'quran', title: 'Quran', blurb: 'Reciters, surahs, favourites and playlists.' },
+  { slug: 'quran', title: 'Quran', blurb: 'Reciters, surahs, favourites, playlists and listening offline.' },
   { slug: 'adhkar', title: 'Adhkar and Month', blurb: 'Hisn al-Muslim chapters and the monthly timetable.' },
   { slug: 'weather', title: 'Weather', blurb: 'Today, the week ahead, and the weather at each prayer.' },
   { slug: 'help', title: 'Help and questions', blurb: 'No sound, wrong times, the screen went dark, and more.' },
