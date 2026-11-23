@@ -553,10 +553,13 @@ console.log('csp reports ok');
   assert.deepEqual([1010, 1085].map(m => isNight(m, rows, 402, 'maghrib')), [true, true]);
   assert.equal(isNight(1300, rows, 402, 'off'), false);
   const s = { autoDim: 'isha', nightLevel: 3, level: 1 };
-  assert.deepEqual([dimLevel(s, false), dimLevel(s, true)], [0, 3]);
-  assert.equal(dimLevel(s, true, { level: 1, night: true }), 1, 'a level picked at night holds for that night');
-  assert.equal(dimLevel(s, false, { level: 1, night: true }), 0, 'and ends at sunrise');
-  assert.equal(dimLevel({ ...s, autoDim: 'off' }, true), 1, 'with auto off the level stays where it is set');
+  assert.deepEqual([dimLevel(s, false), dimLevel(s, true)], [1, 3], 'By day is the day level, At night the night level');
+  assert.equal(dimLevel(s, true, { level: 0, night: true }), 0, 'a level picked at night holds for that night');
+  assert.equal(dimLevel(s, false, { level: 0, night: true }), 1, 'and ends at sunrise');
+  assert.equal(dimLevel({ ...s, autoDim: 'off' }, true), 1, 'At night: Same as by day');
+  assert.equal(dimLevel({ ...s, nightLevel: 4 }, true), 4, 'Black (no light)');
+  const { fmtMins } = await import('../logic.js');
+  assert.deepEqual([fmtMins(1286), fmtMins(60), fmtMins(59.2), fmtMins(0), fmtMins(3900)], ['22m', '1m', '1m', '0m', '1h 05m'], 'Show seconds off: whole minutes, rounded up');
 }
 console.log('brightness ok');
 

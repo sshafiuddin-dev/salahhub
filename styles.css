@@ -432,6 +432,12 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   text-decoration: underline; text-underline-offset: .2em; text-decoration-thickness: 1px; cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .sh-fold { display: none; }
+/* Brightness at night: Black (no light). A black cover over everything (app.js shows it after 30 s with no touch); the
+   page under it is drawn at Darkest, so a tap shows the times at once. Alerts lift it (the Stop button is above it). */
+.blackout { display: none; position: fixed; inset: 0; z-index: 60; background: #000; cursor: none; -webkit-tap-highlight-color: transparent; }
+:root[data-black="1"] .blackout { display: block; }
+:root[data-black="1"] { background: #000; }
+:root[data-black="1"] .display::after { content: ""; position: fixed; inset: 0; z-index: 100; background: #000; cursor: none; } /* full screen is drawn above the page */
 /* The bell beside each prayer's name (Today's board only; full screen has nowhere to go). The drawing is about 1.1em; its
    tap area reaches 44px with a pseudo-element, so the printed header keeps its height. Outline = message only,
    filled = an alert sounds, struck through and faded = off. currentColor, so it follows the column (ink bar included). */

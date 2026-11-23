@@ -1,7 +1,7 @@
 // The six clock styles. Each takes the same snapshot of the day and returns its markup; app.js redraws every second.
 // d = { sec, now (minutes, fractional), rows: [{ key, adhan, iqama, jumuah? }], sunrise, next: { key, kind, at }, jumuah: [minutes], date }
 // A row with jumuah (a list of khutbah minutes) is Friday's Dhuhr, shown as Jumu'ah; its iqama is the first khutbah.
-import { NAMES, fmt, fmtSpan, esc, pastKeys, prevEventAt, progressOf } from './logic.js';
+import { NAMES, fmt, fmtSpan, fmtMins, esc, pastKeys, prevEventAt, progressOf } from './logic.js';
 
 // The bell beside each prayer on the board (Today only): one outline drawing, filled when an alert sounds, struck
 // through when off. A tap opens that prayer's card under Settings, Adhan and alerts (app.js).
@@ -19,7 +19,7 @@ const ampm = (min) => fmt(min).slice(-2);
 const f1 = (n) => n.toFixed(1);
 // seconds to the next event: d.left from the page (real time, right across a clock change), else from the wall clock
 const leftOf = (d) => d.left ?? d.next.at * 60 - d.sec;
-const untilNext = (d) => fmtSpan(leftOf(d));
+const untilNext = (d) => (d.noSec ? fmtMins(leftOf(d)) : fmtSpan(leftOf(d))); // Show seconds off: whole minutes
 const nextAt = (d) => `at ${fmt(d.next.at)}${d.next.at >= 1440 ? ' tomorrow' : ''}`;
 const JUM = 'Jumu’ah';
 const nameOf = (r) => (r.jumuah ? JUM : NAMES[r.key]);
@@ -191,7 +191,7 @@ function board(real) {
   const w = d.warn;
   const warn = w ? `<p class="sh-warn"><b>${esc(w.event)}</b><span>${esc(w.until)}${w.more ? ` · ${w.more} more` : ''}</span><small>${esc(w.sender)}</small></p>` : '';
   return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}${w ? ' sh-w' : ''}">${warn}<div class="sh-mid">`
-    + `<div class="sh-clk"><p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side">${leftOf(d) < 900 ? `<span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span>` : ''}<span>${ampm(m)}</span></span></p>${wxNow(d)}</div>`
+    + `<div class="sh-clk"><p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side">${leftOf(d) < 900 && !d.noSec ? `<span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span>` : ''}<span>${ampm(m)}</span></span></p>${wxNow(d)}</div>`
     + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${progress(real)}${nextLine(d)}${wxAt(d.wxAt)}`
     + `${ruler(d)}</div></div>`
     + body

@@ -227,47 +227,49 @@
                 </section>
 
                 <section class="sub-pane" id="sub-display" role="tabpanel" aria-labelledby="st-display" hidden>
-                    <div class="set-group" role="radiogroup" aria-labelledby="lbl-clock">
-                        <span class="iq-label" id="lbl-clock">Clock style</span>
-                        <div class="ck-picker" id="clock-style"></div>
-                    </div>
                     <div class="set-group" role="radiogroup" aria-labelledby="lbl-theme">
                         <span class="iq-label" id="lbl-theme">Look <output id="look-name"></output></span>
                         <div class="sw-picker" id="palette"></div>
                     </div>
                     <div class="set-group">
-                        <label class="iq-label" for="set-dim">Brightness now <output id="set-dim-out" for="set-dim"></output></label>
+                        <label class="iq-label" for="set-dim">Brightness by day <output id="set-dim-out" for="set-dim"></output></label>
                         <input class="d-range d-range-sm dim-range" type="range" id="set-dim" min="0" max="3" step="1" list="dim-stops">
                         <datalist id="dim-stops"><option value="0" label="Bright"></option><option value="1" label="Soft"></option><option value="2" label="Dim"></option><option value="3" label="Darkest"></option></datalist>
                         <p class="dim-scale" aria-hidden="true"><span>Bright</span><span>Soft</span><span>Dim</span><span>Darkest</span></p>
                     </div>
-                    <fieldset class="set-group">
-                        <legend class="iq-label">Dim automatically</legend>
+                    <div class="set-group">
+                        <label class="iq-label" for="set-night">Brightness at night</label>
+                        <select class="d-select" id="set-night" aria-describedby="dim-note"><option value="same">Same as by day</option><option value="1">Soft</option><option value="2">Dim</option><option value="3">Darkest</option><option value="4">Black (no light)</option></select>
+                    </div>
+                    <fieldset class="set-group" id="night-row">
+                        <legend class="iq-label">Night starts</legend>
                         <div class="d-join">
-                            <input class="d-join-item d-btn d-btn-sm" type="radio" name="autodim" value="isha" aria-label="After Isha">
-                            <input class="d-join-item d-btn d-btn-sm" type="radio" name="autodim" value="maghrib" aria-label="After Maghrib">
-                            <input class="d-join-item d-btn d-btn-sm" type="radio" name="autodim" value="off" aria-label="Off">
+                            <input class="d-join-item d-btn d-btn-sm" type="radio" name="nightstart" value="maghrib" aria-label="After Maghrib">
+                            <input class="d-join-item d-btn d-btn-sm" type="radio" name="nightstart" value="isha" aria-label="After Isha">
                         </div>
                     </fieldset>
-                    <div class="set-group" id="night-row">
-                        <label class="iq-label" for="set-night">At night <output id="set-night-out" for="set-night"></output></label>
-                        <input class="d-range d-range-sm dim-range" type="range" id="set-night" min="1" max="3" step="1">
-                        <p class="dim-scale dim-scale-3" aria-hidden="true"><span>Soft</span><span>Dim</span><span>Darkest</span></p>
-                    </div>
                     <p class="iq-note" id="dim-note"></p>
-                    <div class="iq-fields">
-                        <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-adhkar"> Show duas and adhkar</label>
-                        <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-translit"> Show transliteration</label>
-                    </div>
-                    <div class="set-group">
-                        <label class="iq-label" for="set-wxback">Weather background</label>
-                        <select class="d-select" id="set-wxback" aria-describedby="wxback-note"><option value="auto">Printed by day, realistic sky at night</option><option value="real">Realistic sky, moving</option><option value="print">Printed, moving</option><option value="still">Printed, still</option><option value="off">Off</option></select>
-                        <p class="iq-note" id="wxback-note">The realistic sky uses the dark look from Maghrib to sunrise. Older devices and devices set to reduce motion get a lighter version by themselves.</p>
+                    <fieldset class="set-group" id="bg-group">
+                        <legend class="iq-label">Weather background</legend>
+                        <div class="iq-fields">
+                            <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-wxpic" aria-describedby="wxback-note"> Weather picture</label>
+                            <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-wxmove" aria-describedby="wxback-note"> Movement</label>
+                        </div>
+                        <p class="iq-note" id="wxback-note">Today’s weather, faint along the top of the page. At Darkest it becomes the real night sky, while Movement is on. Older devices and devices set to reduce motion get a lighter version by themselves.</p>
+                    </fieldset>
+                    <div class="set-group" role="radiogroup" aria-labelledby="lbl-clock">
+                        <span class="iq-label" id="lbl-clock">Clock style</span>
+                        <div class="ck-picker" id="clock-style"></div>
                     </div>
                     <div class="set-group">
                         <label class="iq-label" for="set-big">Larger number on the clock</label>
                         <select class="d-select" id="set-big" aria-describedby="big-note"><option value="auto">Automatic: countdown on small screens</option><option value="time">The time now</option><option value="count">The countdown to the next prayer</option></select>
                         <p class="iq-note" id="big-note">For the Board clock style. You can also swap it with Bigger clock or Bigger countdown under the timetable.</p>
+                    </div>
+                    <div class="iq-fields">
+                        <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-seconds"> Show seconds</label>
+                        <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-adhkar"> Show duas and adhkar</label>
+                        <label class="check"><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="set-translit"> Show transliteration</label>
                     </div>
                     <details class="set-more"><summary>More display options</summary>
                     <div class="set-group">
@@ -338,6 +340,7 @@
     <button class="d-btn d-btn-sm d-btn-primary sound-lock" type="button" id="sound-lock" hidden>Tap to enable sound</button>
     <button class="d-btn d-btn-lg d-btn-error alert-stop" type="button" id="alert-stop" hidden>Stop</button>
     <p class="toast" id="status" role="status"></p>
+    <div class="blackout" id="blackout" aria-hidden="true"></div>
 
     <div class="display" id="display" hidden>
         <div class="sky-tint" aria-hidden="true"></div><div class="sky-print" aria-hidden="true"></div>

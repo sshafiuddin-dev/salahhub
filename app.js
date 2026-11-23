@@ -31,8 +31,8 @@ const LOOKS = { paper: 'Printed timetable', hand: 'Handwritten', contrast: 'High
 const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
-  tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightLevel: 2, level: 0, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
-  defIqama: null, tableOpen: false, big: 'auto', adhkar: true, translit: true, wxBack: 'auto', arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
+  tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightStart: 'isha', nightLevel: 3, level: 0, seconds: true, wxPic: true, wxMove: true, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
+  defIqama: null, tableOpen: false, big: 'auto', adhkar: true, translit: true, arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -63,17 +63,30 @@ if (![-2, -1, 0, 1, 2].includes(settings.hijriShift)) settings.hijriShift = 0;
 if (!(Number.isInteger(settings.defIqama) && settings.defIqama >= 0 && settings.defIqama <= 60)) settings.defIqama = null;
 settings.hijriMaghrib = settings.hijriMaghrib === true;
 if (!AUTO_DIM.includes(settings.autoDim)) settings.autoDim = DEFAULTS.autoDim;
-if (![1, 2, 3].includes(settings.nightLevel)) settings.nightLevel = DEFAULTS.nightLevel;
+if (![1, 2, 3, 4].includes(settings.nightLevel)) settings.nightLevel = DEFAULTS.nightLevel; // 4: Black (no light)
 if (![0, 1, 2, 3].includes(settings.level)) settings.level = DEFAULTS.level;
 if (settings.units !== 'F' && settings.units !== 'C') settings.units = DEFAULTS.units;
 settings.muted = settings.muted === true;
 settings.adhkar = settings.adhkar !== false;
-// Weather background: real (the default), print, still or off; the earlier on/off switch maps to real and off
-// 'auto' (the default) is the printed sky by day and the realistic one from Maghrib to sunrise. Devices that had the old default, 'real',
-// move to 'auto' once; a person can pick Realistic sky again afterwards.
-if (settings.wxBack === 'real' && !settings.wxBackV) settings.wxBack = 'auto';
-settings.wxBackV = 1;
-settings.wxBack = settings.wxBack === false ? 'off' : ['auto', 'real', 'print', 'still', 'off'].includes(settings.wxBack) ? settings.wxBack : 'auto';
+// Display settings, second version: the five-way weather background becomes two switches (picture, movement); the By day level
+// counts by day; and night brightness comes only from At night (the realistic sky no longer forces Darkest after Maghrib).
+// Converted once, so each screen keeps showing what it showed: nights that the sky made Darkest stay Darkest.
+if (settings.dispV !== 2) {
+  const wx = settings.wxBack === false ? 'off' : settings.wxBack ?? 'auto';
+  settings.wxPic = wx !== 'off';
+  settings.wxMove = wx !== 'still';
+  if (settings.autoDim !== 'off') {
+    settings.nightStart = settings.autoDim;
+    if ((wx === 'auto' || wx === 'real') && settings.look === 'paper') settings.nightLevel = 3;
+    settings.level = 0; // with Auto on, days were always Bright
+  }
+  settings.dispV = 2;
+}
+for (const k of ['wxBack', 'wxBackV']) delete settings[k];
+settings.wxPic = settings.wxPic !== false;
+settings.wxMove = settings.wxMove !== false;
+settings.seconds = settings.seconds !== false;
+if (!['isha', 'maghrib'].includes(settings.nightStart)) settings.nightStart = settings.autoDim === 'maghrib' ? 'maghrib' : 'isha';
 settings.translit = settings.translit !== false;
 if (!['s', 'm', 'l'].includes(settings.arSize)) settings.arSize = DEFAULTS.arSize;
 settings.awake = settings.awake === true;
@@ -98,31 +111,38 @@ const save = () => { try { localStorage.setItem('iqama-settings', JSON.stringify
 // Look, brightness and clock style. Brightness follows the prayer times once they are known; until then, the last level shown.
 // A level picked by hand (the brightness button or slider) holds until day turns to night or back, then Auto takes over again.
 let dimOverride = null, shownDim = null, timesKnown = false;
-try { const d = +localStorage.getItem('iqama-dim'); if ([0, 1, 2, 3].includes(d)) shownDim = d; } catch (e) {}
+try { const d = +localStorage.getItem('iqama-dim'); if ([0, 1, 2, 3, 4].includes(d)) shownDim = d; } catch (e) {}
 const nightNow = () => timesKnown && isNight(nowMinute, day.rows, day.sunrise, settings.autoDim);
 // With the realistic sky, nights (Maghrib to sunrise) use the dark look, since the sky is dark then; a level picked by hand
 // still holds, and the sky then switches to its printed form. Auto off keeps the level the person set.
 const night = () => timesKnown && (nowMinute >= day.rows[3].adhan || nowMinute < day.sunrise);
-const skyBack = () => (settings.wxBack === 'auto' ? (night() ? 'real' : 'print') : settings.wxBack);
-const realNight = () => skyBack() === 'real' && settings.look === 'paper' && settings.autoDim !== 'off' && timesKnown
-  && (nowMinute >= day.rows[3].adhan || nowMinute < day.sunrise);
-const currentDim = () => {
-  const d = timesKnown || settings.autoDim === 'off' ? dimLevel(settings, nightNow(), dimOverride) : shownDim ?? 0;
-  return realNight() && !(dimOverride && dimOverride.night === nightNow()) ? 3 : d; // the realistic night sky brings its own dark look, until you pick a brightness by hand
-};
+// Weather background: off, the printed sky (moving or still), or at Darkest from Maghrib to sunrise the realistic night sky,
+// which only shows while it may move. dim is the level on show (Black shows as Darkest under its cover).
+const skyBack = (dim = Number(root.dataset.dim) || 0) => (!settings.wxPic ? 'off'
+  : dim === 3 && night() ? (settings.wxMove ? 'real' : 'off') : settings.wxMove ? 'print' : 'still');
+// The level asked for: 0 Bright to 3 Darkest, or 4 Black (no light)
+const currentDim = () => (timesKnown || settings.autoDim === 'off' ? dimLevel(settings, nightNow(), dimOverride) : shownDim ?? 0);
+// Black (no light): the page is covered in black after 30 s with no touch or key press, and drawn at Darkest underneath.
+// A tap or key on the cover brings the times back for 30 s (that tap does nothing else); so do an alert and its sound.
+const WAKE_MS = 30e3;
+let wakeUntil = Date.now() + WAKE_MS; // the times show for 30 s when the app opens
+const soundNow = () => { try { return playing(); } catch (e) { return false; } }; // playing() is set up further down; nothing plays before then
+const blackNow = () => currentDim() === 4 && Date.now() >= wakeUntil && !soundNow();
+function wake() { wakeUntil = Date.now() + WAKE_MS; if (root.dataset.black === '1') applyLook(); }
 function setDim(level) {
   if (settings.autoDim === 'off') { settings.level = level; save(); dimOverride = null; }
   else dimOverride = { level, night: nightNow() };
   applyLook();
 }
 function applyLook() {
-  const dim = currentDim();
+  const lvl = currentDim(), dim = Math.min(lvl, 3);
   root.dataset.palette = settings.look;
   root.dataset.dim = String(dim);
-  root.dataset.nightsky = realNight() && !(dimOverride && dimOverride.night === nightNow()) ? '1' : '0'; // the sky is on show because it is night, not held back by a brightness you chose
+  root.dataset.black = blackNow() ? '1' : '0';
+  root.dataset.nightsky = skyBack(dim) === 'real' ? '1' : '0'; // the realistic night sky is on show
   root.dataset.theme = dim === 3 || (dim === 2 && settings.look === 'contrast') ? 'dark' : 'light'; // Dim is a warm light page, except in High contrast
   root.dataset.clock = settings.clock;
-  if (dim !== shownDim) { shownDim = dim; try { localStorage.setItem('iqama-dim', String(dim)); } catch (e) {} }
+  if (lvl !== shownDim) { shownDim = lvl; try { localStorage.setItem('iqama-dim', String(lvl)); } catch (e) {} }
   syncDim();
   redrawSky();
   syncThemeColor();
@@ -310,13 +330,13 @@ function tick() {
   const at = wxAt(ev, rows);
   const big = bigNow();
   for (const id of BIG_HOSTS) $(id).dataset.big = big;
-  const html = renderClock(settings.clock, { bells: bellsNow(), big, fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
+  const html = renderClock(settings.clock, { noSec: !settings.seconds, bells: bellsNow(), big, fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
   redraw($('clock'), html);
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
-  if (currentDim() !== shownDim) applyLook();
+  if (currentDim() !== shownDim || (root.dataset.black === '1') !== blackNow()) applyLook();
   if (displayOpen) {
-    if (timesLayout()) redraw($('dx-small'), renderTimes({ big, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxNow: wxNow(), wxAt: at, warn: warnLine(), fresh: freshNote(), card: dxCardFor(nowMin) }));
+    if (timesLayout()) redraw($('dx-small'), renderTimes({ noSec: !settings.seconds, big, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxNow: wxNow(), wxAt: at, warn: warnLine(), fresh: freshNote(), card: dxCardFor(nowMin) }));
     else {
       redraw($('dx-clock'), html);
       if (c.sec % 10 === 0) fitDisplay(); // re-fit after late font loads or a change in what the clock shows
@@ -326,10 +346,10 @@ function tick() {
   const past = pastKeys(ev, ahead);
   for (const tr of $('today').tBodies[0].rows) { tr.classList.toggle('next', tr.dataset.k === ev.key); tr.classList.toggle('past', past.has(tr.dataset.k)); }
   const sky = skyParams(weather, { now: nowMin, sunrise: day.sunrise, maghrib: day.rows[3].adhan }, parseInt(today.hijri, 10) || 15);
-  const dim = currentDim();
-  // no sky in the Handwritten and High contrast looks, nor at Dim unless the realistic sky can show by day
-  const skyOk = settings.look === 'paper' && (dim < 2 || (skyBack() === 'real' && (dim === 3 || !sky.night)));
-  updateSky(sky, skyBack(), skyOk, root.dataset.theme === 'dark');
+  const dim = Math.min(currentDim(), 3);
+  // no sky in the Handwritten and High contrast looks, nor at Dim; at Darkest only the realistic night sky
+  const skyOk = settings.look === 'paper' && (dim < 2 || (skyBack(dim) === 'real' && (dim === 3 || !sky.night)));
+  updateSky(sky, skyBack(dim), skyOk && root.dataset.black !== '1', root.dataset.theme === 'dark'); // nothing is drawn under the black cover
 
   // Alerts: only for moments crossed while the page is open
   if (lastSec != null && c.sec > lastSec) for (const a of alertsBetween(alertRows(), settings.alerts, lastSec, c.sec)) fire(a);
@@ -675,6 +695,7 @@ const MESSAGES = {
   iqama: (n, m) => `${n} iqama in ${m} minutes.`,
 };
 function fire({ kind, key, type, min, n, of }) {
+  wake(); // Black at night: the alert shows its message for 30 s
   const name = key === 'jumuah' ? 'Jumu’ah' : NAMES[key], label = kind === 'adhan' ? `${name} adhan` : `${name} alert`;
   const note = (result) => logAlert({ last: { what: label, when: stamp(), result } });
   if (settings.muted) return note('skipped, alerts are off');
@@ -860,7 +881,7 @@ function fillPicker(id, map, current, label, onPick) {
   });
 }
 fillPicker('clock-style', CLOCKS, settings.clock, (k, name) => `class="ck-opt">${CK_THUMB[k] || ''}<span>${name}</span>`, (v) => { settings.clock = v; save(); applyLook(); tick(); });
-fillPicker('palette', LOOKS, settings.look, (k, name) => `class="swatch" style="--a:${SWATCH[k][0]};--b:${SWATCH[k][1]}" aria-label="${name}"><i class="sw-chip"></i><span>${name}</span>`, (v) => { settings.look = v; save(); applyLook(); $('look-name').textContent = LOOKS[v]; });
+fillPicker('palette', LOOKS, settings.look, (k, name) => `class="swatch" style="--a:${SWATCH[k][0]};--b:${SWATCH[k][1]}" aria-label="${name}"><i class="sw-chip"></i><span>${name}</span>`, (v) => { settings.look = v; save(); applyLook(); $('bg-group').hidden = v !== 'paper'; $('look-name').textContent = LOOKS[v]; });
 $('look-name').textContent = LOOKS[settings.look];
 // Brightness: the button in the top bar and in full screen steps through the four levels; Settings has the sliders and Auto
 function syncDim() {
@@ -873,21 +894,38 @@ function syncDim() {
     b.setAttribute('aria-label', `Brightness: ${name}. Tap for ${DIM_NAMES[(dim + 1) % 4].toLowerCase()}`);
   }
   if (!$('set-dim')) return;
-  $('set-dim').value = String(dim); $('set-dim-out').textContent = name;
-  $('set-night').value = String(settings.nightLevel); $('set-night-out').textContent = DIM_NAMES[settings.nightLevel];
-  document.querySelectorAll('input[name="autodim"]').forEach(r => { r.checked = r.value === settings.autoDim; });
-  $('night-row').hidden = settings.autoDim === 'off';
-  $('dim-note').textContent = settings.autoDim === 'off' ? 'Brightness stays where you set it.'
-    : `Bright from sunrise; ${DIM_NAMES[settings.nightLevel].toLowerCase()} after ${settings.autoDim === 'isha' ? 'Isha' : 'Maghrib'}.${dimOverride ? ' Your change holds until the next switch.' : ''}`;
+  const same = settings.autoDim === 'off', start = settings.nightStart === 'maghrib' ? 'Maghrib' : 'Isha';
+  $('set-dim').value = String(settings.level); $('set-dim-out').textContent = DIM_NAMES[settings.level];
+  $('set-night').value = same ? 'same' : String(settings.nightLevel);
+  document.querySelectorAll('input[name="nightstart"]').forEach(r => { r.checked = r.value === settings.nightStart; });
+  $('night-row').hidden = same;
+  const day = DIM_NAMES[settings.level], nightName = DIM_NAMES[settings.nightLevel].toLowerCase();
+  $('dim-note').textContent = (same ? `${day} all the time.` : `${day} from sunrise; ${settings.nightLevel === 4 ? 'black, with no light,' : nightName} from ${start} until sunrise.`)
+    + (settings.nightLevel === 4 && !same ? ' A tap shows the times for 30 seconds.' : '')
+    + (dimOverride ? ' The Brightness button’s change holds until the next switch.' : '');
 }
 for (const id of ['dim-btn', 'dx-dim']) $(id)?.addEventListener('click', () => setDim(((Number(root.dataset.dim) || 0) + 1) % 4));
-$('set-dim').addEventListener('input', () => setDim(+$('set-dim').value));
-$('set-night').addEventListener('input', () => { settings.nightLevel = +$('set-night').value; save(); if (dimOverride?.night) dimOverride = null; applyLook(); });
-document.querySelectorAll('input[name="autodim"]').forEach(r => r.addEventListener('change', () => {
-  settings.autoDim = r.value;
-  if (r.value === 'off') settings.level = Number(root.dataset.dim) || 0; // turning Auto off keeps what is showing now
+// Settings: By day (the day's level), At night (Same as day, Soft, Dim, Darkest or Black) and Night starts (Maghrib or Isha)
+$('set-dim').addEventListener('input', () => { settings.level = +$('set-dim').value; save(); if (dimOverride && !dimOverride.night) dimOverride = null; applyLook(); });
+$('set-night').addEventListener('change', () => {
+  const v = $('set-night').value;
+  if (v === 'same') settings.autoDim = 'off';
+  else { settings.nightLevel = +v; settings.autoDim = settings.nightStart; }
+  dimOverride = null; save(); applyLook();
+});
+document.querySelectorAll('input[name="nightstart"]').forEach(r => r.addEventListener('change', () => {
+  settings.nightStart = r.value;
+  if (settings.autoDim !== 'off') settings.autoDim = r.value;
   dimOverride = null; save(); applyLook();
 }));
+// The black cover: a tap or key on it only wakes the times (the same tap never reaches a button below); any other
+// touch or key while the times show keeps them up for another 30 s
+// (caught at the window, as full screen draws its own copy of the cover, above everything)
+let wakeTap = false;
+addEventListener('pointerdown', (e) => { wakeTap = root.dataset.black === '1'; if (wakeTap) { e.preventDefault(); e.stopPropagation(); } else wakeUntil = Date.now() + WAKE_MS; }, true);
+addEventListener('pointerup', (e) => { if (wakeTap) { e.preventDefault(); e.stopPropagation(); } }, true);
+addEventListener('click', (e) => { if (wakeTap || root.dataset.black === '1') { e.preventDefault(); e.stopPropagation(); wakeTap = false; wake(); } }, true);
+addEventListener('keydown', (e) => { if (root.dataset.black === '1') { e.preventDefault(); e.stopPropagation(); wake(); } else wakeUntil = Date.now() + WAKE_MS; }, true);
 syncDim();
 
 // Weather, for the header, the backdrop and the Weather panel; the page works the same without it
@@ -1097,13 +1135,17 @@ $('dk-count').addEventListener('click', () => {
 $('dk-tr-toggle').addEventListener('click', () => { settings.translit = !settings.translit; $('set-translit').checked = settings.translit; save(); tick(); });
 $('dk-share').addEventListener('click', () => { const it = dkItem(); share(SETS[dk.key].title, [it.ar, it.tr, it.en, it.src].filter(Boolean).join('\n')); });
 $('set-adhkar').checked = settings.adhkar;
-$('set-wxback').value = settings.wxBack;
+$('set-wxpic').checked = settings.wxPic; $('set-wxmove').checked = settings.wxMove; $('set-wxmove').disabled = !settings.wxPic;
+$('set-seconds').checked = settings.seconds;
+$('bg-group').hidden = settings.look !== 'paper';
 $('set-translit').checked = settings.translit;
 const AR_SIZES = ['s', 'm', 'l'], AR_NAMES = ['Small', 'Medium', 'Large'];
 $('set-arsize').value = AR_SIZES.indexOf(settings.arSize);
 $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[AR_SIZES.indexOf(settings.arSize)]);
 $('set-adhkar').addEventListener('change', () => { settings.adhkar = $('set-adhkar').checked; save(); tick(); });
-$('set-wxback').addEventListener('change', () => { settings.wxBack = $('set-wxback').value; save(); applyLook(); tick(); });
+$('set-wxpic').addEventListener('change', () => { settings.wxPic = $('set-wxpic').checked; $('set-wxmove').disabled = !settings.wxPic; save(); applyLook(); tick(); });
+$('set-wxmove').addEventListener('change', () => { settings.wxMove = $('set-wxmove').checked; save(); applyLook(); tick(); });
+$('set-seconds').addEventListener('change', () => { settings.seconds = $('set-seconds').checked; save(); tick(); });
 $('set-translit').addEventListener('change', () => { settings.translit = $('set-translit').checked; save(); tick(); });
 $('set-dxcard').value = settings.dxCard;
 $('set-dxcard').addEventListener('change', () => { settings.dxCard = $('set-dxcard').value; save(); tick(); });
