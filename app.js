@@ -197,11 +197,21 @@ const place = () => settings.place || ISCJ;
 const near = () => km(place(), ISCJ) <= NEAR_KM;
 // Messages show as a toast above the tab bar and fade after a few seconds
 let toastTimer = 0;
-const say = (text) => {
-  $('status').textContent = text;
-  $('status').classList.toggle('show', !!text);
+// A short message at the bottom. action = { label, fn } adds one button to it (as Undo after closing the Quran player),
+// and keeps the message up for 8 seconds instead of 5.
+const say = (text, action) => {
+  const el = $('status');
+  el.textContent = text;
+  if (action) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'toast-act'; b.textContent = action.label;
+    b.addEventListener('click', () => { el.classList.remove('show'); action.fn(); });
+    el.append(' ', b);
+  }
+  el.classList.toggle('show', !!text);
+  el.classList.toggle('has-act', !!action);
   clearTimeout(toastTimer);
-  if (text) toastTimer = setTimeout(() => $('status').classList.remove('show'), 5000);
+  if (text) toastTimer = setTimeout(() => el.classList.remove('show'), action ? 8000 : 5000);
 };
 
 // A short record under Settings, Adhan and alerts, so a missed alert can be explained: the last alert and what became of its message and sound,
