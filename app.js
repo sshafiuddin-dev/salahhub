@@ -27,7 +27,7 @@ const SOUND_SRC = { beep: URL.createObjectURL(new Blob([beepWav()], { type: 'aud
 const SOUND_KEYS = [...Object.keys(SOUNDS), ...Object.keys(RECORDINGS)];
 const soundName = (t) => t === 'adhan' ? 'Adhan recording' : SOUNDS[t] ? SOUNDS[t].split(',')[0] : `${RECORDINGS[t].replace(/ \(.*/, '')} adhan`;
 const ALERT_KEYS = [...PRAYERS, 'jumuah'];
-const LOOKS = { paper: 'Printed timetable', hand: 'Handwritten', contrast: 'High contrast' };
+const LOOKS = { paper: 'Printed timetable', eink: 'E-ink', hand: 'Handwritten', contrast: 'High contrast' };
 const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
@@ -863,7 +863,7 @@ $('set-hijri-maghrib').addEventListener('change', () => { settings.hijriMaghrib 
 
 // Clock style and theme
 // decorative swatches: the theme's dark paper beside its accent
-const SWATCH = { paper: ['#F3EDE1', '#A8321F'], hand: ['#F6F1E4', '#24345C'], contrast: ['#FFFFFF', '#000000'] };
+const SWATCH = { paper: ['#F3EDE1', '#A8321F'], eink: ['#F4F2EC', '#4A4A4A'], hand: ['#F6F1E4', '#24345C'], contrast: ['#FFFFFF', '#000000'] };
 // small line drawings of the six clock styles for the picker (decorative: the names are the labels)
 const T = (body) => `<svg viewBox="0 0 64 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">${body}</svg>`;
 const CK_THUMB = {
