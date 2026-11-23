@@ -82,6 +82,17 @@ export function wallMs(y, m, d, min, zone) {
 // On a Friday the Jumu'ah row carries a list of khutbahs (r.jumuah): after the adhan the count goes to the first, then on to
 // each next one that comes before the next prayer's adhan (Asr), then to that adhan. With more than one, the event says
 // which: n of the total. The first khutbah always counts, wherever it falls.
+// Which of the day's times have already gone by, for fading them on the timetable: everything before the next event
+// (an adhan that has been called, but whose iqama is still to come, is not past yet). Sunrise counts as its own time.
+// When the sheet shows tomorrow (after Isha) nothing is past; once the next event is tomorrow's Fajr, all of today is.
+const DAY_ORDER = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
+export function pastKeys(next, isAhead) {
+  if (isAhead || !next) return new Set();
+  if (next.at >= 1440) return new Set(DAY_ORDER);
+  const i = DAY_ORDER.indexOf(next.key);
+  return new Set(i < 0 ? [] : DAY_ORDER.slice(0, i));
+}
+
 // Khutbahs that count for the day: the first always, later ones only before the next prayer's adhan (Asr)
 export const khutbahsBefore = (list, limit = 1440) => list.filter((t, j) => j === 0 || t < limit);
 

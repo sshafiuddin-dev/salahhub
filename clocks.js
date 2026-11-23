@@ -1,7 +1,7 @@
 // The six clock styles. Each takes the same snapshot of the day and returns its markup; app.js redraws every second.
 // d = { sec, now (minutes, fractional), rows: [{ key, adhan, iqama, jumuah? }], sunrise, next: { key, kind, at }, jumuah: [minutes], date }
 // A row with jumuah (a list of khutbah minutes) is Friday's Dhuhr, shown as Jumu'ah; its iqama is the first khutbah.
-import { NAMES, fmt, fmtSpan, esc } from './logic.js';
+import { NAMES, fmt, fmtSpan, esc, pastKeys } from './logic.js';
 
 export const CLOCKS = { board: 'Masjid board', dial: '24-hour dial', analog: 'Analog clock face', sun: 'Sun path', timeline: 'Day timeline', bedside: 'Bedside, low glare' };
 
@@ -121,12 +121,15 @@ function ruler(d) {
 const wxAt = (w) => (w ? `<p class="sh-wxat">At ${w.name}: <b>${Math.round(w.temp)}°${w.words ? `, ${esc(w.words)}` : ''}</b>${w.pop != null ? ` (${Math.round(w.pop)}%)` : ''}</p>` : '');
 function sheetTable(d) {
   const nx = (r) => r.key === d.next.key && d.next.at < 1440;
-  const th = d.rows.map(r => `<th scope="col"${nx(r) ? ' class="is-next"' : ''}>${nameOf(r)}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
+  // the next prayer's column is marked on every cell (nx-col: the solid bar); the times already gone by are faded (is-past)
+  const past = pastKeys(d.next, d.isAhead);
+  const cls = (r, own) => { const c = [own, nx(r) ? 'nx-col' : '', past.has(r.key) ? 'is-past' : ''].filter(Boolean).join(' '); return c ? ` class="${c}"` : ''; };
+  const th = d.rows.map(r => `<th scope="col"${cls(r, nx(r) ? 'is-next' : '')}>${nameOf(r)}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
   const calledNow = d.next.kind === 'iqama' && d.next.at < 1440; // the adhan time has passed: the Iqama cell carries the mark
-  const adhan = d.rows.map(r => `<td${nx(r) ? ` class="${calledNow ? 'is-passed' : 'is-next'}"` : ''}>${hm(r.adhan)}</td>`).join('');
+  const adhan = d.rows.map(r => `<td${cls(r, nx(r) ? (calledNow ? 'is-passed' : 'is-next') : '')}>${hm(r.adhan)}</td>`).join('');
   const iqama = d.rows.map(r => {
     const v = r.jumuah ? r.jumuah.map(t => (!d.isAhead && t <= d.now ? `<span class="sh-past">${hm(t)}</span>` : hm(t))).join('<br>') : r.iqama == null ? '<em>not set</em>' : r.iqama === r.adhan && !r.def ? '<em>on time</em>' : r.def ? `${hm(r.iqama)}<small class="sh-def">default</small>` : hm(r.iqama);
-    return `<td${nx(r) ? ' class="is-next"' : ''}>${v}</td>`;
+    return `<td${cls(r, nx(r) ? 'is-next' : '')}>${v}</td>`;
   }).join('');
   const low = jumRow(d) ? 'Iqama, khutbah' : 'Iqama';
   const corner = d.isAhead ? '<span class="sh-tmrw">Tomorrow</span>' : '<span class="sh-vh">Prayer</span>';
