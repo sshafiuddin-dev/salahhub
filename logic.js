@@ -61,6 +61,11 @@ export function fmt(min) {
 
 // Time left, rounded up: 7 h 38 min 30 s left reads "7h 39m", so the count agrees with the adhan time shown beside it
 // (9:50 PM to 5:29 AM) and reaches zero at the adhan itself. Under an hour it counts down in seconds.
+// The same wait in whole minutes, for Show seconds off: "22m", "1h 05m" (rounded up, so it reaches 0 at the moment)
+export function fmtMins(sec) {
+  const min = Math.max(0, Math.ceil(sec / 60 - 1e-6)), two = (n) => String(n).padStart(2, '0');
+  return min >= 60 ? `${Math.floor(min / 60)}h ${two(min % 60)}m` : `${min}m`;
+}
 export function fmtSpan(sec) {
   sec = Math.max(0, Math.ceil(sec - 1e-6));
   const two = (n) => String(n).padStart(2, '0');
@@ -182,18 +187,19 @@ export const hijriNow = (y, m, d, shift, atMaghrib, nowMin, maghrib) => hijri(y,
 export const cleanTune = (t) => Object.fromEntries(PRAYERS.map(k => [k, Number.isInteger(t?.[k]) && Math.abs(t[k]) <= 30 ? t[k] : 0]));
 
 // Brightness. Level 0 is bright paper; 1 soft, 2 dim and 3 darkest are the night levels.
-export const DIM_NAMES = ['Bright', 'Soft', 'Dim', 'Darkest'];
+export const DIM_NAMES = ['Bright', 'Soft', 'Dim', 'Darkest', 'Black'];
 // Night for automatic dimming: from the Isha (or Maghrib) adhan until sunrise. from 'off' is never night.
 export function isNight(nowMin, rows, sunrise, from) {
   if (from !== 'isha' && from !== 'maghrib') return false;
   const start = rows[from === 'maghrib' ? 3 : 4].adhan;
   return nowMin >= start || nowMin < sunrise;
 }
-// The level to show. s = { autoDim, nightLevel, level }; a hand-picked override { level, night } holds until day turns to night or back.
+// The level to show. s = { autoDim, nightLevel, level }: level is the day's (By day), nightLevel the night's (1 Soft to
+// 4 Black); autoDim 'off' is "At night: Same as day". A hand-picked override { level, night } holds until day turns to night or back.
 export function dimLevel(s, night, override) {
   if (s.autoDim === 'off') return s.level;
   if (override && override.night === night) return override.level;
-  return night ? s.nightLevel : 0;
+  return night ? s.nightLevel : s.level;
 }
 
 // Which extra card the small full screen shows: 'morning' from sunrise to the Dhuhr adhan, 'evening' from the Maghrib adhan to the Isha adhan, else null.
