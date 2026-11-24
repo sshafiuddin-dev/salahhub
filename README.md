@@ -16,7 +16,8 @@ A static site with no build step (the output of the two small build scripts is c
 ```
 /                  the app (index.html, app.js, styles.css, ...)
 /guide/            the user guide, built from scripts/guide/chapters by scripts/guide/build.mjs
-/functions/api/    /api/iqama (reads iscj.org, cached at the edge) and /api/csp-report (logs policy reports, stores nothing)
+/functions/api/    /api/iqama (reads iscj.org, cached at the edge), /api/where (approximate city for a new device, keeps nothing)
+                  and /api/csp-report (logs policy reports, stores nothing)
 /scripts/          selfcheck.mjs (tests), fetch-iqama.mjs and fetch-hisn.mjs (daily and monthly data jobs), daisy/ (CSS build)
 /_headers          security headers
 ```

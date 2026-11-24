@@ -218,6 +218,19 @@ export function km(a, b) {
   return 12742 * Math.asin(Math.sqrt(h));
 }
 
+// Masjids whose iqama times the app can read. The nearest one within NEAR_MILES of the place is used; anywhere else
+// the visitor sets their own. To add a masjid: one entry here, plus a reader for its timetable at its own source.
+export const NEAR_MILES = 15;
+export const NEAR_KM = NEAR_MILES * 1.609344;
+export const MASJIDS = [
+  { id: 'iscj', name: 'ISCJ', full: 'Islamic Society of Central Jersey', town: 'Monmouth Junction, NJ', lat: 40.384, lng: -74.563, zone: 'America/New_York', source: '/api/iqama', daily: 'iqama.json' },
+];
+export function nearestMasjid(place, list = MASJIDS, maxKm = NEAR_KM) {
+  let best = null, bestKm = Infinity;
+  for (const m of list) { const d = km(place, m); if (d <= maxKm && d < bestKm) { best = m; bestKm = d; } }
+  return best;
+}
+
 // Alert moments that fall in (fromSec, toSec]; anything over 90 s late is dropped.
 // cfg[key] = { on, adhan: type, before: { type, min }, iqama: { type, min } }; type 'off' or a missing part is silent.
 // One alert step is { on, type, min? }. Older saves held a bare type for the adhan and type 'off' for a step that was switched off.

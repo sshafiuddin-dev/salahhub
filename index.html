@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>IqamaHub</title>
-    <meta name="description" content="Prayer and iqama times with a live clock, adhkar, adhan and alerts for each prayer, and local weather. ISCJ iqama times near the masjid, your own times anywhere else.">
+    <meta name="description" content="Prayer and iqama times with a live clock, adhkar, adhan and alerts for each prayer, and local weather. Iqama times from a nearby masjid’s timetable where the app has one, your own times anywhere else.">
     <meta name="theme-color" content="#F3EDE1">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
@@ -61,11 +61,11 @@
 
             <main class="tab" id="tab-today" aria-labelledby="tab-title">
                 <section class="iq-ask" id="ask" aria-label="Choose your location" hidden>
-                    <p>Showing times for ISCJ in Monmouth Junction, NJ. Somewhere else? Set your location for your own adhan times.</p>
+                    <p id="ask-text"></p>
                     <div class="iq-fields">
-                        <button class="d-btn d-btn-sm d-btn-primary" type="button" id="ask-here">Use my location</button>
+                        <button class="d-btn d-btn-sm d-btn-primary" type="button" id="ask-here">Use my exact location</button>
                         <button class="d-btn d-btn-sm" type="button" id="ask-search">Search for a city</button>
-                        <button class="d-btn d-btn-sm" type="button" id="ask-iscj">Keep ISCJ</button>
+                        <button class="d-btn d-btn-sm" type="button" id="ask-keep">Keep this place</button>
                     </div>
                 </section>
                 <div class="today-grid">
@@ -163,7 +163,7 @@
                 </div>
 
                 <section class="sub-pane" id="sub-location" role="tabpanel" aria-labelledby="st-location">
-                    <p class="iq-note">Adhan times are calculated for <strong id="place-name"></strong>. ISCJ iqama times are used within 40 km (25 miles) of the masjid; anywhere else you set your own.</p>
+                    <p class="iq-note">Adhan times are calculated for <strong id="place-name"></strong>. Within 15 miles (24 km) of a masjid the app knows, its iqama times are used; anywhere else you set your own.</p>
                     <form class="iq-fields" id="search-form" role="search">
                         <label for="search">City or town</label>
                         <input class="d-input" id="search" type="search" placeholder="For example, Edison" autocomplete="off">
@@ -172,7 +172,7 @@
                     <ul class="iq-results" id="results"></ul>
                     <div class="iq-fields">
                         <button class="d-btn d-btn-sm" type="button" id="use-here">Use my location</button>
-                        <button class="d-btn d-btn-sm" type="button" id="use-iscj">Use ISCJ</button>
+                        <button class="d-btn d-btn-sm" type="button" id="use-approx">Use my approximate location</button>
                     </div>
                     <div class="iq-fields">
                         <label for="method">Method</label>
@@ -318,7 +318,8 @@
                             <li><strong>Weather and air quality:</strong> the latitude and longitude of your place go to <a href="https://open-meteo.com/">Open-Meteo</a>. With <em>Use my location</em>, they are rounded to about 100 m first.</li>
                             <li><strong>City search:</strong> the name you type goes to Open-Meteo, to find the place.</li>
                             <li><strong>Weather warnings:</strong> your place, rounded to about 1 km, goes to this site’s own server, which asks the <a href="https://www.weather.gov/">National Weather Service</a> for warnings in force there. Nothing else about you is in that request.</li>
-                            <li><strong>ISCJ iqama times:</strong> the app asks this site’s own server, which reads iscj.org. Nothing about you is in that request.</li>
+                            <li><strong>Approximate location:</strong> on a new device, and when you tap <em>Use my approximate location</em>, the app asks this site’s own server which city your internet connection is in. Cloudflare, which hosts this site, works that out from your internet address; the server passes it back and keeps nothing.</li>
+                            <li><strong>Masjid iqama times:</strong> near a masjid the app knows (today, ISCJ in Monmouth Junction, NJ), the app asks this site’s own server, which reads that masjid’s website (iscj.org). Nothing about you is in that request.</li>
                             <li><strong>Quran and adhkar audio:</strong> the reciter list and recitations stream from mp3quran.net, and adhkar recordings from hisnmuslim.com, when you play them.</li>
                             <li><strong>Feedback:</strong> only when you send it, what you write, the screenshot if you leave it in, the details listed in the form if you leave them on, and your email if you give one go to this site’s server, which emails them to the person who looks after the app. Nothing is sent until you tap <em>Send</em>.</li>
                             <li><strong>Security reports:</strong> if the browser blocks something on a page for safety, it tells this site’s server log which page and which address. Nothing else is in the report.</li>

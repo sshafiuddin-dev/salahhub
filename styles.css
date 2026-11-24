@@ -234,6 +234,8 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .iq-weather { margin: 0; color: var(--muted); }
 .iq-ask { display: grid; gap: .25rem; padding: 1rem 1.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
 .iq-ask .iq-fields { margin-top: .4rem; }
+/* No place yet (a new device whose location could not be told): the banner asks for one and the times stay hidden */
+:root[data-noplace] #tab-today .today-grid { display: none !important; } /* over every clock layout's display rule */
 
 /* Today: clock, table and adhkar. Board and timeline list every time, so they replace the table. */
 .today-grid {
