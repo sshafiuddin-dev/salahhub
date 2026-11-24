@@ -3,7 +3,7 @@ import { CalculationMethods } from './lib/CalculationMethods.js';
 import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
-import { animate } from './motion.js';
+import { animate, swap } from './motion.js';
 import { startTour, tourOpen } from './tour.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
@@ -224,10 +224,12 @@ const masjidName = () => nearMasjid()?.name || 'the masjid';
 // Messages show as a toast above the tab bar and fade after a few seconds
 let toastTimer = 0;
 // A short message at the bottom. action = { label, fn } adds one button to it (as Undo after closing the Quran player),
-// and keeps the message up for 8 seconds instead of 5.
-const say = (text, action) => {
-  const el = $('status');
+// and keeps the message up for 8 seconds instead of 5. ok = true starts it with a tick, for a message that confirms something worked.
+// A new message that replaces one still showing gives a quick settle, so it reads as new.
+const say = (text, action, ok = false) => {
+  const el = $('status'), showing = el.classList.contains('show');
   el.textContent = text;
+  if (text && ok) el.insertAdjacentHTML('afterbegin', '<svg class="toast-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>');
   if (action) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'toast-act'; b.textContent = action.label;
@@ -236,6 +238,7 @@ const say = (text, action) => {
   }
   el.classList.toggle('show', !!text);
   el.classList.toggle('has-act', !!action);
+  if (text && showing) swap(el);
   clearTimeout(toastTimer);
   if (text) toastTimer = setTimeout(() => el.classList.remove('show'), action ? 8000 : 5000);
 };
@@ -492,7 +495,7 @@ async function share(title, text) {
   try {
     if (navigator.share) return await navigator.share({ title, text, url: appUrl });
     await navigator.clipboard.writeText(`${text}\n${appUrl}`);
-    say('Copied. Paste it into a message to share.');
+    say('Copied. Paste it into a message to share.', null, true);
   } catch (e) {
     if (e.name !== 'AbortError') say('Sharing is blocked in this browser. Copy the page address instead.');
   }
@@ -855,7 +858,7 @@ function setPlace(pl) {
   sync(false, true); // the weather here, and the timetable of a masjid that is now near
   const needIqama = !near() && !Object.keys(settings.iqama).length;
   if (needIqama) go('settings', 'iqama');
-  say(`Times are now for ${place().name}.${needIqama ? ' Set your masjid’s iqama times here.' : ''}`);
+  say(`Times are now for ${place().name}.${needIqama ? ' Set your masjid’s iqama times here.' : ''}`, null, true);
 }
 function locateMe() {
   if (!navigator.geolocation) return say('This browser cannot share a location. Search for your city instead.');
@@ -981,7 +984,7 @@ function syncDim() {
   }
   if (!$('set-dim')) return;
   const same = settings.autoDim === 'off', start = settings.nightStart === 'maghrib' ? 'Maghrib' : 'Isha';
-  $('set-dim').value = String(settings.level); $('set-dim-out').textContent = DIM_NAMES[settings.level];
+  $('set-dim').value = String(settings.level); $('set-dim-out').textContent = DIM_NAMES[settings.level]; $('set-dim').setAttribute('aria-valuetext', DIM_NAMES[settings.level]);
   $('set-night').value = same ? 'same' : String(settings.nightLevel);
   document.querySelectorAll('input[name="nightstart"]').forEach(r => { r.checked = r.value === settings.nightStart; });
   $('night-row').hidden = same;
@@ -1258,6 +1261,26 @@ $('set-big').addEventListener('change', () => { settings.big = $('set-big').valu
 $('set-dxlayout').value = settings.dxLayout;
 $('set-dxlayout').addEventListener('change', () => { settings.dxLayout = $('set-dxlayout').value; save(); applyLayout(); });
 $('set-arsize').addEventListener('input', () => { const i = +$('set-arsize').value; settings.arSize = AR_SIZES[i]; $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[i]); save(); tick(); });
+// Sliders show their value (its aria-valuetext, as Dim or Large) in a small label above the thumb while it is dragged, or while
+// it is moved with the keys; the label follows the thumb. Wraps the slider in <span class="rng"> for the label to sit in.
+function bubble(input, cls) {
+  const box = document.createElement('span'), tip = document.createElement('span');
+  box.className = `rng ${cls}`; tip.className = 'rng-bub'; tip.setAttribute('aria-hidden', 'true');
+  input.before(box); box.append(input, tip);
+  const place = () => {
+    const min = +input.min || 0, max = +input.max || 100;
+    box.style.setProperty('--p', String(max > min ? (input.value - min) / (max - min) : 0));
+    tip.textContent = input.getAttribute('aria-valuetext') || input.value;
+  };
+  const show = (on) => { if (on) place(); box.classList.toggle('act', on); };
+  input.addEventListener('input', place);
+  input.addEventListener('pointerdown', () => show(true));
+  for (const t of ['pointerup', 'pointercancel', 'blur']) input.addEventListener(t, () => show(false));
+  input.addEventListener('keydown', (e) => { if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End' || e.key.startsWith('Page')) show(true); });
+  place();
+}
+bubble($('set-dim'), 'rng-dim');
+bubble($('set-arsize'), 'rng-ar');
 
 // Keep screen on (Screen Wake Lock); also held while full screen is open. The browser drops it when the app is hidden.
 let lock = null, locking = false, displayOpen = false;
@@ -1294,7 +1317,7 @@ function setAwake(on) {
   settings.awake = on;
   save();
   if (on && !('wakeLock' in navigator)) say('This browser cannot keep the screen on. Try a current Chrome, Edge, Safari or Firefox.');
-  else say(on ? 'The screen stays on while this app is open.' : 'The screen can sleep again.');
+  else say(on ? 'The screen stays on while this app is open.' : 'The screen can sleep again.', null, on);
   updateLock();
 }
 $('awake').addEventListener('click', () => setAwake(!settings.awake));
@@ -1483,7 +1506,7 @@ $('sync').addEventListener('click', async () => {
   say('Syncing iqama times, prayer times and weather…');
   const live = await sync(true);
   $('sync').disabled = false;
-  say(live && weather ? 'Synced.' : `${live ? '' : `Could not reach ${masjidName()}, so the iqama times are the last saved ones. `}${weather ? '' : 'Weather is not available right now.'}`.trim());
+  say(live && weather ? 'Synced.' : `${live ? '' : `Could not reach ${masjidName()}, so the iqama times are the last saved ones. `}${weather ? '' : 'Weather is not available right now.'}`.trim(), null, live && !!weather);
 });
 
 // The app's version is the offline cache's name (sw.js raises it with every release)

@@ -8,6 +8,8 @@
    4.5:1 contrast on its paper at every level except Darkest, where the muted text is kept around 4:1 on purpose so nothing glows. */
 
 :root {
+  /* CSS copies of motion.js T.dur and T.ease, so stylesheet animations keep the pace of scripted ones; change both together */
+  --m-fast: .18s; --m-normal: .35s; --m-ease: cubic-bezier(.22, 1, .36, 1);
   --display: "Newsreader", "Iowan Old Style", Georgia, serif;
   --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --hand: "Kalam", "Segoe Print", "Bradley Hand", cursive;
@@ -80,9 +82,13 @@ body { font-feature-settings: "kern", "liga"; }
 .brand-bg { fill: var(--ink); } .brand-sq { fill: var(--paper); } .brand-accent { fill: var(--clear); }
 .dockbar { background: var(--paper); }
 
-/* Brightness button: a sun by day, a moon at the night levels */
-.dim-btn .dim-moon, :root[data-dim="2"] .dim-btn .dim-sun, :root[data-dim="3"] .dim-btn .dim-sun, :root[data-dim="1"] .dim-btn .dim-sun { display: none; }
-:root[data-dim="1"] .dim-btn .dim-moon, :root[data-dim="2"] .dim-btn .dim-moon, :root[data-dim="3"] .dim-btn .dim-moon { display: inline; }
+/* Brightness button: a sun at Bright, a moon at the dimmer levels. They share one spot: the sun turns away and shrinks
+   as the moon turns in (with "reduce motion" on they only cross-fade; in E-ink they swap at once) */
+.dim-btn svg path { transform-box: fill-box; transform-origin: center; transition: opacity var(--m-normal) var(--m-ease), transform var(--m-normal) var(--m-ease); }
+.dim-btn .dim-moon { opacity: 0; transform: rotate(-90deg) scale(.5); }
+:root[data-dim="1"] .dim-btn .dim-sun, :root[data-dim="2"] .dim-btn .dim-sun, :root[data-dim="3"] .dim-btn .dim-sun { opacity: 0; transform: rotate(90deg) scale(.5); }
+:root[data-dim="1"] .dim-btn .dim-moon, :root[data-dim="2"] .dim-btn .dim-moon, :root[data-dim="3"] .dim-btn .dim-moon { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .dim-btn svg path { transition-property: opacity; } }
 .dim-btn { display: inline-flex; align-items: center; gap: .4rem; }
 .dim-btn svg { width: 1.1rem; height: 1.1rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .dim-range { width: 100%; max-width: 22rem; accent-color: var(--ink); }
@@ -314,6 +320,19 @@ body { font-feature-settings: "kern", "liga"; }
 .d-toggle:checked, .d-toggle:has(> input:checked), .d-toggle-success:checked { --d-input-color: var(--ink); background: var(--ink); color: var(--paper); }
 .d-toggle:checked::before, .d-toggle:has(> input:checked)::before { background-color: var(--paper); }
 .d-toggle:not(:checked) { --d-input-color: var(--muted); }
+/* Switches glide: the square knob slides across at the app's normal pace and the switch dips a little under a finger */
+.d-toggle { transition: color var(--m-fast), background-color var(--m-fast), grid-template-columns var(--m-normal) var(--m-ease), scale var(--m-fast) var(--m-ease); }
+.d-toggle::before { transition: background-color var(--m-fast), translate var(--m-normal) var(--m-ease), inset-inline-start var(--m-normal) var(--m-ease); }
+.d-toggle:active { scale: .95; }
+/* Choices: a picked swatch's frame closes in round it, a picked clock style or segment settles, and they dip when pressed */
+.swatch .sw-chip { outline: 3px solid transparent; outline-offset: 0; transition: outline-offset var(--m-normal) var(--m-ease), outline-color var(--m-fast); }
+.swatch, .ck-opt, .d-join-item { transition: scale var(--m-fast) var(--m-ease), border-color var(--m-fast), background-color var(--m-fast), color var(--m-fast); }
+.swatch:active, .ck-opt:active, .d-join-item:active { scale: .95; }
+@media (prefers-reduced-motion: reduce) { /* nothing moves or scales; colours still change */
+  .d-toggle, .d-toggle::before { transition-property: color, background-color; }
+  .d-toggle:active, .swatch:active, .ck-opt:active, .d-join-item:active { scale: none; }
+  .swatch .sw-chip { transition: none; }
+}
 
 .al-grid { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 1rem; border-bottom: 3px double var(--ink); max-width: 44rem; }
 .al-card { background: none; border: 0; border-top: var(--rule-w) solid var(--line); border-radius: 0; }

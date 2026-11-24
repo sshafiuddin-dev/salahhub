@@ -203,8 +203,21 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .toast.has-act.show { pointer-events: auto; } /* a message with a button (Undo) can be tapped */
 .toast:not(.show) .toast-act { visibility: hidden; }
 .toast-act { min-height: 44px; margin: -.75rem -.4rem -.75rem .6rem; padding: 0 .4rem; background: none; border: 0; color: inherit; font: 600 .95rem/1 var(--body); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
-.toast.show { opacity: 1; transform: translate(-50%, 0); transition-duration: .25s; transition-timing-function: var(--ease); }
-@media (prefers-reduced-motion: reduce) { .toast, .toast.show { transform: translate(-50%, 0); } }
+.toast.show { opacity: 1; transform: translate(-50%, 0); transition-duration: var(--m-normal); transition-timing-function: var(--m-ease); }
+/* A message that confirms something worked (Copied, Synced, Added) starts with a tick, drawn in as the message rises */
+.toast-ok { width: 1.05rem; height: 1.05rem; margin: 0 .45rem 0 -.1rem; vertical-align: -.18rem; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.toast-ok path { stroke-dasharray: 20; stroke-dashoffset: 20; transition: stroke-dashoffset var(--m-normal) var(--m-ease) .1s; }
+.toast.show .toast-ok path { stroke-dashoffset: 0; }
+@media (prefers-reduced-motion: reduce) { .toast, .toast.show { transform: translate(-50%, 0); } .toast-ok path { stroke-dashoffset: 0; transition: none; } }
+/* Sliders show their value in a small label above the thumb while it is dragged or moved with the keys (app.js, bubble()) */
+.rng { position: relative; display: block; width: 100%; }
+.rng-dim { max-width: 22rem; } .rng-ar { max-width: 16rem; }
+.rng > .d-range { width: 100%; }
+.rng-bub { position: absolute; bottom: calc(100% - .2rem); left: calc(var(--p, 0) * (100% - 1.25rem) + .625rem); z-index: 3; padding: .15rem .55rem; border-radius: 6px;
+  background: var(--ink); color: var(--paper); font: 600 .85rem/1.4 var(--body); white-space: nowrap; pointer-events: none;
+  opacity: 0; transform: translate(-50%, .35rem) scale(.85); transition: opacity var(--m-fast), transform var(--m-normal) var(--m-ease); }
+.rng.act .rng-bub { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .rng-bub, .rng.act .rng-bub { transform: translate(-50%, 0); } }
 .sub-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: .25rem; align-content: start; padding: 0; border: 0; } /* the portfolio pads every <section> */
 .seg { justify-self: start; max-width: 100%; min-height: 3rem; font-family: var(--body); } /* min-height: a scroll-container grid item would otherwise be squeezed to a sliver by a tall pane */
 .seg .d-tab { font-weight: 600; color: var(--muted); background-color: transparent; border: 0; } /* these are <button>s, which daisyUI does not reset */
