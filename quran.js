@@ -38,6 +38,9 @@ const btn = (q, icon, label, cls = '') => `<button class="qp-ic ${cls}" type="bu
 // pathLength 100, so the dash offset is 100 minus the percentage played. The timeline carries the same news for screen readers.
 const eq = '<span class="qp-eq" aria-hidden="true"><svg viewBox="0 0 22 22"><circle class="qp-ring-bg" cx="11" cy="11" r="9"/>'
   + '<circle class="qp-ring" cx="11" cy="11" r="9" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg></span>';
+// The same ring, larger, round Now playing's play button: it fills as the surah plays (paint() moves every .qp-ring)
+const PRING = '<svg class="qp-pring-svg" viewBox="0 0 44 44" aria-hidden="true"><circle class="qp-ring-bg" cx="22" cy="22" r="20.5"/>'
+  + '<circle class="qp-ring" cx="22" cy="22" r="20.5" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>';
 const timeline = () => `<div class="qp-time"><span class="qp-cur">0:00</span><div class="qp-track"><div class="qp-buf"></div><div class="qp-fill"></div>`
   + `<input class="qp-seek" type="range" min="0" max="1000" step="1" value="0" aria-label="Position in the surah" disabled></div><span class="qp-dur">0:00</span></div>`;
 const transport = () => `${btn('shuffle', 'shuffle', 'Shuffle', 'qp-extra')}${btn('prev', 'prev', 'Previous surah')}${btn('back', 'back', 'Back 10 seconds', 'qp-extra')}`
@@ -81,7 +84,7 @@ export function initQuran({ say, stopOthers }) {
     + `<div class="qp-card"><div class="qp-cover"><div class="qp-art qp-art-lg" aria-hidden="true"></div>`
     + `<div class="qp-cover-top">${btn('close', 'down', 'Close now playing', 'qp-on-art')}${btn('dismiss', 'close', 'Stop and close the player', 'qp-on-art')}</div>${timeline()}</div>`
     + `<div class="qp-info"><p class="qp-style"></p><p class="qp-ar" lang="ar" dir="rtl"></p><h2 class="qp-label"></h2><p class="qp-reciter"></p></div>`
-    + `<div class="qp-btns qp-round">${btn('prev', 'prev', 'Previous surah')}${btn('toggle', 'play', 'Play', 'qp-play')}${btn('next', 'next', 'Next surah')}</div>`
+    + `<div class="qp-btns qp-round">${btn('prev', 'prev', 'Previous surah')}<span class="qp-pring">${btn('toggle', 'play', 'Play', 'qp-play')}${PRING}</span>${btn('next', 'next', 'Next surah')}</div>`
     + `<div class="qp-more">${btn('fav', 'heart', 'Add this surah to favorites', 'qp-heart')}${btn('shuffle', 'shuffle', 'Shuffle')}${btn('repeat', 'repeat', 'Repeat')}`
     + `${btn('add', 'add', 'Add this surah to a playlist')}<button class="qp-ic" type="button" data-q="extras" aria-expanded="false" aria-controls="qp-extras" aria-label="More controls" title="More controls">${IC.more}</button></div>`
     + `<div class="qp-extras" id="qp-extras" hidden>${btn('back', 'back', 'Back 10 seconds')}${btn('fwd', 'fwd', 'Forward 10 seconds')}`
@@ -389,7 +392,7 @@ export function initQuran({ say, stopOthers }) {
     now.querySelector('.qp-style').textContent = cur && cut >= 0 ? cur.sub.slice(cut + 3) : '';
     paintArt();
     all('[data-q="toggle"]').forEach(el => {
-      if (playing !== wasPlaying || !el.firstElementChild) { el.innerHTML = playing ? IC.pause : IC.play; mo.swap(el.firstElementChild); }
+      if (playing !== wasPlaying || !el.firstElementChild) { el.innerHTML = playing ? IC.pause : IC.play; mo.turn(el.firstElementChild); }
       el.setAttribute('aria-label', playing ? 'Pause' : 'Play'); el.title = playing ? 'Pause' : 'Play';
     });
     wasPlaying = playing;
@@ -490,7 +493,7 @@ export function initQuran({ say, stopOthers }) {
     else if (a === 'fwd') seekBy(10);
     else if (a === 'repeat') { store.repeat = nextRepeat(store.repeat); save(); paint(); say(`${REPEAT_TEXT[store.repeat]}.`); if (!now.hidden) renderQueue(); }
     else if (a === 'shuffle') { store.shuffle = !store.shuffle; if (q) q = reshuffle(q, store.shuffle); save(); paint(); say(store.shuffle ? 'Shuffle is on.' : 'Shuffle is off.'); if (!now.hidden) renderQueue(); }
-    else if (a === 'fav') { if (cur) { favTrack(cur.id); mo.pop(b.firstElementChild); } }
+    else if (a === 'fav') { if (cur) { favTrack(cur.id); love(b); } }
     else if (a === 'add') { if (cur) openAdd(cur.id, cur.label); }
     else if (a === 'rate') { store.rate = audio.playbackRate = nextRate(store.rate); save(); paint(); }
     else if (a === 'extras') { const x = $('qp-extras'), open = x.hidden; x.hidden = !open; b.setAttribute('aria-expanded', String(open)); if (open) mo.fade(x); }
@@ -507,6 +510,15 @@ export function initQuran({ say, stopOthers }) {
   //   (with Undo); let go sooner and it settles back. The × is the same action for mouse, keyboard and remote.
   // - up: it lifts a little with the finger; let go past 40px, or flick up, and Now playing opens (the ⌃ does the same). ----
   const quiet = () => mo.calm() || document.documentElement.dataset.palette === 'eink';
+  // A heart that has just been pressed: it pops, and when it turns on, eight sparks fly out of it
+  function love(b) {
+    mo.pop(b.firstElementChild);
+    if (b.getAttribute('aria-pressed') !== 'true' || quiet()) return;
+    b.querySelector('.qp-burst')?.remove();
+    b.insertAdjacentHTML('beforeend', `<span class="qp-burst" aria-hidden="true">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<i style="--a:${a}deg"></i>`).join('')}</span>`);
+    const burst = b.lastElementChild;
+    setTimeout(() => burst.remove(), 700);
+  }
   let drag = null, dragged = false;
   player.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse' || !cur || e.target.closest('.qp-btns, .qp-side, .qp-time, input')) return;
@@ -890,7 +902,7 @@ export function initQuran({ say, stopOthers }) {
 
   tabEl.addEventListener('click', (e) => {
     const v = e.target.closest('[data-view]');
-    if (v) { view = v.dataset.view; query = $('qp-search').value = ''; setPane('list'); return renderList(true); }
+    if (v) { view = v.dataset.view; query = $('qp-search').value = ''; foldSearch(false); setPane('list'); return renderList(true); }
     const b = e.target.closest('[data-act]');
     if (!b) return;
     const a = b.dataset.act, li = b.closest('li[data-track]');
@@ -912,10 +924,10 @@ export function initQuran({ say, stopOthers }) {
     else if (a === 'open-list') openDetail({ type: 'list', id: b.dataset.id });
     else if (a === 'back') { // the same as the phone's back gesture, when the reciter added a step; else straight to the list
       if (hState().qp === 'detail') history.back();
-      else { setPane('list'); (listEl.querySelector('.is-open .qp-main') || $('qp-search')).focus(); }
+      else { setPane('list'); (listEl.querySelector('.is-open .qp-main') || ($('qp-sx').classList.contains('open') ? $('qp-search') : $('qp-sxb'))).focus(); }
     }
     else if (a === 'moshaf') { detail.m = +b.dataset.m; renderDetail(true); }
-    else if (a === 'fav-r') { favReciter(+b.dataset.id); mo.pop(b.firstElementChild); }
+    else if (a === 'fav-r') { favReciter(+b.dataset.id); love(b); }
     else if (a === 'new-list') openName(null);
     else if (a === 'rename') openName(detail.id);
     else if (a === 'delete') openDelete(detail.id);
@@ -925,7 +937,7 @@ export function initQuran({ say, stopOthers }) {
       if (!playable(li.dataset.track)) return say('This surah is not saved on this device. Connect to the internet to play it.');
       const [ids, i] = queueFrom(li);
       if (i >= 0) playQueue(ids, i);
-    } else if (li && a === 'fav-t') { favTrack(li.dataset.track); mo.pop(b.firstElementChild); }
+    } else if (li && a === 'fav-t') { favTrack(li.dataset.track); love(b); }
     else if (li && a === 'add') { const i = info(li.dataset.track); if (i) openAdd(i.id, `${label(i)} · ${i.reciter}`); }
     else if (li && a === 'remove') {
       const glide = mo.flip(li.parentElement.children);
@@ -1000,7 +1012,7 @@ export function initQuran({ say, stopOthers }) {
           btn.innerHTML = st === 'kept' ? IC.done : st === 'busy' ? IC.stop : IC.dl;
           btn.title = DL_TEXT[st];
           btn.setAttribute('aria-label', `${DL_TEXT[st]}: ${i ? i.title : ''}`);
-          if (st === 'kept') mo.pop(btn.firstElementChild); else mo.swap(btn.firstElementChild);
+          if (st === 'kept') { btn.classList.add('qp-justkept'); setTimeout(() => btn.classList.remove('qp-justkept'), 700); } else mo.swap(btn.firstElementChild);
         }
       });
     }
@@ -1014,6 +1026,24 @@ export function initQuran({ say, stopOthers }) {
   for (const ev of ['online', 'offline']) addEventListener(ev, () => { if (!tabEl.hidden) { renderList(); renderDetail(); } });
 
   $('qp-search').addEventListener('input', (e) => { query = e.target.value.trim(); setPane('list'); renderList(); });
+  // Search sits behind a round magnifier: a tap opens it into a field (and the magnifier turns into ×); × or Escape clears
+  // the search and folds it away again
+  function foldSearch(on) {
+    $('qp-sx').classList.toggle('open', on);
+    $('qp-sxb').setAttribute('aria-expanded', String(on));
+    $('qp-sxb').setAttribute('aria-label', on ? 'Close search' : 'Search reciters and surahs');
+    $('qp-search').tabIndex = on ? 0 : -1;
+  }
+  function closeSearch() {
+    foldSearch(false);
+    if ($('qp-search').value) { $('qp-search').value = ''; query = ''; setPane('list'); renderList(); }
+  }
+  $('qp-sxb').addEventListener('click', () => {
+    if ($('qp-sx').classList.contains('open')) return closeSearch();
+    foldSearch(true);
+    setTimeout(() => $('qp-search').focus(), quiet() ? 0 : 220);
+  });
+  $('qp-search').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeSearch(); $('qp-sxb').focus(); } });
   $('qp-riwaya').addEventListener('change', (e) => {
     store.riwaya = e.target.value === 'all' ? 'all' : +e.target.value; save();
     renderList(true); renderDetail();
