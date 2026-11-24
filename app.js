@@ -3,7 +3,7 @@ import { CalculationMethods } from './lib/CalculationMethods.js';
 import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
-import { animate, swap } from './motion.js';
+import { animate, swap, fade, rows } from './motion.js';
 import { startTour, tourOpen } from './tour.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
@@ -297,6 +297,7 @@ function showHijri() {
 }
 
 let today = null, day = null, tomorrow = null, lastSec = null, weather = null;
+let wxLoading = true; // the first weather has not come in yet: the Weather tab shows grey placeholders, not "not available"
 // After the Isha iqama (or an hour after the Isha adhan when no iqama is set) the timetables show tomorrow's day
 let ahead = false;
 const isAhead = (nowMin) => nowMin >= (day.rows[4].iqama ?? day.rows[4].adhan + 60);
@@ -484,6 +485,8 @@ addEventListener('hashchange', route);
 // a tap anywhere else, a choice in it, or Escape closes the More menu. Outside taps are read on pointerdown: the clock is
 // drawn again every second and can swallow the click that would otherwise close it.
 const moreMenus = () => document.querySelectorAll('.more details, details.more');
+// Opening it: its entries rise in one after another, Quran (next to More) first
+moreMenus().forEach(d => d.addEventListener('toggle', () => { if (d.open) rows(d.querySelectorAll('.more-menu a')); }));
 document.addEventListener('pointerdown', (e) => moreMenus().forEach(d => { if (!d.contains(e.target)) d.open = false; }));
 document.addEventListener('click', (e) => moreMenus().forEach(d => { if (!d.contains(e.target) || e.target.closest('.more-menu a')) d.open = false; }));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') moreMenus().forEach(d => { if (d.open) { d.open = false; d.querySelector('summary').focus(); } }); });
@@ -1020,16 +1023,19 @@ syncDim();
 // Weather, for the header, the backdrop and the Weather panel; the page works the same without it
 let wxReq = 0;
 async function loadWeather() {
-  if (!placeKnown()) return;
+  if (!placeKnown()) { if (wxLoading) { wxLoading = false; renderWeather(); } return; }
   const { lat, lng } = place(), n = ++wxReq;
   let w = null;
   const warnReq = fetchAlerts(lat, lng); // official warnings, fetched alongside; [] outside the US or on any failure
   try { w = await fetchWeather(lat, lng, settings.units); } catch (e) {}
   const a = await warnReq;
   if (n !== wxReq) return; // a newer request (new place or units) has started; this answer is stale
+  const first = wxLoading && !!w;
   weather = w;
   alerts = a;
+  wxLoading = false;
   renderWeather();
+  if (first) fade($('wx-body')); // the real weather fades in over where the placeholders were
   tick();
 }
 function prayerMarks() {
@@ -1081,11 +1087,14 @@ function warningsHtml() {
   return `<div class="wx-warns" role="region" aria-label="Weather warnings">${alerts.map(a => `<details class="wx-warn"><summary><b>${esc(a.event)}</b> <span>${esc(untilText(a.until, now, zone))}</span></summary>`
     + `${a.text ? `<p>${esc(a.text)}</p>` : ''}${a.todo ? `<p><b>What to do:</b> ${esc(a.todo)}</p>` : ''}<small>${esc(a.sender)}</small></details>`).join('')}</div>`;
 }
+// Grey shapes where the weather will be (icon, temperature, two lines, a row of hours), shown only until the first weather arrives
+const WX_WAIT = '<div class="wx-skel" aria-hidden="true"><i class="sk-ic"></i><i class="sk-t"></i><i class="sk-l"></i><i class="sk-l sk-s"></i>'
+  + '<div class="sk-row"><i></i><i></i><i></i><i></i><i></i><i></i></div></div><p class="iq-note">Loading the weather…</p>';
 function renderWeather() {
   const u = settings.units, w = weather;
   $('weather').hidden = !w;
   $('weather').textContent = w ? `${Math.round(w.temp)}°${u}${w.label ? `, ${w.label.toLowerCase()}` : ''}` : '';
-  $('wx-body').innerHTML = warningsHtml() + (w ? weatherHtml(w, u, prayerMarks()) : '<p class="iq-note">Weather is not available right now. The page tries again every 15 minutes.</p>');
+  $('wx-body').innerHTML = warningsHtml() + (w ? weatherHtml(w, u, prayerMarks()) : wxLoading ? WX_WAIT : '<p class="iq-note">Weather is not available right now. The page tries again every 15 minutes.</p>');
   $('wx-updated').textContent = w && w.at != null ? `Updated ${fmt(w.at)} local time. Weather and air quality from Open-Meteo.` : '';
   document.querySelectorAll('[data-unit]').forEach(b => b.setAttribute('aria-pressed', b.dataset.unit === u));
 }
@@ -1453,7 +1462,29 @@ setInterval(applyShift, 30e3);
 sync();
 setInterval(sync, SYNC_EVERY);
 setInterval(showSynced, 60e3); // turns to the warning colour once the last good sync is a day old
-addEventListener('online', () => sync()); // the connection came back: bring everything up to date at once
+// Connection, beside the date (and on the full screen view): nothing while online. Offline, a crossed-out signal and
+// "Offline: using saved times", so no one wonders whether a time is current. When the connection comes back, the signal's
+// arcs light in turn while everything syncs, then "Up to date" shows for a few seconds and the note goes away.
+const NET_ICON = '<svg class="net-ic" viewBox="0 0 24 24" aria-hidden="true"><path class="n3" d="M2.5 9a14 14 0 0 1 19 0"/><path class="n2" d="M5.5 12.5a9.5 9.5 0 0 1 13 0"/>'
+  + '<path class="n1" d="M8.7 16a5 5 0 0 1 6.6 0"/><circle class="n0" cx="12" cy="19.5" r="1.4"/><path class="nx" d="M4 4l16 16"/></svg>';
+const NET_TEXT = { off: 'Offline: using saved times', on: 'Back online, syncing…', ok: 'Up to date' };
+let netTimer = 0;
+function showNet(state) { // 'off', 'on' (syncing), 'ok', or '' for nothing
+  clearTimeout(netTimer);
+  document.querySelectorAll('[data-net]').forEach(el => {
+    if (el.dataset.state === state) return;
+    el.dataset.state = state; el.hidden = !state;
+    el.innerHTML = state ? `${NET_ICON}<span>${NET_TEXT[state]}</span>` : '';
+  });
+  if (state === 'ok') netTimer = setTimeout(() => showNet(''), 4000);
+}
+addEventListener('offline', () => showNet('off'));
+addEventListener('online', async () => { // the connection came back: bring everything up to date at once
+  showNet('on');
+  const live = await sync();
+  showNet(!navigator.onLine ? 'off' : live ? 'ok' : ''); // not reaching the masjid is shown beside Sync now, in the warning colour
+});
+if (!navigator.onLine) showNet('off');
 
 // Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server
 // whether any of its files changed since it loaded; if so, it reloads itself at a quiet moment: no sound playing, no alert,
