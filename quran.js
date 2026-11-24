@@ -7,7 +7,7 @@ import {
 } from './quran-logic.js';
 import * as mo from './motion.js';
 import { initOffline } from './quran-offline.js';
-import { tileArt, starArt, artPicture, arNames, isMakki } from './quran-art.js';
+import { tileArt, starArt, paintedArt, paintingOf, arNames, isMakki, SURAH_AR } from './quran-art.js';
 import { esc } from './logic.js';
 
 const API = 'https://mp3quran.net/api/v3';
@@ -78,7 +78,7 @@ export function initQuran({ say, stopOthers }) {
     // buttons, a row of quieter ones, and the rest (10 seconds back and on, speed, volume) behind ⋯
     + `<div class="qp-card"><div class="qp-cover"><div class="qp-art qp-art-lg" aria-hidden="true"></div>`
     + `<div class="qp-cover-top">${btn('close', 'down', 'Close now playing', 'qp-on-art')}${btn('dismiss', 'close', 'Stop and close the player', 'qp-on-art')}</div>${timeline()}</div>`
-    + `<div class="qp-info"><p class="qp-style"></p><h2 class="qp-label"></h2><p class="qp-reciter"></p></div>`
+    + `<div class="qp-info"><p class="qp-style"></p><p class="qp-ar" lang="ar" dir="rtl"></p><h2 class="qp-label"></h2><p class="qp-reciter"></p></div>`
     + `<div class="qp-btns qp-round">${btn('prev', 'prev', 'Previous surah')}${btn('toggle', 'play', 'Play', 'qp-play')}${btn('next', 'next', 'Next surah')}</div>`
     + `<div class="qp-more">${btn('fav', 'heart', 'Add this surah to favorites', 'qp-heart')}${btn('shuffle', 'shuffle', 'Shuffle')}${btn('repeat', 'repeat', 'Repeat')}`
     + `${btn('add', 'add', 'Add this surah to a playlist')}<button class="qp-ic" type="button" data-q="extras" aria-expanded="false" aria-controls="qp-extras" aria-label="More controls" title="More controls">${IC.more}</button></div>`
@@ -135,13 +135,15 @@ export function initQuran({ say, stopOthers }) {
   // The pictures for a track: the reciter's tile and the surah's card
   const reciterOf = (id) => cat?.moshaf.get(+String(id).split(':')[0])?.reciterId;
   const tileFor = (name, rid) => tileArt({ reciter: name, reciterAr: ar.names[rid] });
-  let artKey = '', artUrl = '';
+  let artKey = '';
   function paintArt() {
     const i = cur && info(cur.id), key = i ? `${cur.id}|${ar.names[reciterOf(cur.id)] || ''}` : '';
     if (key === artKey) return;
     artKey = key;
     player.querySelector('.qp-art').innerHTML = i ? tileFor(i.reciter, reciterOf(cur.id)) : '';
-    now.querySelector('.qp-art').innerHTML = i ? starArt({ n: i.n, reciter: i.reciter, title: label(i), makki: cat?.surahs.get(i.n)?.makki, cover: true }) : '';
+    const mk = i && cat?.surahs.get(i.n)?.makki;
+    now.querySelector('.qp-art').innerHTML = i ? paintedArt({ n: i.n, makki: mk }) + starArt({ n: i.n, reciter: i.reciter, title: label(i), makki: mk, cover: true }) : '';
+    now.querySelector('.qp-ar').textContent = i ? SURAH_AR[i.n - 1] || '' : '';
   }
   // What a track is: from mp3quran's lists, or, with none (offline), from what was kept with the recitation
   function savedInfo(id) {
@@ -355,14 +357,8 @@ export function initQuran({ say, stopOthers }) {
     const icon = [{ src: 'icon-512.png', sizes: '512x512', type: 'image/png' }], i = info(cur.id), id = cur.id;
     set(icon);
     if (!i) return;
-    // the surah's card as the lock-screen picture, once it is drawn (the app icon until then, or where it cannot be)
-    artPicture(starArt({ n: i.n, reciter: i.reciter, title: label(i), makki: cat?.surahs.get(i.n)?.makki })).then((src) => {
-      if (!src) return;
-      if (!cur || cur.id !== id) return URL.revokeObjectURL(src);
-      if (artUrl) URL.revokeObjectURL(artUrl);
-      artUrl = src;
-      set([{ src, sizes: '512x512', type: 'image/png' }, ...icon]);
-    });
+    // the surah's painting as the lock-screen picture, the app icon where it cannot be shown
+    set([{ src: new URL(paintingOf(i.n, mk), location.href).href, sizes: '720x720', type: 'image/webp' }, ...icon]);
   }
   if ('mediaSession' in navigator) {
     const on = (name, fn) => { try { navigator.mediaSession.setActionHandler(name, fn); } catch (e) {} };

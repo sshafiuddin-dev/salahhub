@@ -1,7 +1,7 @@
 // Artwork for the Quran player, drawn here so it needs no download and works offline.
 // mp3quran.net has no reciter pictures, so each reciter gets a colour of their own (from their name, so it is the same
 // online and offline) and two drawings: a small tile with the first letter of their name, and a large card with the
-// surah's number and Arabic name inside an eight-point star. Plain SVG strings, so the tests can check them.
+// surah's number and Arabic name inside an eight-point star (shown in E-ink and High contrast; the other looks show a painting). Plain SVG strings, so the tests can check them.
 // The fills are attributes with classes beside them: look.css can turn them to ink and paper in E-ink and High contrast,
 // and the lock-screen picture, drawn from the same markup, keeps the colours.
 
@@ -70,24 +70,14 @@ export function starArt({ n, reciter, title, makki, cover = false }) {
     + '</svg>';
 }
 
-// A picture of the card for the lock screen (the media session wants an image address, not markup).
-// Resolves to a blob: address, or null where the browser cannot draw it.
-export function artPicture(svg, size = 512) {
-  return new Promise((resolve) => {
-    try {
-      const img = new Image(), url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-      img.onload = () => {
-        try {
-          const c = document.createElement('canvas'); c.width = c.height = size;
-          c.getContext('2d').drawImage(img, 0, 0, size, size);
-          URL.revokeObjectURL(url);
-          c.toBlob((b) => resolve(b ? URL.createObjectURL(b) : null), 'image/png');
-        } catch (e) { URL.revokeObjectURL(url); resolve(null); }
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
-      img.src = url;
-    } catch (e) { resolve(null); }
-  });
+// The watercolours for Now playing and the lock screen: the Kaaba for a Makki surah, Masjid an-Nabawi for a Madani one
+// (painted for the app by scripts/art/paint.py). The label and the two shades (behind the buttons and the timeline) are
+// part of it; E-ink and High contrast show the star card in its place (styles.css).
+export const paintingOf = (n, makki) => (isMakki(n, makki) ? 'art/kaaba.webp' : 'art/nabawi.webp');
+export function paintedArt({ n, makki }) {
+  const mk = isMakki(n, makki);
+  return `<img class="qa-paint" src="${paintingOf(n, makki)}" alt="" width="720" height="720" decoding="async">`
+    + `<span class="qa-shade" aria-hidden="true"></span><span class="qa-pill">${mk ? 'Makki · مكية' : 'Madani · مدنية'}</span>`;
 }
 
 // mp3quran's Arabic reciter list, kept as { id: name } and refreshed at most once a week
