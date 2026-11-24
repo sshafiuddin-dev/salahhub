@@ -612,14 +612,14 @@ export function initQuran({ say, stopOthers }) {
   // ---- Favorites and playlists ----
   function favTrack(id) {
     store.favT = toggle(store.favT, id); save();
-    say(store.favT.includes(id) ? 'Added to your favorite surahs.' : 'Removed from your favorite surahs.');
+    say(store.favT.includes(id) ? 'Added to your favorite surahs.' : 'Removed from your favorite surahs.', null, store.favT.includes(id));
     paint();
     document.querySelectorAll(`li[data-track="${id}"] [data-act="fav-t"]`).forEach(b => b.setAttribute('aria-pressed', String(store.favT.includes(id))));
     if (view === 'favorites' && !query) renderList();
   }
   function favReciter(id) {
     store.favR = toggle(store.favR, id); save();
-    say(store.favR.includes(id) ? 'Added to your favorite reciters.' : 'Removed from your favorite reciters.');
+    say(store.favR.includes(id) ? 'Added to your favorite reciters.' : 'Removed from your favorite reciters.', null, store.favR.includes(id));
     tabEl.querySelectorAll(`[data-act="fav-r"][data-id="${id}"]`).forEach(b => b.setAttribute('aria-pressed', String(store.favR.includes(id))));
     if (view === 'favorites' && !query) renderList();
   }
@@ -720,7 +720,7 @@ export function initQuran({ say, stopOthers }) {
     if (a === 'cancel') closeDlg();
     else if (a === 'pick') {
       store.lists = addToList(store.lists, b.dataset.id, dlg.dataset.track); save();
-      say(`Added to ${listById(b.dataset.id).name}.`);
+      say(`Added to ${listById(b.dataset.id).name}.`, null, true);
       closeDlg(); refreshLists(); if (detail?.type === 'list') renderDetail();
     } else if (a === 'delete') {
       store.lists = removeList(store.lists, b.dataset.id); save();
@@ -734,12 +734,12 @@ export function initQuran({ say, stopOthers }) {
     const f = e.target, name = cleanName(f.elements.name.value), a = f.dataset.d;
     if (!name) { say('Give the playlist a name first.'); return f.elements.name.focus(); }
     closeDlg();
-    if (a === 'rename') { store.lists = renameList(store.lists, f.dataset.id, name); say('Playlist renamed.'); }
+    if (a === 'rename') { store.lists = renameList(store.lists, f.dataset.id, name); say('Playlist renamed.', null, true); }
     else {
       store.lists = addList(store.lists, name);
       const made = store.lists[store.lists.length - 1];
-      if (a === 'create-add') { store.lists = addToList(store.lists, made.id, dlg.dataset.track); say(`Added to ${name}.`); }
-      else { say(`Playlist “${name}” created.`); save(); view = 'playlists'; return openDetail({ type: 'list', id: made.id }); }
+      if (a === 'create-add') { store.lists = addToList(store.lists, made.id, dlg.dataset.track); say(`Added to ${name}.`, null, true); }
+      else { say(`Playlist “${name}” created.`, null, true); save(); view = 'playlists'; return openDetail({ type: 'list', id: made.id }); }
     }
     save();
     refreshLists(); if (detail?.type === 'list') renderDetail();
