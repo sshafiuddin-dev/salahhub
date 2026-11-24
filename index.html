@@ -41,6 +41,7 @@
                         <span class="iq-place"><span id="place"></span> <button class="link-btn" type="button" id="change-place">Change</button></span>
                         <span class="iq-time" id="now"></span>
                         <button class="link-btn iq-weather" type="button" id="weather" hidden></button>
+                        <span class="net" data-net role="status" hidden></span>
                     </p>
                 </div>
                 <div class="topbar-actions">
@@ -356,7 +357,7 @@
     <div class="display" id="display" hidden>
         <div class="sky-tint" aria-hidden="true"></div><div class="sky-print" aria-hidden="true"></div>
         <div class="dx-top">
-            <p class="dx-meta"><span id="dx-date"></span> <span id="dx-place"></span></p>
+            <p class="dx-meta"><span id="dx-date"></span> <span id="dx-place"></span> <span class="net" data-net hidden></span></p>
             <div class="dx-actions">
                 <span class="dx-awake" id="dx-awake" hidden><span class="dx-dot"></span>Screen stays on</span>
                 <button class="d-btn d-btn-error dx-stop" type="button" id="dx-stop" hidden>Stop</button>
