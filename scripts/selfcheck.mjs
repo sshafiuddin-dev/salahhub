@@ -4,8 +4,9 @@ import { parse, fromSchedule, read } from '../functions/_lib/parse.js';
 import { handle } from '../functions/api/iqama.js';
 import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
 import { handle as feedbackHandle } from '../functions/api/feedback.js';
+import { where as whereFrom, handle as whereHandle } from '../functions/api/where.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf, bellState } from '../logic.js';
+import { MASJIDS, NEAR_MILES, NEAR_KM, nearestMasjid, wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf, bellState } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -253,11 +254,28 @@ assert.deepEqual(nextEvent(rows, 313, 320, 400), { key: 'fajr', kind: 'iqama', a
 assert.deepEqual(nextEvent(rows, 313, 400, 400), { key: 'isha', kind: 'adhan', at: 1090 });
 assert.deepEqual(nextEvent(rows, 313, 1100), { key: 'fajr', kind: 'adhan', at: 1753 });
 
-// Distance rule for showing ISCJ iqama times (40 km)
-const iscj = { lat: 40.384, lng: -74.563 };
-assert.ok(km(iscj, { lat: 40.518, lng: -74.412 }) < 40, 'Edison is near ISCJ');
-assert.ok(km(iscj, { lat: 40.713, lng: -74.006 }) > 40, 'Manhattan is not near ISCJ');
+// Distance rule for a masjid's iqama times: the nearest masjid on the list within 15 miles (24.1 km)
+assert.equal(NEAR_MILES, 15);
+assert.ok(Math.abs(NEAR_KM - 24.14) < 0.01, '15 miles is 24.14 km');
+const iscj = MASJIDS.find(m => m.id === 'iscj');
+assert.ok(iscj && iscj.source === '/api/iqama' && iscj.daily === 'iqama.json', 'ISCJ is on the list with its timetable sources');
+assert.equal(nearestMasjid({ lat: 40.388, lng: -74.531 })?.id, 'iscj', 'Dayton is near ISCJ');
+assert.equal(nearestMasjid({ lat: 40.518, lng: -74.412 })?.id, 'iscj', 'Edison (about 12 miles) is near ISCJ');
+assert.equal(nearestMasjid({ lat: 40.222, lng: -74.762 }), null, 'Trenton (about 15.3 miles) is outside 15 miles');
+assert.equal(nearestMasjid({ lat: 40.668, lng: -74.348 }), null, 'Westfield (about 22 miles) was inside the old 25 miles, not inside 15');
+assert.equal(nearestMasjid({ lat: 40.713, lng: -74.006 }), null, 'Manhattan is not near any masjid');
+const two = [{ id: 'far', lat: 40.45, lng: -74.45 }, { id: 'close', lat: 40.39, lng: -74.55 }];
+assert.equal(nearestMasjid({ lat: 40.384, lng: -74.563 }, two)?.id, 'close', 'with two masjids in range, the nearest one is used');
 assert.ok(Math.abs(km({ lat: 0, lng: 0 }, { lat: 0, lng: 1 }) - 111.2) < 0.5);
+
+// Approximate location (/api/where): Cloudflare's guess of the city, or 404 with none
+assert.deepEqual(whereFrom({ latitude: '40.52260', longitude: '-74.41216', city: 'Edison', region: 'New Jersey', country: 'US', timezone: 'America/New_York' }),
+  { lat: 40.523, lng: -74.412, name: 'Edison, New Jersey', zone: 'America/New_York' });
+assert.equal(whereFrom({ latitude: '51.5', longitude: '-0.12', country: 'GB' }).name, 'GB', 'no city or region: the country');
+assert.equal(whereFrom(undefined), null, 'run without Cloudflare: no guess');
+assert.equal(whereFrom({ latitude: '0', longitude: '0' }), null, 'a null island guess is no guess');
+assert.equal((await whereHandle({ cf: undefined })).status, 404);
+{ const r = await whereHandle({ cf: { latitude: '40.5', longitude: '-74.4', city: 'Edison' } }); assert.equal(r.status, 200); assert.match(r.headers.get('cache-control'), /no-store/, 'the guess is never cached by the server'); }
 
 // Per-prayer alerts: Dhuhr adhan 11:40, iqama 12:00; adhan recording, beep 10 min before adhan, message 5 min before iqama
 const dhuhr = [{ key: 'dhuhr', adhan: 700, iqama: 720 }];

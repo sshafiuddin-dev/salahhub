@@ -21,7 +21,7 @@ Success: the screen is set up once and then trusted all day without anyone touch
 
 - Free, with no account and no ads; settings stay on this device.
 - Runs on old and cheap screens (a 2015 Fire 7, smart TV browsers) as well as new ones.
-- Reads ISCJ's real iqama times (via /api/iqama) and calculates adhan times anywhere else.
+- Reads a nearby masjid's real iqama times (the nearest on the MASJIDS list in logic.js within 15 miles; today only ISCJ, via /api/iqama) and calculates adhan times anywhere. A new device starts at its approximate location (/api/where) and asks to confirm it.
 - Looks like a printed masjid timetable rather than a phone app.
 
 ## Operating Context
