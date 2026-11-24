@@ -941,21 +941,48 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 /* Now playing: a full screen over the app, below the alert Stop button */
 .qp-now { position: fixed; inset: 0; z-index: 39; display: grid; grid-template-columns: minmax(0, 1fr); background: var(--paper); overflow-y: auto; overscroll-behavior: contain; }
 .qp-now-in { width: min(100%, 44rem); min-width: 0; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: .9rem; padding: max(1rem, env(safe-area-inset-top, 0px)) 1.25rem max(1.5rem, env(safe-area-inset-bottom, 0px)); }
-.qp-now-top { display: flex; align-items: center; gap: .5rem; font-weight: 600; color: var(--muted); }
-.qp-now-top .qp-stop { margin-left: auto; min-height: 44px; }
 /* the bar can be swiped sideways to close it (quran.js): vertical scrolling stays with the page */
 .qp-player { touch-action: pan-y; }
-.qp-now-title { display: grid; justify-items: center; gap: .35rem; text-align: center; padding-block: .5rem; }
-.qp-now-title h2 { max-width: none; font: 700 clamp(1.6rem, 5vw, 2.4rem)/1.1 var(--display); }
-.qp-now-title p { color: var(--muted); overflow-wrap: anywhere; }
-.qp-btns-lg { justify-content: center; gap: clamp(.15rem, 2vw, .9rem); }
-.qp-btns-lg .qp-ic { width: 3.25rem; height: 3.25rem; } .qp-btns-lg .qp-play { width: 4.25rem; height: 4.25rem; }
-.qp-btns-lg .qp-ic svg { width: 1.6rem; height: 1.6rem; } .qp-btns-lg .qp-play svg { width: 2rem; height: 2rem; }
-.qp-more { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem; }
+/* Now playing as a card: picture, surah, three round buttons, a row of quieter ones. Flat, with outlines, in every look */
+.qp-card { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 1rem; }
+.qp-cover { position: relative; width: min(100%, 24rem, calc(100dvh - 22rem)); min-width: min(100%, 15rem); border-radius: 1rem; overflow: hidden; }
+.qp-cover .qp-art-lg { width: 100%; margin: 0; border-radius: 0; }
+.qp-cover-top { position: absolute; inset: .4rem .4rem auto; display: flex; justify-content: space-between; }
+.qp-on-art { color: #F4EFE4; }
+@media (hover: hover) { .qp-ic.qp-on-art:hover { background: rgba(244, 239, 228, .16); } }
+.qp-ic.qp-on-art:focus-visible { outline-color: #F4EFE4; }
+/* the timeline over the foot of the picture, in paper colour (every artwork colour keeps it at 4.5:1) */
+.qp-cover .qp-time { position: absolute; inset: auto .9rem .45rem; grid-template-columns: 2.6rem minmax(0, 1fr) 2.6rem; color: #F4EFE4; }
+.qp-cover .qp-track::before { background: rgba(244, 239, 228, .3); }
+.qp-cover .qp-buf { background: rgba(244, 239, 228, .45); }
+.qp-cover .qp-fill { background: #F4EFE4; }
+.qp-cover .qp-seek::-webkit-slider-thumb { background: #FFFFFF; box-shadow: 0 0 0 2px rgba(0, 0, 0, .25); }
+.qp-cover .qp-seek::-moz-range-thumb { background: #FFFFFF; box-shadow: 0 0 0 2px rgba(0, 0, 0, .25); }
+.qp-cover .qp-seek:focus-visible { outline-color: #F4EFE4; }
+.qp-info { display: grid; justify-items: center; gap: .2rem; text-align: center; }
+.qp-style, .qp-reciter { color: var(--muted); overflow-wrap: anywhere; }
+.qp-style { font-size: .9rem; }
+.qp-info h2 { max-width: none; font: 700 clamp(1.6rem, 5vw, 2.3rem)/1.1 var(--display); color: var(--clear); }
+.qp-round { justify-content: center; gap: clamp(1rem, 5vw, 1.75rem); }
+.qp-round .qp-ic { width: 3.5rem; height: 3.5rem; border: 1px solid var(--line); background: var(--surface); }
+.qp-round .qp-play { width: 4.75rem; height: 4.75rem; color: var(--clear); }
+@media (hover: hover) { .qp-round .qp-ic:hover, .qp-round .qp-play:hover { background: color-mix(in srgb, var(--ink) 7%, var(--surface)); } }
+.qp-round .qp-ic svg { width: 1.5rem; height: 1.5rem; } .qp-round .qp-play svg { width: 2.1rem; height: 2.1rem; }
+.qp-more, .qp-extras { width: min(100%, 24rem); display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: .25rem; }
+.qp-more .qp-ic:not([aria-pressed="true"]) { color: var(--muted); }
+.qp-more .qp-ic[data-q="extras"][aria-expanded="true"] { color: var(--ink); background: color-mix(in srgb, var(--ink) 9%, transparent); }
+.qp-extras[hidden] { display: none; }
 .qp-rate { min-width: 3.75rem; height: 2.5rem; font-variant-numeric: tabular-nums; }
 .qp-vol { display: inline-flex; align-items: center; gap: .4rem; color: var(--muted); }
 .qp-vol svg { width: 1.3rem; height: 1.3rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .qp-vol input { width: min(8rem, 30vw); accent-color: var(--clear); }
+/* wide, short screens (the Fire 7 on the wall): the picture on the left, the rest beside it */
+@media (min-width: 50rem) and (orientation: landscape) {
+  .qp-now-in { width: min(100%, 60rem); }
+  .qp-card { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 1fr repeat(4, auto) 1fr; column-gap: clamp(1.5rem, 4vw, 3rem); }
+  .qp-cover { grid-area: 1 / 1 / 7 / 2; width: min(26rem, calc(100dvh - 3rem)); }
+  .qp-info { grid-area: 2 / 2; } .qp-round { grid-area: 3 / 2; } .qp-more { grid-area: 4 / 2; } .qp-extras { grid-area: 5 / 2; }
+}
 .qp-now .qp-h { position: static; background: none; padding-inline: 0; }
 .qp-queue { padding-bottom: 1rem; }
 
@@ -991,8 +1018,6 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .qp-player .qp-track { height: 1.25rem; }
   .qp-ctl { grid-template-columns: minmax(0, 1fr) auto auto; gap: .25rem; }
   .qp-now-in { padding-inline: .9rem; }
-  .qp-btns-lg { gap: 0; justify-content: space-between; }
-  .qp-btns-lg .qp-ic { width: 2.75rem; height: 2.75rem; } .qp-btns-lg .qp-play { width: 3.75rem; height: 3.75rem; }
   body:has(#qp-player:not([hidden])) .toast { bottom: calc(10rem + env(safe-area-inset-bottom, 0px)); }
 }
 /* messages sit above the docked player, not on it */

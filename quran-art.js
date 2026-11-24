@@ -53,18 +53,20 @@ export function tileArt({ reciter, reciterAr }) {
 
 const square = (cx, cy, r, turn, attrs) => `<rect x="${cx - r}" y="${cy - r}" width="${2 * r}" height="${2 * r}"${turn ? ` transform="rotate(45 ${cx} ${cy})"` : ''} ${attrs}/>`;
 const star = (cx, cy, r, attrs) => square(cx, cy, r, false, attrs) + square(cx, cy, r, true, attrs);
-// Large card: the surah inside an eight-point star, on a field of small stars, with Makki or Madani at the top
-export function starArt({ n, reciter, title, makki }) {
-  const ink = artColor(reciter), name = SURAH_AR[n - 1] || '', mk = isMakki(n, makki);
+// Large card: the surah inside an eight-point star, on a field of small stars, with Makki or Madani at the top.
+// cover: everything sits higher, leaving the bottom fifth clear for the timeline laid over it in Now playing.
+export function starArt({ n, reciter, title, makki, cover = false }) {
+  const ink = artColor(reciter), name = SURAH_AR[n - 1] || '', mk = isMakki(n, makki), big = n > 99;
+  const L = cover ? { pill: 5, cy: 57, r: 22, no: 6, name: 105 } : { pill: 7, cy: 65, r: 26, no: 7, name: 122 };
   let field = '';
   for (let x = 0; x <= 140; x += 35) for (let y = 0; y <= 140; y += 35) field += star(x, y, 6, `class="qa-line" fill="none" stroke="${ART_PAPER}" stroke-opacity=".2"`);
   return svgOpen(`${title || `Surah ${n}`}${name ? `, ${mk ? 'Makki' : 'Madani'}` : ''}${reciter ? `, ${reciter}` : ''}`)
     + `<rect class="qa-bg" width="140" height="140" fill="${ink}"/>${field}`
-    + (name ? `<rect class="qa-bg qa-edge" x="38" y="7" width="64" height="17" rx="8.5" fill="${ink}" stroke="${ART_PAPER}" stroke-opacity=".6" stroke-width=".8"/>`
-      + `<text class="qa-fg" x="70" y="19" text-anchor="middle" font-size="9.5" font-family="${AR_FONT}" fill="${ART_PAPER}">${mk ? 'Makki · مكية' : 'Madani · مدنية'}</text>` : '')
-    + star(70, 65, 26, `class="qa-bg qa-edge" fill="${ink}" stroke="${ART_PAPER}" stroke-width="1.2"`)
-    + `<text class="qa-fg" x="70" y="${n > 99 ? 71 : 72}" text-anchor="middle" font-size="${n > 99 ? 17 : 20}" font-family="Newsreader, Georgia, serif" fill="${ART_PAPER}">${n}</text>`
-    + (name ? `<text class="qa-fg" x="70" y="122" text-anchor="middle" font-size="${name.length > 7 ? 17 : 20}" font-family="${AR_FONT}" fill="${ART_PAPER}" direction="rtl">${xml(name)}</text>` : '')
+    + (name ? `<rect class="qa-bg qa-edge" x="38" y="${L.pill}" width="64" height="17" rx="8.5" fill="${ink}" stroke="${ART_PAPER}" stroke-opacity=".6" stroke-width=".8"/>`
+      + `<text class="qa-fg" x="70" y="${L.pill + 12}" text-anchor="middle" font-size="9.5" font-family="${AR_FONT}" fill="${ART_PAPER}">${mk ? 'Makki · مكية' : 'Madani · مدنية'}</text>` : '')
+    + star(70, L.cy, L.r, `class="qa-bg qa-edge" fill="${ink}" stroke="${ART_PAPER}" stroke-width="1.2"`)
+    + `<text class="qa-fg" x="70" y="${L.cy + L.no - (big ? 1 : 0)}" text-anchor="middle" font-size="${(big ? 17 : 20) - (cover ? 2 : 0)}" font-family="Newsreader, Georgia, serif" fill="${ART_PAPER}">${n}</text>`
+    + (name ? `<text class="qa-fg" x="70" y="${L.name}" text-anchor="middle" font-size="${(name.length > 7 ? 17 : 20) - (cover ? 2 : 0)}" font-family="${AR_FONT}" fill="${ART_PAPER}" direction="rtl">${xml(name)}</text>` : '')
     + '</svg>';
 }
 
