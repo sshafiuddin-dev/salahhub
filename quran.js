@@ -502,48 +502,95 @@ export function initQuran({ say, stopOthers }) {
   player.addEventListener('click', onPlayerClick);
   now.addEventListener('click', onPlayerClick);
 
-  // ---- Swipe the bar away (touch and pen): a sideways drag that starts on the title or an empty part of the bar, never on
-  // the buttons or the timeline. It follows the finger and fades; let go past half its width, or flick, and it slides off
-  // and closes (with Undo); let go sooner and it settles back. The × is the same action for mouse, keyboard and remote. ----
+  // ---- Swipe the bar (touch and pen), from the title or an empty part of it, never the buttons or the timeline:
+  // - sideways: it follows the finger and fades; let go past half its width, or flick, and it slides off and closes
+  //   (with Undo); let go sooner and it settles back. The × is the same action for mouse, keyboard and remote.
+  // - up: it lifts a little with the finger; let go past 40px, or flick up, and Now playing opens (the ⌃ does the same). ----
   const quiet = () => mo.calm() || document.documentElement.dataset.palette === 'eink';
   let drag = null, dragged = false;
   player.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse' || !cur || e.target.closest('.qp-btns, .qp-side, .qp-time, input')) return;
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, on: false, v: 0, lx: e.clientX, lt: e.timeStamp };
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0, on: '', v: 0, lx: e.clientX, ly: e.clientY, lt: e.timeStamp };
   });
   player.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.on) {
-      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; } // a vertical scroll: not ours
-      if (Math.abs(dx) < 10) return;
-      drag.on = true; try { player.setPointerCapture(e.pointerId); } catch (err) {} player.style.transition = 'none';
+      const up = dy < -10 && -dy > Math.abs(dx);
+      if (!up && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; } // a pull down: not ours
+      if (!up && Math.abs(dx) < 10) return;
+      drag.on = up ? 'up' : 'side'; try { player.setPointerCapture(e.pointerId); } catch (err) {} player.style.transition = 'none';
     }
     const dt = Math.max(1, e.timeStamp - drag.lt);
-    drag.v = (e.clientX - drag.lx) / dt; drag.lx = e.clientX; drag.lt = e.timeStamp; drag.dx = dx;
-    player.style.transform = `translateX(${dx}px)`;
-    player.style.opacity = String(1 - Math.min(1, Math.abs(dx) / player.offsetWidth) * .6);
+    drag.v = (drag.on === 'up' ? e.clientY - drag.ly : e.clientX - drag.lx) / dt;
+    drag.lx = e.clientX; drag.ly = e.clientY; drag.lt = e.timeStamp; drag.dx = dx; drag.dy = dy;
+    if (quiet()) return;
+    if (drag.on === 'up') player.style.transform = `translateY(${Math.max(-48, Math.min(0, dy)) / 2}px)`;
+    else {
+      player.style.transform = `translateX(${dx}px)`;
+      player.style.opacity = String(1 - Math.min(1, Math.abs(dx) / player.offsetWidth) * .6);
+    }
   });
+  const settle = () => {
+    player.style.transition = quiet() ? 'none' : 'transform .3s cubic-bezier(.2, 0, 0, 1), opacity .3s cubic-bezier(.2, 0, 0, 1)'; // settles back, no bounce
+    player.style.transform = ''; player.style.opacity = '';
+    setTimeout(() => { player.style.transition = ''; }, 300);
+  };
   function endDrag(e) {
     if (!drag || e.pointerId !== drag.id) return;
     const d = drag; drag = null;
     if (!d.on) return;
     dragged = true; setTimeout(() => { dragged = false; }, 0); // the click that ends a drag opens nothing
-    const w = player.offsetWidth, out = e.type !== 'pointercancel' && (Math.abs(d.dx) > w / 2 || (Math.abs(d.v) > .5 && Math.sign(d.v) === Math.sign(d.dx)));
+    const kept = e.type !== 'pointercancel';
+    if (d.on === 'up') { settle(); if (kept && (d.dy < -40 || d.v < -.4)) openNow(); return; }
+    const w = player.offsetWidth, out = kept && (Math.abs(d.dx) > w / 2 || (Math.abs(d.v) > .5 && Math.sign(d.v) === Math.sign(d.dx)));
     if (out) {
       if (quiet()) return dismiss({ swiped: true });
       player.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
       player.style.transform = `translateX(${Math.sign(d.dx || 1) * w}px)`; player.style.opacity = '0';
       setTimeout(() => dismiss({ swiped: true }), 200);
-    } else {
-      player.style.transition = quiet() ? 'none' : 'transform .3s cubic-bezier(.2, 0, 0, 1), opacity .3s cubic-bezier(.2, 0, 0, 1)'; // settles back, no bounce
-      player.style.transform = ''; player.style.opacity = '';
-      setTimeout(() => { player.style.transition = ''; }, 300);
-    }
+    } else settle();
   }
   player.addEventListener('pointerup', endDrag);
   player.addEventListener('pointercancel', endDrag);
   player.addEventListener('click', (e) => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+  // ---- Pull Now playing down to dock it (touch): a downward drag that starts on the card, away from its controls, while the
+  // screen is scrolled to the top. The sheet follows the finger; let go past a quarter of the screen, or flick down, and it
+  // closes into the bar (the music carries on); let go sooner and it settles back. Touch events, not pointer events, so the
+  // drag can be told apart from scrolling and the page still scrolls up as usual. ----
+  let pull = null;
+  const sheet = () => now.firstElementChild;
+  now.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    pull = e.touches.length === 1 && now.scrollTop <= 0 && e.target.closest('.qp-card') && !e.target.closest('button, input, label, .qp-time')
+      ? { x: t.clientX, y: t.clientY, dy: 0, v: 0, ly: t.clientY, lt: e.timeStamp, on: false } : null;
+  }, { passive: true });
+  now.addEventListener('touchmove', (e) => {
+    if (!pull) return;
+    const t = e.touches[0], dy = t.clientY - pull.y, dx = t.clientX - pull.x;
+    if (!pull.on) {
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { pull = null; return; } // sideways: not ours
+      if (dy < -6) { pull = null; return; } // up: a scroll
+      if (dy < 10) return;
+      pull.on = true; sheet().style.transition = 'none';
+    }
+    e.preventDefault(); // the drag, not a scroll or the browser's pull-to-refresh
+    const dt = Math.max(1, e.timeStamp - pull.lt);
+    pull.v = (t.clientY - pull.ly) / dt; pull.ly = t.clientY; pull.lt = e.timeStamp; pull.dy = Math.max(0, dy);
+    if (!quiet()) sheet().style.transform = `translateY(${pull.dy}px)`;
+  }, { passive: false });
+  function endPull(e) {
+    const p = pull; pull = null;
+    if (!p || !p.on) return;
+    if (e.type !== 'touchcancel' && (p.dy > innerHeight / 4 || p.v > .5)) return closeNow(); // slides on down from where it is
+    const el = sheet();
+    el.style.transition = quiet() ? 'none' : 'transform .3s cubic-bezier(.2, 0, 0, 1)';
+    el.style.transform = '';
+    setTimeout(() => { el.style.transition = ''; }, 300);
+  }
+  now.addEventListener('touchend', endPull);
+  now.addEventListener('touchcancel', endPull);
 
   // ---- Back, on every screen size: opening a reciter, a surah or a playlist, Now playing, and the Quran dialogs each add
   // one history step (the address stays #quran), so the phone's back gesture, the browser's Back and the ← in the page

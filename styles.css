@@ -941,8 +941,8 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 /* Now playing: a full screen over the app, below the alert Stop button */
 .qp-now { position: fixed; inset: 0; z-index: 39; display: grid; grid-template-columns: minmax(0, 1fr); background: var(--paper); overflow-y: auto; overscroll-behavior: contain; }
 .qp-now-in { width: min(100%, 44rem); min-width: 0; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: .9rem; padding: max(1rem, env(safe-area-inset-top, 0px)) 1.25rem max(1.5rem, env(safe-area-inset-bottom, 0px)); }
-/* the bar can be swiped sideways to close it (quran.js): vertical scrolling stays with the page */
-.qp-player { touch-action: pan-y; }
+/* the bar can be swiped sideways to close it and up to open Now playing (quran.js), so the browser leaves its drags to the page */
+.qp-player { touch-action: none; }
 /* Now playing as a card: picture, surah, three round buttons, a row of quieter ones. Flat, with outlines, in every look */
 .qp-card { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 1rem; }
 .qp-cover { position: relative; width: min(100%, 24rem, calc(100dvh - 22rem)); min-width: min(100%, 15rem); border-radius: 1rem; overflow: hidden; }
