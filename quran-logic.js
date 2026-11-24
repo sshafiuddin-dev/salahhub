@@ -49,12 +49,20 @@ export function buildCatalog(suwarJson, recitersJson, riwayatJson) {
 export const moshafOf = (cat, reciter, riwaya = 'all') => reciter.moshaf.map(id => cat.moshaf.get(id)).filter(m => riwaya === 'all' || m.rewaya === +riwaya);
 export const recitersFor = (cat, riwaya = 'all') => (riwaya === 'all' ? cat.reciters : cat.reciters.filter(r => moshafOf(cat, r, riwaya).length));
 
+// Well-known reciters as people usually spell them, beside the spelling in mp3quran's list ("sudais" finds "Alsudaes")
+const SPELLINGS = { sudais: 'sudaes', sudays: 'sudaes', afasy: 'alafasi', alafasy: 'alafasi', muaiqly: 'meaqli', muaiqli: 'meaqli', muaiqaly: 'meaqli',
+  husary: 'hussary', husari: 'hussary', hussari: 'hussary', husri: 'hussary', minshawy: 'minshawi', shuraym: 'shuraim', ghamidi: 'ghamdi',
+  'abdul basit': 'abdulbasit', abdulbaset: 'abdulbasit', 'abdel basset': 'abdulbasit', shatree: 'shatri', shaatree: 'shatri', dossari: 'dosari',
+  dosary: 'dosari', ajmi: 'ajmy', hudhaifi: 'huthaifi', hudhaify: 'huthaifi', huthaify: 'huthaifi', juhani: 'johany', juhany: 'johany',
+  tablawi: 'tablaway', katami: 'qatami', basfar: 'basfer', matrood: 'mattrod', jibril: 'jibreel' };
 export function search(cat, query, riwaya = 'all') {
   const q = fold(query);
   if (!q) return { reciters: [], surahs: [] };
   const num = /^\d{1,3}$/.test(q) ? +q : 0;
+  // "sudai" while typing counts too: any spelling that starts with what is typed so far (three letters at least)
+  const alt = q.length >= 3 ? Object.entries(SPELLINGS).filter(([k]) => k.startsWith(q) || q.startsWith(k)).map(([, v]) => v) : [];
   return {
-    reciters: recitersFor(cat, riwaya).filter(r => r.key.includes(q)),
+    reciters: recitersFor(cat, riwaya).filter(r => r.key.includes(q) || alt.some(a => r.key.includes(a))),
     surahs: [...cat.surahs.values()].filter(s => s.n === num || s.key.includes(q)),
   };
 }
@@ -89,6 +97,8 @@ export const afterEnd = (q, repeat) => (repeat === 'one' ? 'again' : stepPos(q, 
 const REPEATS = ['off', 'all', 'one'];
 const RATES = [1, 1.25, 1.5, 0.75];
 export const cleanName = (name) => String(name ?? '').replace(/\s+/g, ' ').trim().slice(0, 40);
+// The id of Hafs from Asim, the riwayah most recitations use: the default filter; 'all' if the catalogue has none
+export const hafsId = (cat) => cat.riwayat.find(x => /^hafs\b/i.test(x.name) && /assem|asim/i.test(x.name))?.id ?? 'all';
 export function cleanStore(raw) {
   const o = raw && typeof raw === 'object' ? raw : {};
   const tracks = (a) => [...new Set(Array.isArray(a) ? a.filter(isTrack) : [])];
@@ -98,8 +108,10 @@ export function cleanStore(raw) {
     url: typeof o.last.url === 'string' && /^https:\/\/[^\s"'<>]+\.mp3$/.test(o.last.url) ? o.last.url : '',
   } : null;
   const out = {
-    v: 2, last,
-    riwaya: Number.isInteger(o.riwaya) ? o.riwaya : 'all',
+    v: 3, last,
+    // 'hafs' until the catalogue names Hafs's id (hafsId). Version 3 made Hafs the default: an 'all' saved before it was
+    // never chosen, it was the old default, so it becomes Hafs once; an 'all' picked since then is kept
+    riwaya: Number.isInteger(o.riwaya) ? o.riwaya : o.riwaya === 'all' && o.v >= 3 ? 'all' : 'hafs',
     favR: [...new Set(Array.isArray(o.favR) ? o.favR.filter(Number.isInteger) : [])],
     favT: tracks(o.favT),
     lists: (Array.isArray(o.lists) ? o.lists : []).filter(l => l && typeof l.id === 'string' && /^[a-z0-9]{1,24}$/i.test(l.id) && cleanName(l.name)).map(l => ({ id: l.id, name: cleanName(l.name), tracks: tracks(l.tracks) })),

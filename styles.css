@@ -599,6 +599,8 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .about-more[open] > summary::after { transform: translateY(.1rem) rotate(-135deg); }
 .about-more { margin-top: .75rem; }
 .about-more + .about-more { margin-top: 0; border-top: 0; padding-top: 0; }
+.about-more > summary h3 { margin: 0; text-decoration: underline; text-underline-offset: .2em; text-decoration-thickness: 1px; } /* More details on Weather */
+.wx-more { margin-top: 1.5rem; }
 .iq-credits h3 { margin: .6rem 0 0; font: 600 .85rem/1.3 var(--body); color: var(--ink); }
 .iq-credits p { margin: 0; max-width: 65ch; }
 
@@ -653,6 +655,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .wx-t { font-weight: 600; }
 .wx-prayer { font-size: .75rem; font-weight: 600; color: var(--ink); }
 .wx-prayers th { font-weight: 600; }
+.wx-prayers td { white-space: normal; } /* on a phone the time and the weather wrap rather than run off the edge */
 
 @media (prefers-reduced-motion: no-preference) {
   /* Page to page with the portfolio: both sides opt in to cross-document view transitions. */
@@ -849,6 +852,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .qp-tabs { grid-column: 1 / -1; display: flex; gap: .4rem; overflow-x: auto; padding-block: .15rem; scrollbar-width: none; }
 .qp-tabs .d-btn { flex: none; min-height: 2.75rem; padding-inline: 1rem; border-radius: 99px; background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 600; box-shadow: none; }
 .qp-tabs .d-btn[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+@media (max-width: 30rem) { .qp-tabs .d-btn { flex: 1 0 auto; padding-inline: .3rem; } } /* a phone fits all five, with no tab cut off at the edge */
 .qp-panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: .75rem; min-height: 0; }
 .qp-pane { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: .25rem .5rem 1rem; border: 1px solid var(--line); border-top: 0; border-radius: .9rem; background: var(--surface); }
 .iqama .qp-pane { padding-block: .5rem 1rem; border-top: 1px solid var(--line); } /* outranks the page-wide `section` rule */
@@ -914,6 +918,10 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .qp-row.is-playing .qp-ring, [data-state="playing"] .qp-ring { stroke: var(--clear); } /* playing: the accent */
 .qp-row.is-cur .qp-eq, .qp-player .qp-eq, .qp-now .qp-eq { display: flex; }
 .qp-row.is-cur .qp-no { display: none; }
+/* a play mark at the start of every surah row, so it is plain that a tap plays it; the playing row shows its ring instead */
+.qp-go { flex: none; display: flex; align-items: center; justify-content: center; width: 1.9rem; height: 1.9rem; margin-right: -.3rem; border: 1px solid var(--line); border-radius: 50%; color: var(--ink); }
+.qp-go svg { width: .8rem; height: .8rem; margin-left: .1rem; fill: currentColor; }
+.qp-row.is-cur .qp-go { display: none; }
 /* Artwork (quran-art.js): a reciter's tile in the lists, the same tile inside the progress ring in the bar, and the surah's card in Now playing */
 .qp-art svg { display: block; width: 100%; height: 100%; }
 .qp-art-sm { flex: none; width: 2.5rem; height: 2.5rem; border-radius: .55rem; overflow: hidden; }

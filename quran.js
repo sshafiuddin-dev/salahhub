@@ -3,7 +3,7 @@
 // The recitation has its own audio element, so an adhan or alert can pause it and hand it back afterwards.
 import {
   trackId, trackInfo, buildCatalog, moshafOf, recitersFor, search, fmtTime, makeQueue, current, reshuffle, stepPos, afterEnd,
-  cleanStore, legacyTrack, retryWait, shouldRetry, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
+  cleanStore, hafsId, legacyTrack, retryWait, shouldRetry, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
 } from './quran-logic.js';
 import * as mo from './motion.js';
 import { initOffline } from './quran-offline.js';
@@ -51,7 +51,8 @@ export function initQuran({ say, stopOthers }) {
   try { const a = JSON.parse(localStorage.getItem('iqama-quran-ar') || '{}'); if (a && typeof a.names === 'object') ar = { at: +a.at || 0, names: a.names }; } catch (e) {}
 
   let cat = null, catP = null, failed = false;
-  let view = 'reciters', query = '', detail = null; // detail: { type: 'reciter', id, m } | { type: 'surah', n } | { type: 'list', id }
+  const dlAllOn = new Set(); // recitations whose Download all is under way
+  let view = store.favR.length || store.favT.length ? 'favorites' : 'reciters', query = '', detail = null; // start on Favorites once there are any // detail: { type: 'reciter', id, m } | { type: 'surah', n } | { type: 'list', id }
   let q = null, cur = store.last ? { id: store.last.id, label: store.last.title, sub: store.last.sub, url: store.last.url } : null;
   let startAt = 0, scrubbing = false, interrupted = false, lastSaved = 0, wasPlaying = false;
   // wanted: the listener means it to be playing (not paused by them, by an adhan, or finished).
@@ -107,6 +108,7 @@ export function initQuran({ say, stopOthers }) {
       const c = buildCatalog(s, r, w);
       if (!c.reciters.length) throw new Error('no reciters');
       cat = c; failed = false;
+      if (store.riwaya === 'hafs') { store.riwaya = hafsId(cat); save(); }
       if (store.riwaya !== 'all' && !cat.riwayat.some(x => x.id === store.riwaya)) store.riwaya = 'all';
       $('qp-riwaya').innerHTML = `<option value="all">All riwayat (${cat.moshaf.size} recitations)</option>` + cat.riwayat.map(x => `<option value="${x.id}">${esc(x.name)} (${x.count})</option>`).join('');
       $('qp-riwaya').value = store.riwaya;
@@ -700,6 +702,7 @@ export function initQuran({ say, stopOthers }) {
     else if (d === 'pin') { const en = off.entry(b.dataset.u); if (en) off.keep(b.dataset.u, en, 'download'); say('It stays on this device until you remove it.'); closeDlg(); }
     else if (d === 'dl-go') {
       const m = cat.moshaf.get(+b.dataset.m);
+      dlAllOn.add(m.id);
       for (const s of m.surahs) { const i = info(trackId(m.id, s)); if (i) off.keep(i.url, { id: i.id, title: label(i), sub: sub(i) }, 'download'); }
       say('Downloading. You can keep using the app.');
       closeDlg();
@@ -758,7 +761,7 @@ export function initQuran({ say, stopOthers }) {
     return `<button class="qp-ic qp-dl" type="button" data-act="dl" data-state="${st}" style="--p:${i ? off.progress(i.url) : 0}" aria-label="${esc(`${DL_TEXT[st]}: ${title}`)}" title="${DL_TEXT[st]}"${i && off.ok ? '' : ' disabled'}>${st === 'kept' ? IC.done : st === 'busy' ? IC.stop : IC.dl}</button>`;
   }
   const savedAttr = (id) => { const i = info(id); return i && off.has(i.url) ? ' data-saved' : ''; };
-  const trackRow = (id, no, title, small) => `<li class="qp-row" data-track="${id}"${savedAttr(id)}>${main('play', '', no, title, small)}`
+  const trackRow = (id, no, title, small) => `<li class="qp-row" data-track="${id}"${savedAttr(id)}>${main('play', '', no, title, small, `<span class="qp-go" aria-hidden="true">${IC.play}</span>`)}`
     + `${heart('fav-t', store.favT.includes(id), `Favorite: ${title}`)}<button class="qp-ic" type="button" data-act="add" aria-label="Add ${esc(title)} to a playlist" title="Add to a playlist">${IC.add}</button>${dlBtn(info(id), title)}</li>`;
   const empty = (text) => `<p class="qp-empty">${text}</p>`;
 
@@ -859,12 +862,14 @@ export function initQuran({ say, stopOthers }) {
     markRows();
     if (animateIn) { detailEl.scrollTop = 0; mo.fade(detailEl.querySelector('.qp-head')); mo.rows(detailEl.querySelectorAll('.qp-row')); }
   }
-  // "Download all" for one recitation: how many are saved already, or a cancel while they come in
+  // "Download all" for one recitation: how many are saved already, or a cancel while they come in. The progress shows only after
+  // Download all was asked for (dlAllOn): a surah saved because it was played, and the next one fetched ahead, is not a download of all
   function dlAllBtn(m) {
     if (!off.ok) return '';
     const urls = m.surahs.map(s => info(trackId(m.id, s))).filter(Boolean).map(i => i.url);
     const kept = urls.filter(off.has).length, coming = urls.filter(u => off.state(u) === 'busy').length;
-    if (coming) return `<div class="qp-chips" data-dlall="${m.id}"><span class="qp-busy">Downloading: ${kept} of ${urls.length} saved</span><button class="d-btn d-btn-sm d-btn-outline" type="button" data-act="dl-stop">Cancel</button></div>`;
+    if (!coming) dlAllOn.delete(m.id);
+    if (coming && dlAllOn.has(m.id)) return `<div class="qp-chips" data-dlall="${m.id}"><span class="qp-busy">Downloading: ${kept} of ${urls.length} saved</span><button class="d-btn d-btn-sm d-btn-outline" type="button" data-act="dl-stop">Cancel</button></div>`;
     if (kept === urls.length) return `<div class="qp-chips" data-dlall="${m.id}"><span class="qp-busy">All ${urls.length} saved on this device</span></div>`;
     return `<div class="qp-chips" data-dlall="${m.id}"><button class="d-btn d-btn-sm d-btn-outline" type="button" data-act="dl-all" data-m="${m.id}">${IC.dl.replace('<svg', '<svg class="qp-btn-ic"')}Download all${kept ? ` (${kept} of ${urls.length} saved)` : ''}</button></div>`;
   }

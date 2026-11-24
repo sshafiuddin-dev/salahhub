@@ -75,32 +75,45 @@ const AQI_STEPS = [50, 100, 150, 200, 300];
 export function weatherHtml(w, units, prayers) {
   const F = units === 'F', deg = (v) => (v == null ? '–' : `${Math.round(v)}°`);
   const night = (min) => w.today.sunrise != null && w.today.sunset != null && (min < w.today.sunrise || min >= w.today.sunset);
+  // At a glance: what people plan around. The rest (humidity, pressure, air quality…) is folded under More details.
   const facts = [
     ['Feels like', w.feels == null ? null : deg(w.feels)],
-    ['Humidity', w.humidity == null ? null : `${Math.round(w.humidity)}%`],
-    ['Dew point', w.dew == null ? null : deg(w.dew)],
     ['Wind', w.wind == null ? null : `${Math.round(w.wind)} ${F ? 'mph' : 'km/h'}${w.dir == null ? '' : ` ${compass(w.dir)}`}${w.gust == null ? '' : `, gusts ${Math.round(w.gust)}`}`],
-    ['Visibility', w.vis == null ? null : F ? `${+(w.vis / 1609.34).toFixed(1)} mi` : `${+(w.vis / 1000).toFixed(1)} km`],
-    ['UV index', w.uv == null ? null : `${Math.round(w.uv)}, ${uvLevel(w.uv)}`],
     ['Chance of rain', w.pop == null ? null : `${Math.round(w.pop)}%`],
-    ['Cloud cover', w.cloud == null ? null : `${Math.round(w.cloud)}%`],
-    ['Pressure', w.pressure == null ? null : F ? `${(w.pressure * 0.02953).toFixed(2)} inHg` : `${Math.round(w.pressure)} hPa`],
+    ['UV index', w.uv == null ? null : `${Math.round(w.uv)}, ${uvLevel(w.uv)}`],
     ['Sunrise', w.today.sunrise == null ? null : fmt(w.today.sunrise)],
     ['Sunset', w.today.sunset == null ? null : fmt(w.today.sunset)],
+  ].filter(([, v]) => v != null);
+  const more = [
+    ['Humidity', w.humidity == null ? null : `${Math.round(w.humidity)}%`],
+    ['Dew point', w.dew == null ? null : deg(w.dew)],
+    ['Visibility', w.vis == null ? null : F ? `${+(w.vis / 1609.34).toFixed(1)} mi` : `${+(w.vis / 1000).toFixed(1)} km`],
+    ['Cloud cover', w.cloud == null ? null : `${Math.round(w.cloud)}%`],
+    ['Pressure', w.pressure == null ? null : F ? `${(w.pressure * 0.02953).toFixed(2)} inHg` : `${Math.round(w.pressure)} hPa`],
     ['UV peak today', w.today.uv == null ? null : `${Math.round(w.today.uv)}, ${uvLevel(w.today.uv)}`],
     ['Rain today', w.today.rain == null ? null : `${+w.today.rain.toFixed(2)} ${F ? 'in' : 'mm'}`],
   ].filter(([, v]) => v != null);
+  const grid = (list) => `<dl class="wx-grid">${list.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
   const highLow = w.today.max != null && w.today.min != null ? `High ${deg(w.today.max)}, low ${deg(w.today.min)}` : '';
 
   let html = `<div class="wx-now">${icon(w.kind, night(w.at ?? 720))}<p class="wx-temp">${Math.round(w.temp)}°${units}</p>`
-    + `<div><p class="wx-cond">${w.label || 'Now'}</p><p class="wx-sub">${highLow}</p></div></div>`
-    + `<dl class="wx-grid">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
+    + `<div><p class="wx-cond">${w.label || 'Now'}</p><p class="wx-sub">${highLow}</p></div></div>` + grid(facts);
 
-  if (w.air && w.air.aqi != null) {
-    const level = AQI_STEPS.findIndex(s => w.air.aqi <= s);
-    const parts = [['PM2.5', w.air.pm25], ['PM10', w.air.pm10], ['Ozone', w.air.o3], ['Nitrogen dioxide', w.air.no2]].filter(([, v]) => v != null);
-    html += `<h3>Air quality</h3><p class="wx-aqi"><span class="wx-aqi-dot" data-level="${level < 0 ? 5 : level}"></span><strong>${Math.round(w.air.aqi)}</strong> US AQI, ${aqiLevel(w.air.aqi)}</p>`
-      + `<dl class="wx-grid">${parts.map(([k, v]) => `<div><dt>${k}</dt><dd>${Math.round(v)} µg/m³</dd></div>`).join('')}</dl>`;
+  // Then the order people read it in: the weather at each prayer, the next 24 hours, the next 7 days
+  const inHour = (h, p) => p.today === h.today && Math.floor(p.min / 60) === Math.floor(h.min / 60);
+  if (w.hours.length) {
+    const rows = prayers.map(p => {
+      const h = w.hours.find(x => inHour(x, p));
+      if (!h) return '';
+      const label = weatherKind(h.code).label;
+      return `<tr><th scope="row">${p.name}</th><td>${fmt(p.min)}${p.today ? '' : ' tomorrow'}</td><td>${deg(h.temp)}${label ? `, ${label.toLowerCase()}` : ''}${h.pop == null ? '' : `, ${Math.round(h.pop)}% chance of rain`}</td></tr>`;
+    }).join('');
+    if (rows) html += `<h3>Weather at prayer times</h3><div class="table-scroll"><table class="wx-prayers"><tbody>${rows}</tbody></table></div>`;
+    html += `<h3>Next 24 hours</h3><div class="wx-hours" role="region" aria-label="Hourly forecast" tabindex="0"><ol>${w.hours.map((h, i) => {
+      const here = prayers.filter(p => inHour(h, p));
+      return `<li${here.length ? ' class="has-prayer"' : ''}><span class="wx-h">${i ? hourLabel(h.min) : 'Now'}</span>${icon(weatherKind(h.code).kind, night(h.min))}`
+        + `<span class="wx-t">${deg(h.temp)}</span><span class="wx-p">${h.pop == null ? '' : `${Math.round(h.pop)}%`}</span>${here.map(p => `<span class="wx-prayer">${p.name}</span>`).join('')}</li>`;
+    }).join('')}</ol></div>`;
   }
 
   if (w.days.length > 1) {
@@ -109,21 +122,14 @@ export function weatherHtml(w, units, prayers) {
     html += `<h3>Next 7 days</h3>${outlook(w.days, units) ? `<p class="wx-outlook">${outlook(w.days, units)}</p>` : ''}<ul class="wx-days">${rows}</ul>`;
   }
 
-  const inHour = (h, p) => p.today === h.today && Math.floor(p.min / 60) === Math.floor(h.min / 60);
-  if (w.hours.length) {
-    html += `<h3>Next 24 hours</h3><div class="wx-hours" role="region" aria-label="Hourly forecast" tabindex="0"><ol>${w.hours.map((h, i) => {
-      const here = prayers.filter(p => inHour(h, p));
-      return `<li${here.length ? ' class="has-prayer"' : ''}><span class="wx-h">${i ? hourLabel(h.min) : 'Now'}</span>${icon(weatherKind(h.code).kind, night(h.min))}`
-        + `<span class="wx-t">${deg(h.temp)}</span><span class="wx-p">${h.pop == null ? '' : `${Math.round(h.pop)}%`}</span>${here.map(p => `<span class="wx-prayer">${p.name}</span>`).join('')}</li>`;
-    }).join('')}</ol></div>`;
-    const rows = prayers.map(p => {
-      const h = w.hours.find(x => inHour(x, p));
-      if (!h) return '';
-      const label = weatherKind(h.code).label;
-      return `<tr><th scope="row">${p.name}</th><td>${fmt(p.min)}${p.today ? '' : ' tomorrow'}</td><td>${deg(h.temp)}${label ? `, ${label.toLowerCase()}` : ''}${h.pop == null ? '' : `, ${Math.round(h.pop)}% chance of rain`}</td></tr>`;
-    }).join('');
-    if (rows) html += `<h3>Weather at prayer times</h3><div class="table-scroll"><table class="wx-prayers"><tbody>${rows}</tbody></table></div>`;
+  let air = '';
+  if (w.air && w.air.aqi != null) {
+    const level = AQI_STEPS.findIndex(s => w.air.aqi <= s);
+    const parts = [['PM2.5', w.air.pm25], ['PM10', w.air.pm10], ['Ozone', w.air.o3], ['Nitrogen dioxide', w.air.no2]].filter(([, v]) => v != null);
+    air = `<h3>Air quality</h3><p class="wx-aqi"><span class="wx-aqi-dot" data-level="${level < 0 ? 5 : level}"></span><strong>${Math.round(w.air.aqi)}</strong> US AQI, ${aqiLevel(w.air.aqi)}</p>`
+      + `<dl class="wx-grid">${parts.map(([k, v]) => `<div><dt>${k}</dt><dd>${Math.round(v)} µg/m³</dd></div>`).join('')}</dl>`;
   }
+  if (more.length || air) html += `<details class="wx-more about-more"><summary><h3>More details</h3></summary>${more.length ? grid(more) : ''}${air}</details>`;
   return html;
 }
 
