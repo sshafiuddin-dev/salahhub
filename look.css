@@ -398,3 +398,8 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 :root[data-theme="dark"] .sh .sh-tt { border-top-color: var(--line); border-bottom-color: var(--line); }
 :root[data-theme="dark"] .sh-next, :root[data-theme="dark"] .sh-dua, :root[data-theme="dark"] #clock .sh-fold { border-color: var(--line); }
 :root[data-theme="dark"] .sh .sh-tt .is-past { font-weight: 400; }
+
+/* Quran artwork in ink and paper where colour is off */
+:root[data-palette="eink"] .qa-bg, :root[data-palette="contrast"] .qa-bg { fill: var(--ink); }
+:root[data-palette="eink"] .qa-fg, :root[data-palette="contrast"] .qa-fg { fill: var(--paper); }
+:root[data-palette="eink"] .qa-line, :root[data-palette="eink"] .qa-edge, :root[data-palette="contrast"] .qa-line, :root[data-palette="contrast"] .qa-edge { stroke: var(--paper); }

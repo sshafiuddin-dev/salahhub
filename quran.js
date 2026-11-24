@@ -7,6 +7,7 @@ import {
 } from './quran-logic.js';
 import * as mo from './motion.js';
 import { initOffline } from './quran-offline.js';
+import { tileArt, starArt, artPicture, arNames, isMakki } from './quran-art.js';
 import { esc } from './logic.js';
 
 const API = 'https://mp3quran.net/api/v3';
@@ -44,6 +45,9 @@ export function initQuran({ say, stopOthers }) {
   let store = cleanStore(null);
   try { store = cleanStore(JSON.parse(localStorage.getItem('iqama-quran') || '{}')); } catch (e) {}
   const save = () => { try { localStorage.setItem('iqama-quran', JSON.stringify(store)); } catch (e) {} };
+  // Reciters' names in Arabic, for the letter on their tile: { at, names: { id: name } }, refreshed once a week
+  let ar = { at: 0, names: {} };
+  try { const a = JSON.parse(localStorage.getItem('iqama-quran-ar') || '{}'); if (a && typeof a.names === 'object') ar = { at: +a.at || 0, names: a.names }; } catch (e) {}
 
   let cat = null, catP = null, failed = false;
   let view = 'reciters', query = '', detail = null; // detail: { type: 'reciter', id, m } | { type: 'surah', n } | { type: 'list', id }
@@ -63,14 +67,14 @@ export function initQuran({ say, stopOthers }) {
   const tabEl = $('tab-quran'), listEl = $('qp-list'), detailEl = $('qp-detail');
   document.querySelector('.view').insertAdjacentHTML('beforeend',
     `<section class="qp-player" id="qp-player" aria-label="Quran player" hidden>${timeline()}<div class="qp-ctl">`
-    + `<button class="qp-meta" type="button" data-q="open" aria-label="Open now playing">${eq}<span class="qp-txt"><b class="qp-label"></b><small class="qp-sub"></small></span></button>`
+    + `<button class="qp-meta" type="button" data-q="open" aria-label="Open now playing"><span class="qp-thumb"><span class="qp-art" aria-hidden="true"></span>${eq}</span><span class="qp-txt"><b class="qp-label"></b><small class="qp-sub"></small></span></button>`
     + `<div class="qp-btns">${transport()}</div>`
     + `<div class="qp-side">${btn('fav', 'heart', 'Add this surah to favorites', 'qp-extra qp-heart')}${btn('add', 'add', 'Add this surah to a playlist', 'qp-extra')}${btn('open', 'up', 'Open now playing and the queue')}${btn('dismiss', 'close', 'Stop and close the player')}</div>`
     + '</div></section>');
   document.body.insertAdjacentHTML('beforeend',
     `<div class="qp-now" id="qp-now" role="dialog" aria-modal="true" aria-label="Now playing" hidden><div class="qp-now-in">`
     + `<div class="qp-now-top">${btn('close', 'down', 'Close now playing')}<span>Now playing</span><button class="d-btn d-btn-sm d-btn-outline qp-stop" type="button" data-q="dismiss">Stop and close</button></div>`
-    + `<div class="qp-now-title">${eq}<h2 class="qp-label"></h2><p class="qp-sub"></p></div>${timeline()}`
+    + `<div class="qp-now-title"><div class="qp-art qp-art-lg" aria-hidden="true"></div><h2 class="qp-label"></h2><p class="qp-sub"></p></div>${timeline()}`
     + `<div class="qp-btns qp-btns-lg">${transport()}</div>`
     + `<div class="qp-more">${btn('fav', 'heart', 'Add this surah to favorites', 'qp-heart')}${btn('add', 'add', 'Add this surah to a playlist')}`
     + `<button class="d-btn d-btn-sm d-btn-outline qp-rate" type="button" data-q="rate" aria-label="Playback speed">1×</button>`
@@ -107,8 +111,31 @@ export function initQuran({ say, stopOthers }) {
       if (old && !cur) setCurrent(trackInfo(cat, old), 0);
       restoreQueue();
       save();
+      loadArabic();
       return cat;
     }).catch((e) => { catP = null; failed = true; console.warn('Iqama Times: Quran list failed', e); throw e; });
+  }
+  function loadArabic() {
+    if (Date.now() - ar.at < 7 * 864e5 && Object.keys(ar.names).length) return;
+    get('reciters?language=ar').then((j) => {
+      const names = arNames(j);
+      if (!Object.keys(names).length) return;
+      ar = { at: Date.now(), names };
+      try { localStorage.setItem('iqama-quran-ar', JSON.stringify(ar)); } catch (e) {}
+      artKey = ''; paintArt();
+      if (!tabEl.hidden) renderList();
+    }).catch(() => {});
+  }
+  // The pictures for a track: the reciter's tile and the surah's card
+  const reciterOf = (id) => cat?.moshaf.get(+String(id).split(':')[0])?.reciterId;
+  const tileFor = (name, rid) => tileArt({ reciter: name, reciterAr: ar.names[rid] });
+  let artKey = '', artUrl = '';
+  function paintArt() {
+    const i = cur && info(cur.id), key = i ? `${cur.id}|${ar.names[reciterOf(cur.id)] || ''}` : '';
+    if (key === artKey) return;
+    artKey = key;
+    player.querySelector('.qp-art').innerHTML = i ? tileFor(i.reciter, reciterOf(cur.id)) : '';
+    now.querySelector('.qp-art').innerHTML = i ? starArt({ n: i.n, reciter: i.reciter, title: label(i), makki: cat?.surahs.get(i.n)?.makki }) : '';
   }
   // What a track is: from mp3quran's lists, or, with none (offline), from what was kept with the recitation
   function savedInfo(id) {
@@ -317,9 +344,19 @@ export function initQuran({ say, stopOthers }) {
   // Lock screen and headset buttons
   function mediaMeta() {
     if (!('mediaSession' in navigator) || !cur) return;
-    try {
-      navigator.mediaSession.metadata = new MediaMetadata({ title: cur.label, artist: cur.sub, album: 'Quran', artwork: [{ src: 'icon-512.png', sizes: '512x512', type: 'image/png' }] });
-    } catch (e) {}
+    const mk = cat?.surahs.get(+String(cur.id).split(':')[1])?.makki;
+    const set = (artwork) => { try { navigator.mediaSession.metadata = new MediaMetadata({ title: cur.label, artist: cur.sub, album: `Quran · ${isMakki(+String(cur.id).split(':')[1], mk) ? 'Makki' : 'Madani'}`, artwork }); } catch (e) {} };
+    const icon = [{ src: 'icon-512.png', sizes: '512x512', type: 'image/png' }], i = info(cur.id), id = cur.id;
+    set(icon);
+    if (!i) return;
+    // the surah's card as the lock-screen picture, once it is drawn (the app icon until then, or where it cannot be)
+    artPicture(starArt({ n: i.n, reciter: i.reciter, title: label(i), makki: cat?.surahs.get(i.n)?.makki })).then((src) => {
+      if (!src) return;
+      if (!cur || cur.id !== id) return URL.revokeObjectURL(src);
+      if (artUrl) URL.revokeObjectURL(artUrl);
+      artUrl = src;
+      set([{ src, sizes: '512x512', type: 'image/png' }, ...icon]);
+    });
   }
   if ('mediaSession' in navigator) {
     const on = (name, fn) => { try { navigator.mediaSession.setActionHandler(name, fn); } catch (e) {} };
@@ -341,6 +378,7 @@ export function initQuran({ say, stopOthers }) {
     for (const el of [player, now]) el.dataset.state = busy ? 'loading' : playing ? 'playing' : 'paused';
     all('.qp-label').forEach(el => { el.textContent = cur ? cur.label : ''; });
     all('.qp-sub').forEach(el => { el.textContent = cur ? cur.sub : ''; });
+    paintArt();
     all('[data-q="toggle"]').forEach(el => {
       if (playing !== wasPlaying || !el.firstElementChild) { el.innerHTML = playing ? IC.pause : IC.play; mo.swap(el.firstElementChild); }
       el.setAttribute('aria-label', playing ? 'Pause' : 'Play'); el.title = playing ? 'Pause' : 'Play';
@@ -654,10 +692,10 @@ export function initQuran({ say, stopOthers }) {
 
   // ---- The tab: a list on the left (reciters, surahs, favorites, playlists or search results) and a detail on the right ----
   const heart = (act, on, text, attrs = '') => `<button class="qp-ic qp-heart" type="button" data-act="${act}" ${attrs} aria-pressed="${on}" aria-label="${esc(text)}" title="Favorite">${IC.heart}</button>`;
-  const main = (act, attrs, no, title, small) => `<button class="qp-main" type="button" data-act="${act}" ${attrs}>${no == null ? '' : `<span class="qp-no">${no}</span>`}${eq}<span class="qp-txt"><b>${esc(title)}</b>${small ? `<small>${esc(small)}</small>` : ''}</span></button>`;
+  const main = (act, attrs, no, title, small, lead = '') => `<button class="qp-main" type="button" data-act="${act}" ${attrs}>${lead}${no == null ? '' : `<span class="qp-no">${no}</span>`}${eq}<span class="qp-txt"><b>${esc(title)}</b>${small ? `<small>${esc(small)}</small>` : ''}</span></button>`;
   const recRow = (r) => {
     const ms = moshafOf(cat, r, store.riwaya), open = detail?.type === 'reciter' && detail.id === r.id;
-    return `<li class="qp-row${open ? ' is-open' : ''}">${main('open-reciter', `data-id="${r.id}"`, null, r.name, ms.length === 1 ? ms[0].style : count(ms.length, 'recitation'))}${heart('fav-r', store.favR.includes(r.id), `Favorite reciter: ${r.name}`, `data-id="${r.id}"`)}</li>`;
+    return `<li class="qp-row${open ? ' is-open' : ''}">${main('open-reciter', `data-id="${r.id}"`, null, r.name, ms.length === 1 ? ms[0].style : count(ms.length, 'recitation'), `<span class="qp-art qp-art-sm" aria-hidden="true">${tileFor(r.name, r.id)}</span>`)}${heart('fav-r', store.favR.includes(r.id), `Favorite reciter: ${r.name}`, `data-id="${r.id}"`)}</li>`;
   };
   const surahRow = (s) => `<li class="qp-row${detail?.type === 'surah' && detail.n === s.n ? ' is-open' : ''}">${main('open-surah', `data-n="${s.n}"`, s.n, s.name, s.makki ? 'Makki' : 'Madani')}</li>`;
   // The download button: an arrow (not on this device), a ring filling up (downloading) or a tick (saved here)

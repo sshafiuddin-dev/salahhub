@@ -897,6 +897,15 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .qp-row.is-playing .qp-ring, [data-state="playing"] .qp-ring { stroke: var(--clear); } /* playing: the accent */
 .qp-row.is-cur .qp-eq, .qp-player .qp-eq, .qp-now .qp-eq { display: flex; }
 .qp-row.is-cur .qp-no { display: none; }
+/* Artwork (quran-art.js): a reciter's tile in the lists, the same tile inside the progress ring in the bar, and the surah's card in Now playing */
+.qp-art svg { display: block; width: 100%; height: 100%; }
+.qp-art-sm { flex: none; width: 2.5rem; height: 2.5rem; border-radius: .55rem; overflow: hidden; }
+.qp-thumb { position: relative; flex: none; display: grid; place-items: center; width: 3rem; height: 3rem; }
+.qp-thumb .qp-art { width: 2rem; height: 2rem; border-radius: 50%; overflow: hidden; }
+.qp-player .qp-thumb .qp-eq { position: absolute; inset: 0; width: auto; height: auto; }
+.qp-player .qp-thumb .qp-eq svg { width: 100%; height: 100%; }
+.qp-art-lg { width: min(100%, 18rem, 42vh); aspect-ratio: 1; margin-bottom: .5rem; border-radius: 1rem; overflow: hidden; }
+.qp-art-lg:empty, .qp-thumb .qp-art:empty { display: none; }
 @media (prefers-reduced-motion: no-preference) {
   [data-state="loading"] .qp-play { animation: dx-sound-pulse 1.2s ease-in-out infinite; }
 }
@@ -937,7 +946,6 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 /* the bar can be swiped sideways to close it (quran.js): vertical scrolling stays with the page */
 .qp-player { touch-action: pan-y; }
 .qp-now-title { display: grid; justify-items: center; gap: .35rem; text-align: center; padding-block: .5rem; }
-.qp-now-title .qp-eq { height: 2rem; width: 2.4rem; } .qp-now-title .qp-eq svg { width: 2rem; height: 2rem; }
 .qp-now-title h2 { max-width: none; font: 700 clamp(1.6rem, 5vw, 2.4rem)/1.1 var(--display); }
 .qp-now-title p { color: var(--muted); overflow-wrap: anywhere; }
 .qp-btns-lg { justify-content: center; gap: clamp(.15rem, 2vw, .9rem); }
