@@ -1205,12 +1205,29 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 [open] > summary .mm-ic i:nth-child(2) { opacity: 0; scale: 0 1; }
 [open] > summary .mm-ic i:nth-child(3) { translate: 0 calc(1px - .45rem); rotate: -45deg; }
 .dockbar .more summary { grid-auto-flow: column; align-items: center; gap: .4rem; }
-@media (prefers-reduced-motion: reduce) { .mm-ic i { transition: opacity var(--m-fast); } }
+.mm-btn { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  transition: background-color var(--m-normal) var(--m-ease), color var(--m-normal) var(--m-ease), scale var(--m-normal) var(--m-pop); }
+/* open: the icon sits in a round ink button, as an X, right under the stack of entries */
+[open] > summary .mm-btn { background: var(--ink); color: var(--paper); scale: 1.08; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+@media (prefers-reduced-motion: reduce) { .mm-ic i, .mm-btn { transition: opacity var(--m-fast), background-color var(--m-fast), color var(--m-fast); } [open] > summary .mm-btn { scale: none; } }
 .more details { position: relative; }
-.more-menu { position: absolute; z-index: 20; min-width: 9rem; padding: .35rem; background: var(--paper); border: 1px solid var(--line); box-shadow: 0 6px 20px #0004; }
-.tabbar .more-menu { left: 100%; top: 0; margin-left: .35rem; }
-.dockbar .more-menu { right: 0; bottom: calc(100% + .35rem); display: flex; flex-direction: column-reverse; } /* opens upward: Quran, the first item, sits next to More */
-.more-menu a { display: flex; align-items: center; gap: .6rem; padding: .7rem .9rem; min-height: 44px; color: var(--ink); }
+/* The entries: a stack of round-ended pills that rise in above More, Quran (nearest) first, with the Arabic beside Quran and Adhkar */
+.more-menu { position: absolute; z-index: 20; display: flex; flex-direction: column-reverse; align-items: center; gap: .5rem; padding: 0; background: none; border: 0; box-shadow: none; }
+.tabbar .more-menu { left: 100%; top: 0; margin-left: .6rem; flex-direction: column; align-items: flex-start; }
+.dockbar .more-menu { left: 50%; bottom: calc(100% + .6rem); translate: -50% 0; } /* opens upward, centred over More: Quran, the first item, sits next to it */
+.more-menu a { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .5rem 1.15rem; border: 1px solid var(--line); border-radius: 99px;
+  background: var(--surface); color: var(--ink); font: 500 1rem/1.2 var(--body); letter-spacing: normal; text-transform: none; white-space: nowrap; box-shadow: 0 2px 10px rgba(0, 0, 0, .14);
+  transition: scale var(--m-fast) var(--m-ease), border-color var(--m-fast); }
+.more-menu a:active { scale: .95; }
+@media (hover: hover) { .more-menu a:hover { border-color: var(--ink); background: var(--surface); } }
+.more-menu .mm-ar { font: 400 1.15rem/1 var(--ar, "Amiri", serif); }
+.more-menu .d-dock-label { font: inherit; letter-spacing: inherit; }
+/* the bars' own link rules (flat words, no border, a tab's hover fade) must not reach the pills */
+.app .d-menu .more-menu a, .app .dockbar .more-menu a { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; height: auto; min-height: 44px; gap: .5rem;
+  padding: .5rem 1.15rem; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); color: var(--ink); font: 500 1rem/1.2 var(--body); letter-spacing: normal;
+  text-transform: none; box-shadow: 0 2px 10px rgba(0, 0, 0, .14); }
+@media (hover: hover) { .app .d-menu .more-menu a:hover, .app .dockbar .more-menu a:hover { border-color: var(--ink); background: var(--surface); color: var(--ink); } }
+.d-dock > details.more:hover, .d-dock > details.more[open], .d-menu .more:hover { opacity: 1; }
 .dockbar details.more { position: relative; display: grid; place-items: center; flex: 1 1 0; }
 .dockbar .more summary { display: grid; justify-items: center; }
 /* Month link at the right end of the Sunrise line on the board */
@@ -1224,8 +1241,8 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .app .tabbar .d-menu .more summary.d-menu-active { color: var(--ink); background: none; }
   @media (hover: hover) { .app .tabbar .d-menu .more summary:hover { color: var(--ink); background: none; } }
   .app .tabbar .d-menu .more summary.d-menu-active { box-shadow: inset 0 3px 0 var(--clear); }
-  .tabbar .more-menu { left: 0; top: auto; bottom: 100%; margin: 0 0 .35rem; display: flex; flex-direction: column-reverse; } /* Quran next to More, the rest above it */
-  .app .tabbar .more-menu a { height: auto; min-height: 44px; padding: .7rem .9rem; letter-spacing: .08em; }
+  .tabbar .more-menu { left: 50%; top: auto; bottom: calc(100% + .6rem); margin: 0; translate: -50% 0; flex-direction: column-reverse; align-items: center; } /* centred over More: Quran next to it, the rest above */
+  .app .tabbar .more-menu a { height: auto; min-height: 44px; padding: .5rem 1.15rem; letter-spacing: normal; font: 500 1rem/1.2 var(--body); }
 }
 
 /* The first-run tour (tour.js): the page dims except one outlined element, with a small printed card beside it.
