@@ -870,6 +870,15 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 @media (prefers-reduced-motion: reduce) { .sound-lock { animation: none; } }
 /* Stop button shown on every screen while an alert is sounding */
 .alert-stop { position: fixed; top: .75rem; left: 50%; transform: translateX(-50%); z-index: 45; max-width: calc(100vw - 2rem); box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .3); }
+/* Stop, while an alert sounds: it drops in, and its bell rings three times (each time it appears) */
+.alert-stop, .dx-stop { gap: .5rem; }
+.stop-bell { flex: none; width: 1.3em; height: 1.3em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transform-origin: 50% 12%; }
+@media (prefers-reduced-motion: no-preference) {
+  .alert-stop:not([hidden]), .dx-stop:not([hidden]) { animation: stop-in var(--m-normal) var(--m-ease); }
+  .alert-stop:not([hidden]) .stop-bell, .dx-stop:not([hidden]) .stop-bell { animation: bell-ring 1s var(--m-ease) .15s 3; }
+}
+@keyframes stop-in { from { opacity: 0; translate: 0 -.75rem; } }
+@keyframes bell-ring { 10% { rotate: 16deg; } 25% { rotate: -14deg; } 40% { rotate: 10deg; } 55% { rotate: -6deg; } 70% { rotate: 2deg; } 100% { rotate: 0deg; } }
 .al-row .d-toggle { flex: none; }
 .au-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; max-width: 32rem; }
 .au-search { max-width: 32rem; width: 100%; margin: .25rem 0; }

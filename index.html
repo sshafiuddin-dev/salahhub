@@ -182,9 +182,9 @@
                         <select class="d-select" id="asr"><option value="Standard">Standard</option><option value="Hanafi">Hanafi (later Asr)</option></select>
                     </div>
                     <p class="iq-note">Method is how the adhan times are worked out: pick the one your masjid uses (ISNA is the usual choice in North America). For Asr, most masjids use Standard; pick Hanafi if yours prays Asr later.</p>
-                    <div class="set-group">
+                    <div class="set-group tune-group">
                         <span class="iq-label" id="lbl-tune">Adjust adhan times</span>
-                        <p class="iq-note">Add or take away minutes if your masjid's adhan times differ from the calculation. Use a minus sign for earlier, up to 30 minutes either way.</p>
+                        <p class="iq-note">Add or take away minutes if your masjid's adhan times differ from the calculation. Tap − for earlier or + for later (hold to go faster), up to 30 minutes either way.</p>
                         <form class="tune-form" id="tune-form" aria-labelledby="lbl-tune"></form>
                         <button class="d-btn d-btn-sm" type="button" id="tune-reset">Reset all to 0</button>
                     </div>
@@ -350,7 +350,7 @@
     </div>
 
     <button class="d-btn d-btn-sm d-btn-primary sound-lock" type="button" id="sound-lock" hidden>Tap to enable sound</button>
-    <button class="d-btn d-btn-lg d-btn-error alert-stop" type="button" id="alert-stop" hidden>Stop</button>
+    <button class="d-btn d-btn-lg d-btn-error alert-stop" type="button" id="alert-stop" hidden><svg class="stop-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><span>Stop</span></button>
     <p class="toast" id="status" role="status"></p>
     <div class="blackout" id="blackout" aria-hidden="true"></div>
 
@@ -360,7 +360,7 @@
             <p class="dx-meta"><span id="dx-date"></span> <span id="dx-place"></span> <span class="net" data-net hidden></span></p>
             <div class="dx-actions">
                 <span class="dx-awake" id="dx-awake" hidden><span class="dx-dot"></span>Screen stays on</span>
-                <button class="d-btn d-btn-error dx-stop" type="button" id="dx-stop" hidden>Stop</button>
+                <button class="d-btn d-btn-error dx-stop" type="button" id="dx-stop" hidden><svg class="stop-bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><span>Stop</span></button>
                 <button class="d-btn d-btn-sm d-btn-outline dx-sound" type="button" id="dx-sound" hidden>Tap to enable sound</button>
                 <button class="d-btn d-btn-sm d-btn-outline dim-btn" type="button" id="dx-dim"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="dim-sun" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><path class="dim-moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Bright</span></button>
                 <button class="d-btn d-btn-sm d-btn-outline" type="button" id="dx-exit">Exit full screen</button>
