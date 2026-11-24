@@ -474,17 +474,17 @@ async function share(title, text) {
     if (e.name !== 'AbortError') say('Sharing is blocked in this browser. Copy the page address instead.');
   }
 }
-$('share-day').addEventListener('click', () => share('Iqama Times', [
+$('share-day').addEventListener('click', () => share('IqamaHub', [
   `Prayer times for ${today.weekday}, ${MONTHS[today.m - 1]} ${today.d} (${place().name})`,
   ...day.rows.map(r => `${NAMES[r.key]}: ${fmt(r.adhan)}${r.iqama == null ? '' : `, iqama ${fmt(r.iqama)}`}`),
   ...(jumuah() ? [`Jumu'ah khutbah: ${jumuah()}`] : []),
 ].join('\n')));
-$('share-month').addEventListener('click', () => share('Iqama Times', [
+$('share-month').addEventListener('click', () => share('IqamaHub', [
   `Prayer times for ${MONTHS[today.m - 1]} ${today.y} (${place().name})`,
   'Day: Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha',
   ...monthRows().map(r => `${r.weekday} ${r.d}: ${r.times.map(fmt).join(', ')}`),
 ].join('\n')));
-$('share-app').addEventListener('click', () => share('Iqama Times', 'Prayer and iqama times with a live clock, alerts and weather.'));
+$('share-app').addEventListener('click', () => share('IqamaHub', 'Your salah companion: adhan and iqama times on any screen.'));
 
 // Sound: one shared player for the adhan, alert sounds and previews.
 // Browsers only allow sound after the page has been touched in this visit. The first touch unlocks it; until then an
@@ -548,7 +548,7 @@ function play(file, label) {
       outcome('sound blocked until the page is tapped');
       soundOver();
     } else {
-      console.warn('Iqama Times: the sound could not play', err);
+      console.warn('IqamaHub: the sound could not play', err);
       say('The sound could not play.');
       outcome('sound could not play');
       soundOver();
@@ -602,7 +602,7 @@ function openChapter(li, btn) {
     body.innerHTML = items.length ? hisnItems(items) : '<p class="iq-note">There is no text for this chapter.</p>';
     body.dataset.done = '1';
   }).catch((e) => {
-    console.warn('Iqama Times: adhkar text failed', e);
+    console.warn('IqamaHub: adhkar text failed', e);
     body.innerHTML = '<p class="iq-note">The text is not available yet. The recording still plays.</p>';
   });
 }
@@ -730,7 +730,7 @@ $('alert-cards').addEventListener('click', (e) => {
 
 function notify(text) {
   if (!('Notification' in window) || Notification.permission !== 'granted' || !navigator.serviceWorker) return;
-  navigator.serviceWorker.ready.then(r => r.showNotification('Iqama Times', { body: text, icon: 'icon-192.png', tag: 'iqama' })).catch(() => {});
+  navigator.serviceWorker.ready.then(r => r.showNotification('IqamaHub', { body: text, icon: 'icon-192.png', tag: 'iqama' })).catch(() => {});
 }
 const MESSAGES = {
   adhan: (n) => `Time for ${n}.`,
@@ -1360,7 +1360,7 @@ async function sync(fresh, newDay) {
   lastSync = Date.now();
   const wantIqama = fresh || newDay || lastSync - lastIqama > IQAMA_EVERY;
   // the Today tab's duas are entries of Hisn al-Muslim, read from the Adhkar tab's file; asked again until it has loaded once
-  if (!SETS.adhan.items[0].ar) loadHisnText().then(fillSets).then(() => { dkSig = ''; tick(); }).catch((e) => console.warn('Iqama Times: adhkar text failed', e));
+  if (!SETS.adhan.items[0].ar) loadHisnText().then(fillSets).then(() => { dkSig = ''; tick(); }).catch((e) => console.warn('IqamaHub: adhkar text failed', e));
   const [live] = await Promise.all([wantIqama ? loadIqama(fresh) : null, loadWeather()]);
   if (wantIqama && live) lastIqama = lastSync;
   if (wantIqama) { syncFailed = !live; if (live) syncedAt = lastSync; }

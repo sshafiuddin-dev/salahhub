@@ -4,7 +4,7 @@
 <script src="boot.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Iqama Times</title>
+    <title>IqamaHub</title>
     <meta name="description" content="Prayer and iqama times with a live clock, adhkar, adhan and alerts for each prayer, and local weather. ISCJ iqama times near the masjid, your own times anywhere else.">
     <meta name="theme-color" content="#F3EDE1">
     <link rel="manifest" href="manifest.webmanifest">
@@ -294,9 +294,16 @@
 
                 <section class="sub-pane" id="sub-about" role="tabpanel" aria-labelledby="st-about" hidden>
                     <a class="back-link" id="back" href="https://sshafiuddin.pages.dev/" hidden>Back to portfolio</a>
-                    <p class="about-tag">Adhan and iqama times for your home, on any screen.</p>
-                    <p>A countdown to the next prayer, alerts, weather, duas and Quran, on one screen you can read from across the room.</p>
-                    <p>Free, with no account or ads. Works on any tablet, phone, computer or smart TV.</p>
+                    <p class="about-tag">Your salah companion: adhan and iqama times on any screen, even your smart TV</p>
+                    <p>Turn a spare device into a quiet prayer clock for your home or masjid.</p>
+                    <ul class="iq-list">
+                        <li>Adhan times for where you are, with iqama and Jumuʿah times from your masjid</li>
+                        <li>A countdown to the next prayer and iqama, with alerts you choose</li>
+                        <li>The weather now and at the next prayer</li>
+                        <li>Adhkar</li>
+                        <li>Quran recitation to stream, or download to play offline</li>
+                    </ul>
+                    <p>Free. No account, no ads, no tracking.</p>
                     <div class="iq-fields">
                         <a class="d-btn d-btn-sm d-btn-primary" href="guide/">Read the guide</a>
                         <button class="d-btn d-btn-sm" type="button" id="tour-again">Take the tour</button>
@@ -330,7 +337,7 @@
                         <p>Prayer times are calculated with <a href="http://praytimes.org/">PrayTimes.org</a> by Hamid Zarrabi-Zadeh (LGPL 3.0), as adapted with its calculation methods in <a href="https://github.com/adhanclock/PWA">Adhan Clock</a> (MIT). Iqama and Jumuʿah times near the masjid come from the <a href="https://iscj.org/#prayer-times">Islamic Society of Central Jersey</a>. Check with your masjid before relying on them.</p>
                         <h3>Weather and places</h3>
                         <p>Weather by <a href="https://open-meteo.com/">Open-Meteo.com</a> (CC BY 4.0). Air quality from Open-Meteo, using <a href="https://atmosphere.copernicus.eu/">Copernicus Atmosphere Monitoring Service</a> information. Place search by Open-Meteo, using <a href="https://www.geonames.org/">GeoNames</a> (CC BY 4.0).</p>
-                        <p>Weather warnings, watches and advisories in the US from the <a href="https://www.weather.gov/">National Weather Service</a> (NOAA), through its public <a href="https://www.weather.gov/documentation/services-web-api">api.weather.gov</a> service. This information is in the public domain. Iqama Times is not affiliated with or endorsed by the National Weather Service; for official warnings, go to weather.gov.</p>
+                        <p>Weather warnings, watches and advisories in the US from the <a href="https://www.weather.gov/">National Weather Service</a> (NOAA), through its public <a href="https://www.weather.gov/documentation/services-web-api">api.weather.gov</a> service. This information is in the public domain. IqamaHub is not affiliated with or endorsed by the National Weather Service; for official warnings, go to weather.gov.</p>
                         <h3>Software and fonts</h3>
                         <p><a href="https://daisyui.com/">daisyUI</a> and <a href="https://tailwindcss.com/">Tailwind CSS</a> (MIT), <a href="https://motion.dev/">Motion</a> (MIT), <a href="https://github.com/bubkoo/html-to-image">html-to-image</a> (MIT), for the feedback form’s screenshot. Fonts: Amiri, Aref Ruqaa, IBM Plex Sans, Kalam and Newsreader, from <a href="https://fonts.google.com/">Google Fonts</a>, served from this site (SIL Open Font License 1.1).</p>
                         <p>Full list with licences: <a href="https://github.com/sshafiuddin-dev/salahhub/blob/main/CREDITS.md">CREDITS.md</a>.</p>
@@ -369,7 +376,7 @@
     <dialog class="fb" id="fb" aria-labelledby="fb-title">
         <form class="fb-form" id="fb-form" novalidate>
             <h2 id="fb-title">Send feedback</h2>
-            <p class="fb-lead">Tell us what went wrong or what would make the app better. It goes to the person who looks after Iqama Times.</p>
+            <p class="fb-lead">Tell us what went wrong or what would make the app better. It goes to the person who looks after IqamaHub.</p>
             <fieldset class="fb-kind">
                 <legend class="iq-label">What is it about?</legend>
                 <label><input type="radio" name="kind" value="problem" checked> Something isn’t working</label>

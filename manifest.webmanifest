@@ -1,7 +1,7 @@
 {
-  "name": "Iqama Times",
-  "short_name": "Iqama",
-  "description": "Prayer and iqama times with a live countdown.",
+  "name": "IqamaHub",
+  "short_name": "IqamaHub",
+  "description": "Your salah companion: adhan and iqama times on any screen.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

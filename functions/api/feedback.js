@@ -67,7 +67,7 @@ export function emailFor(f, { to, from, country }) {
   const text = `${KINDS[f.kind]}\n\n${f.message}\n\n${f.contact ? `Reply to: ${f.contact}` : 'No reply address given.'}\n\n${f.details.map(([k, v]) => `${k}: ${v}`).join('\n')}`;
   const first = f.message.split('\n')[0].slice(0, 60);
   return {
-    from, to: [to], subject: `Iqama Times feedback: ${first}${f.message.length > 60 ? '…' : ''}`, html, text,
+    from, to: [to], subject: `IqamaHub feedback: ${first}${f.message.length > 60 ? '…' : ''}`, html, text,
     ...(f.contact ? { reply_to: f.contact } : {}), ...(f.image ? { attachments: [f.image] } : {}),
   };
 }
@@ -87,7 +87,7 @@ export async function handle(request, env, cache, send) {
   const hit = await cache.match(key), count = hit ? Number(await hit.text()) || 0 : 0;
   if (count >= PER_HOUR) return json({ error: 'Thank you, that is a lot of feedback in one hour. Please try again later.' }, 429);
   await cache.put(key, new Response(String(count + 1), { headers: { 'cache-control': 'max-age=3600' } }));
-  const mail = emailFor(f, { to: env.FEEDBACK_TO, from: env.FEEDBACK_FROM || 'Iqama Times <onboarding@resend.dev>', country: request.cf?.country });
+  const mail = emailFor(f, { to: env.FEEDBACK_TO, from: env.FEEDBACK_FROM || 'IqamaHub <onboarding@resend.dev>', country: request.cf?.country });
   try {
     const r = await send('https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify(mail) });
     if (!r.ok) throw new Error(`Resend answered ${r.status}: ${(await r.text()).slice(0, 200)}`);

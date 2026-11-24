@@ -1,5 +1,5 @@
 # The two watercolours on the Quran player's Now playing card (art/kaaba.webp for Makki surahs, art/nabawi.webp for Madani),
-# drawn for Iqama Times from simple shapes, with SVG filters for the paint. Run it to write the SVGs beside this file, open
+# drawn for IqamaHub from simple shapes, with SVG filters for the paint. Run it to write the SVGs beside this file, open
 # each in Chrome at 800×800, take a screenshot, and save it as a 720×720 WebP (quality 80) in art/. The app ships the WebP
 # only, so the tablet shows a picture and does not work out the filters itself.
 import os

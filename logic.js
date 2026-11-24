@@ -1,4 +1,4 @@
-// Pure time logic for Iqama Times. A time of day is minutes after local midnight at the prayer location.
+// Pure time logic for IqamaHub. A time of day is minutes after local midnight at the prayer location.
 export const PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 export const NAMES = { fajr: 'Fajr', sunrise: 'Sunrise', dhuhr: 'Dhuhr', asr: 'Asr', maghrib: 'Maghrib', isha: 'Isha' };
 
