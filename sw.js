@@ -1,6 +1,6 @@
 // Offline support for IqamaHub. Network first, so a new deploy or new iqama times show at once;
 // the cached copy is used only when the network fails.
-const CACHE = 'iqama-v71';
+const CACHE = 'iqama-v72';
 const SHELL = ['./', 'boot.js', 'fonts.css', 'fonts/newsreader-latin-opsz-normal.woff2', 'fonts/newsreader-latin-opsz-italic.woff2', 'fonts/ibm-plex-sans-latin-400-normal.woff2', 'fonts/ibm-plex-sans-latin-500-normal.woff2', 'fonts/ibm-plex-sans-latin-600-normal.woff2', 'fonts/amiri-arabic-400-normal.woff2', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'quran-art.js', 'art/kaaba.webp', 'art/nabawi.webp', 'motion.js', 'tour.js', 'feedback.js', 'vendor/motion.min.js', 'lib/PrayTimes.js', 'lib/CalculationMethods.js', 'iqama.json', 'hisn-text.json', 'manifest.webmanifest', 'icon-192.png', 'icons/favicon.svg', 'favicon-32.png', 'apple-touch-icon.png',
   // the guide's pages (Cloudflare serves them without .html), so Help opens offline; its screenshots are cached as they are viewed
   'guide/', 'guide/guide.css', 'guide/guide.js', ...['setup', 'location', 'today', 'iqama', 'alerts', 'display', 'quran', 'adhkar', 'weather', 'help'].map(p => `guide/${p}`)];
@@ -57,7 +57,10 @@ self.addEventListener('fetch', (e) => {
     }));
   }
   if (req.mode === 'navigate') e.waitUntil(warmAdhan()); // each visit online fills in any recording still missing
+  // Every file is checked with the server (no-cache: a quick "not modified" when unchanged), never taken from the
+  // browser's own cache unchecked, so a new page can never run with an old script after an update
+  const net = req.mode === 'navigate' ? req : new Request(req, { cache: 'no-cache' });
   e.respondWith(caches.open(CACHE).then(cache =>
-    fetch(req).then(r => { if (r.status === 200) cache.put(req, r.clone()); return r; })
+    fetch(net).then(r => { if (r.status === 200) cache.put(req, r.clone()); return r; })
       .catch(() => cache.match(req, { ignoreSearch: true }).then(hit => hit || Response.error()))));
 });
