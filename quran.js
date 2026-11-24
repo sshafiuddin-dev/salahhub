@@ -27,6 +27,7 @@ const IC = {
   up: svg('M6 15l6-6 6 6'), down: svg('M6 9l6 6 6-6'), left: svg('M15 5l-7 7 7 7'), close: svg('M6 6l12 12M18 6L6 18'),
   grip: '<svg viewBox="0 0 24 24" aria-hidden="true" class="qp-dots"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></svg>',
   vol: svg('M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7'),
+  more: '<svg viewBox="0 0 24 24" aria-hidden="true" class="qp-dots"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg>',
   dl: svg('M12 4v11M7 10.5l5 5 5-5M5 19.5h14'), done: svg('M5 12.5l4.5 4.5L19 7.5'), stop: svg('M9 9h6v6H9z'),
 };
 const MB = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.max(.1, b / 1e6).toFixed(b < 1e7 ? 1 : 0)} MB`);
@@ -73,12 +74,17 @@ export function initQuran({ say, stopOthers }) {
     + '</div></section>');
   document.body.insertAdjacentHTML('beforeend',
     `<div class="qp-now" id="qp-now" role="dialog" aria-modal="true" aria-label="Now playing" hidden><div class="qp-now-in">`
-    + `<div class="qp-now-top">${btn('close', 'down', 'Close now playing')}<span>Now playing</span><button class="d-btn d-btn-sm d-btn-outline qp-stop" type="button" data-q="dismiss">Stop and close</button></div>`
-    + `<div class="qp-now-title"><div class="qp-art qp-art-lg" aria-hidden="true"></div><h2 class="qp-label"></h2><p class="qp-sub"></p></div>${timeline()}`
-    + `<div class="qp-btns qp-btns-lg">${transport()}</div>`
-    + `<div class="qp-more">${btn('fav', 'heart', 'Add this surah to favorites', 'qp-heart')}${btn('add', 'add', 'Add this surah to a playlist')}`
+    // Now playing is a card: the surah's picture with the timeline over its foot, then the surah, the three round
+    // buttons, a row of quieter ones, and the rest (10 seconds back and on, speed, volume) behind ⋯
+    + `<div class="qp-card"><div class="qp-cover"><div class="qp-art qp-art-lg" aria-hidden="true"></div>`
+    + `<div class="qp-cover-top">${btn('close', 'down', 'Close now playing', 'qp-on-art')}${btn('dismiss', 'close', 'Stop and close the player', 'qp-on-art')}</div>${timeline()}</div>`
+    + `<div class="qp-info"><p class="qp-style"></p><h2 class="qp-label"></h2><p class="qp-reciter"></p></div>`
+    + `<div class="qp-btns qp-round">${btn('prev', 'prev', 'Previous surah')}${btn('toggle', 'play', 'Play', 'qp-play')}${btn('next', 'next', 'Next surah')}</div>`
+    + `<div class="qp-more">${btn('fav', 'heart', 'Add this surah to favorites', 'qp-heart')}${btn('shuffle', 'shuffle', 'Shuffle')}${btn('repeat', 'repeat', 'Repeat')}`
+    + `${btn('add', 'add', 'Add this surah to a playlist')}<button class="qp-ic" type="button" data-q="extras" aria-expanded="false" aria-controls="qp-extras" aria-label="More controls" title="More controls">${IC.more}</button></div>`
+    + `<div class="qp-extras" id="qp-extras" hidden>${btn('back', 'back', 'Back 10 seconds')}${btn('fwd', 'fwd', 'Forward 10 seconds')}`
     + `<button class="d-btn d-btn-sm d-btn-outline qp-rate" type="button" data-q="rate" aria-label="Playback speed">1×</button>`
-    + `<label class="qp-vol">${IC.vol}<input type="range" min="0" max="100" step="1" id="qp-vol" aria-label="Volume"></label></div>`
+    + `<label class="qp-vol">${IC.vol}<input type="range" min="0" max="100" step="1" id="qp-vol" aria-label="Volume"></label></div></div>`
     + `<h3 class="qp-h">Up next</h3><ol class="qp-rows qp-queue" id="qp-queue"></ol></div></div>`
     + '<dialog class="qp-dlg" id="qp-dlg" aria-labelledby="qp-dlg-h"><div class="qp-dlg-in" id="qp-dlg-in"></div></dialog>');
   const player = $('qp-player'), now = $('qp-now'), dlg = $('qp-dlg'), dlgIn = $('qp-dlg-in'), app = document.querySelector('.app');
@@ -135,7 +141,7 @@ export function initQuran({ say, stopOthers }) {
     if (key === artKey) return;
     artKey = key;
     player.querySelector('.qp-art').innerHTML = i ? tileFor(i.reciter, reciterOf(cur.id)) : '';
-    now.querySelector('.qp-art').innerHTML = i ? starArt({ n: i.n, reciter: i.reciter, title: label(i), makki: cat?.surahs.get(i.n)?.makki }) : '';
+    now.querySelector('.qp-art').innerHTML = i ? starArt({ n: i.n, reciter: i.reciter, title: label(i), makki: cat?.surahs.get(i.n)?.makki, cover: true }) : '';
   }
   // What a track is: from mp3quran's lists, or, with none (offline), from what was kept with the recitation
   function savedInfo(id) {
@@ -266,7 +272,7 @@ export function initQuran({ say, stopOthers }) {
     ensureCat().then(go).catch(() => say('Could not load the list. Check the connection.'));
   }
   const seekBy = (s) => { if (Number.isFinite(audio.duration)) audio.currentTime = Math.min(Math.max(0, audio.currentTime + s), audio.duration - .25); };
-  // Stop and close: the × on the bar, Stop and close in Now playing, or a swipe. The bar leaves (a short fade and drop, or
+  // Stop and close: the × on the bar or on the picture in Now playing, or a swipe. The bar leaves (a short fade and drop, or
   // the swipe's own slide), and Undo, for 8 seconds, brings back the same surah, queue and place, paused.
   function dismiss({ swiped = false } = {}) {
     const snap = cur ? { cur: { ...cur }, q: q && JSON.parse(JSON.stringify(q)), last: store.last && { ...store.last }, t: audio.currentTime || store.last?.t || 0 } : null;
@@ -378,6 +384,9 @@ export function initQuran({ say, stopOthers }) {
     for (const el of [player, now]) el.dataset.state = busy ? 'loading' : playing ? 'playing' : 'paused';
     all('.qp-label').forEach(el => { el.textContent = cur ? cur.label : ''; });
     all('.qp-sub').forEach(el => { el.textContent = cur ? cur.sub : ''; });
+    const cut = cur ? cur.sub.indexOf(' · ') : -1; // "Reciter · Riwayah · Style"
+    now.querySelector('.qp-reciter').textContent = cur ? (cut < 0 ? cur.sub : cur.sub.slice(0, cut)) : '';
+    now.querySelector('.qp-style').textContent = cur && cut >= 0 ? cur.sub.slice(cut + 3) : '';
     paintArt();
     all('[data-q="toggle"]').forEach(el => {
       if (playing !== wasPlaying || !el.firstElementChild) { el.innerHTML = playing ? IC.pause : IC.play; mo.swap(el.firstElementChild); }
@@ -455,7 +464,7 @@ export function initQuran({ say, stopOthers }) {
     renderQueue();
     now.hidden = false;
     app.inert = true;
-    now.scrollTop = 0; // open at the top: the title, the ring and the controls
+    now.scrollTop = 0; // open at the top: the picture, the surah and the controls
     mo.sheetIn(now.firstElementChild);
     now.querySelector('[data-q="close"]').focus({ preventScroll: true }); // the sheet is still below the screen as it slides in: focusing must not scroll it
     ensureCat().then(() => { restoreQueue(); renderQueue(); }).catch(() => {});
@@ -484,6 +493,7 @@ export function initQuran({ say, stopOthers }) {
     else if (a === 'fav') { if (cur) { favTrack(cur.id); mo.pop(b.firstElementChild); } }
     else if (a === 'add') { if (cur) openAdd(cur.id, cur.label); }
     else if (a === 'rate') { store.rate = audio.playbackRate = nextRate(store.rate); save(); paint(); }
+    else if (a === 'extras') { const x = $('qp-extras'), open = x.hidden; x.hidden = !open; b.setAttribute('aria-expanded', String(open)); if (open) mo.fade(x); }
     else if (a === 'open') openNow();
     else if (a === 'close') closeNow();
     else if (a === 'dismiss') { if (nowOpen) closeNow(); dismiss(); }
@@ -492,48 +502,95 @@ export function initQuran({ say, stopOthers }) {
   player.addEventListener('click', onPlayerClick);
   now.addEventListener('click', onPlayerClick);
 
-  // ---- Swipe the bar away (touch and pen): a sideways drag that starts on the title or an empty part of the bar, never on
-  // the buttons or the timeline. It follows the finger and fades; let go past half its width, or flick, and it slides off
-  // and closes (with Undo); let go sooner and it settles back. The × is the same action for mouse, keyboard and remote. ----
+  // ---- Swipe the bar (touch and pen), from the title or an empty part of it, never the buttons or the timeline:
+  // - sideways: it follows the finger and fades; let go past half its width, or flick, and it slides off and closes
+  //   (with Undo); let go sooner and it settles back. The × is the same action for mouse, keyboard and remote.
+  // - up: it lifts a little with the finger; let go past 40px, or flick up, and Now playing opens (the ⌃ does the same). ----
   const quiet = () => mo.calm() || document.documentElement.dataset.palette === 'eink';
   let drag = null, dragged = false;
   player.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse' || !cur || e.target.closest('.qp-btns, .qp-side, .qp-time, input')) return;
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, on: false, v: 0, lx: e.clientX, lt: e.timeStamp };
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0, on: '', v: 0, lx: e.clientX, ly: e.clientY, lt: e.timeStamp };
   });
   player.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.on) {
-      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; } // a vertical scroll: not ours
-      if (Math.abs(dx) < 10) return;
-      drag.on = true; try { player.setPointerCapture(e.pointerId); } catch (err) {} player.style.transition = 'none';
+      const up = dy < -10 && -dy > Math.abs(dx);
+      if (!up && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { drag = null; return; } // a pull down: not ours
+      if (!up && Math.abs(dx) < 10) return;
+      drag.on = up ? 'up' : 'side'; try { player.setPointerCapture(e.pointerId); } catch (err) {} player.style.transition = 'none';
     }
     const dt = Math.max(1, e.timeStamp - drag.lt);
-    drag.v = (e.clientX - drag.lx) / dt; drag.lx = e.clientX; drag.lt = e.timeStamp; drag.dx = dx;
-    player.style.transform = `translateX(${dx}px)`;
-    player.style.opacity = String(1 - Math.min(1, Math.abs(dx) / player.offsetWidth) * .6);
+    drag.v = (drag.on === 'up' ? e.clientY - drag.ly : e.clientX - drag.lx) / dt;
+    drag.lx = e.clientX; drag.ly = e.clientY; drag.lt = e.timeStamp; drag.dx = dx; drag.dy = dy;
+    if (quiet()) return;
+    if (drag.on === 'up') player.style.transform = `translateY(${Math.max(-48, Math.min(0, dy)) / 2}px)`;
+    else {
+      player.style.transform = `translateX(${dx}px)`;
+      player.style.opacity = String(1 - Math.min(1, Math.abs(dx) / player.offsetWidth) * .6);
+    }
   });
+  const settle = () => {
+    player.style.transition = quiet() ? 'none' : 'transform .3s cubic-bezier(.2, 0, 0, 1), opacity .3s cubic-bezier(.2, 0, 0, 1)'; // settles back, no bounce
+    player.style.transform = ''; player.style.opacity = '';
+    setTimeout(() => { player.style.transition = ''; }, 300);
+  };
   function endDrag(e) {
     if (!drag || e.pointerId !== drag.id) return;
     const d = drag; drag = null;
     if (!d.on) return;
     dragged = true; setTimeout(() => { dragged = false; }, 0); // the click that ends a drag opens nothing
-    const w = player.offsetWidth, out = e.type !== 'pointercancel' && (Math.abs(d.dx) > w / 2 || (Math.abs(d.v) > .5 && Math.sign(d.v) === Math.sign(d.dx)));
+    const kept = e.type !== 'pointercancel';
+    if (d.on === 'up') { settle(); if (kept && (d.dy < -40 || d.v < -.4)) openNow(); return; }
+    const w = player.offsetWidth, out = kept && (Math.abs(d.dx) > w / 2 || (Math.abs(d.v) > .5 && Math.sign(d.v) === Math.sign(d.dx)));
     if (out) {
       if (quiet()) return dismiss({ swiped: true });
       player.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
       player.style.transform = `translateX(${Math.sign(d.dx || 1) * w}px)`; player.style.opacity = '0';
       setTimeout(() => dismiss({ swiped: true }), 200);
-    } else {
-      player.style.transition = quiet() ? 'none' : 'transform .3s cubic-bezier(.2, 0, 0, 1), opacity .3s cubic-bezier(.2, 0, 0, 1)'; // settles back, no bounce
-      player.style.transform = ''; player.style.opacity = '';
-      setTimeout(() => { player.style.transition = ''; }, 300);
-    }
+    } else settle();
   }
   player.addEventListener('pointerup', endDrag);
   player.addEventListener('pointercancel', endDrag);
   player.addEventListener('click', (e) => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+  // ---- Pull Now playing down to dock it (touch): a downward drag that starts on the card, away from its controls, while the
+  // screen is scrolled to the top. The sheet follows the finger; let go past a quarter of the screen, or flick down, and it
+  // closes into the bar (the music carries on); let go sooner and it settles back. Touch events, not pointer events, so the
+  // drag can be told apart from scrolling and the page still scrolls up as usual. ----
+  let pull = null;
+  const sheet = () => now.firstElementChild;
+  now.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    pull = e.touches.length === 1 && now.scrollTop <= 0 && e.target.closest('.qp-card') && !e.target.closest('button, input, label, .qp-time')
+      ? { x: t.clientX, y: t.clientY, dy: 0, v: 0, ly: t.clientY, lt: e.timeStamp, on: false } : null;
+  }, { passive: true });
+  now.addEventListener('touchmove', (e) => {
+    if (!pull) return;
+    const t = e.touches[0], dy = t.clientY - pull.y, dx = t.clientX - pull.x;
+    if (!pull.on) {
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { pull = null; return; } // sideways: not ours
+      if (dy < -6) { pull = null; return; } // up: a scroll
+      if (dy < 10) return;
+      pull.on = true; sheet().style.transition = 'none';
+    }
+    e.preventDefault(); // the drag, not a scroll or the browser's pull-to-refresh
+    const dt = Math.max(1, e.timeStamp - pull.lt);
+    pull.v = (t.clientY - pull.ly) / dt; pull.ly = t.clientY; pull.lt = e.timeStamp; pull.dy = Math.max(0, dy);
+    if (!quiet()) sheet().style.transform = `translateY(${pull.dy}px)`;
+  }, { passive: false });
+  function endPull(e) {
+    const p = pull; pull = null;
+    if (!p || !p.on) return;
+    if (e.type !== 'touchcancel' && (p.dy > innerHeight / 4 || p.v > .5)) return closeNow(); // slides on down from where it is
+    const el = sheet();
+    el.style.transition = quiet() ? 'none' : 'transform .3s cubic-bezier(.2, 0, 0, 1)';
+    el.style.transform = '';
+    setTimeout(() => { el.style.transition = ''; }, 300);
+  }
+  now.addEventListener('touchend', endPull);
+  now.addEventListener('touchcancel', endPull);
 
   // ---- Back, on every screen size: opening a reciter, a surah or a playlist, Now playing, and the Quran dialogs each add
   // one history step (the address stays #quran), so the phone's back gesture, the browser's Back and the ← in the page

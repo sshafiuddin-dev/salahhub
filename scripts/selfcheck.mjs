@@ -637,5 +637,8 @@ console.log('hijri at maghrib ok');
   assert.ok(A.isMakki(18) && !A.isMakki(2) && !A.isMakki(110) && A.isMakki(1));
   assert.equal(A.isMakki(2, true), true, "mp3quran's flag wins when it is known");
   assert.ok(s.includes('Makki · مكية') && A.starArt({ n: 2 }).includes('Madani · مدنية'), 'the card says Makki or Madani');
+  const cv = A.starArt({ n: 18, reciter: 'Mishary Alafasy', cover: true });
+  const lowest = Math.max(...[...cv.matchAll(/<text[^>]* y="([\d.]+)"/g)].map(m => +m[1]));
+  assert.ok(lowest <= 108, 'the cover keeps the foot clear for the timeline');
   console.log('quran art ok');
 }
