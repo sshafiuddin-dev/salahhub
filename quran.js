@@ -6,6 +6,7 @@ import {
   cleanStore, hafsId, legacyTrack, retryWait, shouldRetry, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
 } from './quran-logic.js';
 import * as mo from './motion.js';
+import { bubble } from './controls.js';
 import { initOffline } from './quran-offline.js';
 import { tileArt, starArt, paintedArt, paintingOf, arNames, isMakki, SURAH_AR } from './quran-art.js';
 import { esc } from './logic.js';
@@ -90,6 +91,7 @@ export function initQuran({ say, stopOthers }) {
     + '<dialog class="qp-dlg" id="qp-dlg" aria-labelledby="qp-dlg-h"><div class="qp-dlg-in" id="qp-dlg-in"></div></dialog>');
   const player = $('qp-player'), now = $('qp-now'), dlg = $('qp-dlg'), dlgIn = $('qp-dlg-in'), app = document.querySelector('.app');
   $('qp-vol').value = Math.round(store.vol * 100);
+  bubble($('qp-vol'), 'rng-vol', (v) => `${v}%`); // the fill and a percent label above the thumb while it moves
 
   // ---- Catalogue ----
   // The lists are kept too (in the 'quran-audio' cache, beside the recitations), so the tab and the queue work offline

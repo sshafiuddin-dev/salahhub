@@ -224,15 +224,26 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .toast-ok path { stroke-dasharray: 20; stroke-dashoffset: 20; transition: stroke-dashoffset var(--m-normal) var(--m-ease) .1s; }
 .toast.show .toast-ok path { stroke-dashoffset: 0; }
 @media (prefers-reduced-motion: reduce) { .toast, .toast.show { transform: translate(-50%, 0); } .toast-ok path { stroke-dashoffset: 0; transition: none; } }
-/* Sliders show their value in a small label above the thumb while it is dragged or moved with the keys (app.js, bubble()) */
-.rng { position: relative; display: block; width: 100%; }
+/* Sliders (controls.js, bubble()): a rounded track that fills with the accent up to a round thumb, which grows a little
+   under a finger, with the value in a small label above the thumb while it is moved */
+.rng { --tk: 1.6rem; position: relative; display: block; width: 100%; }
 .rng-dim { max-width: 22rem; } .rng-ar { max-width: 16rem; }
-.rng > .d-range { width: 100%; }
-.rng-bub { position: absolute; bottom: calc(100% - .2rem); left: calc(var(--p, 0) * (100% - 1.25rem) + .625rem); z-index: 3; padding: .15rem .55rem; border-radius: 6px;
+.rng > input[type="range"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 2.75rem; min-height: 2.75rem; margin: 0; padding: 0;
+  background: transparent; overflow: visible; border-radius: 0; cursor: pointer; }
+.rng > input[type="range"]::-webkit-slider-runnable-track { height: .5rem; border-radius: 99px;
+  background: linear-gradient(90deg, var(--on) calc(var(--p, 0) * 100%), var(--line) 0); background: linear-gradient(90deg, var(--on) calc(var(--p, 0) * 100%), color-mix(in srgb, var(--ink) 16%, transparent) 0); }
+.rng > input[type="range"]::-moz-range-track { height: .5rem; border-radius: 99px; background: color-mix(in srgb, var(--ink) 16%, transparent); }
+.rng > input[type="range"]::-moz-range-progress { height: .5rem; border-radius: 99px; background: var(--on); }
+.rng > input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: var(--tk); height: var(--tk); margin-top: calc((.5rem - var(--tk)) / 2); border: 2px solid var(--on); border-radius: 50%;
+  background: var(--paper); box-shadow: 0 1px 4px rgba(0, 0, 0, .25); transition: scale var(--m-normal) var(--m-pop); }
+.rng > input[type="range"]::-moz-range-thumb { width: calc(var(--tk) - 4px); height: calc(var(--tk) - 4px); border: 2px solid var(--on); border-radius: 50%; background: var(--paper); box-shadow: 0 1px 4px rgba(0, 0, 0, .25); }
+.rng.act > input[type="range"]::-webkit-slider-thumb { scale: 1.15; }
+.rng > input[type="range"]:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; border-radius: 99px; }
+.rng-bub { position: absolute; bottom: calc(100% - .35rem); left: calc(var(--p, 0) * (100% - var(--tk)) + var(--tk) / 2); z-index: 3; padding: .15rem .55rem; border-radius: 6px;
   background: var(--ink); color: var(--paper); font: 600 .85rem/1.4 var(--body); white-space: nowrap; pointer-events: none;
-  opacity: 0; transform: translate(-50%, .35rem) scale(.85); transition: opacity var(--m-fast), transform var(--m-normal) var(--m-ease); }
+  opacity: 0; transform: translate(-50%, .35rem) scale(.85); transition: opacity var(--m-fast), transform var(--m-normal) var(--m-pop); }
 .rng.act .rng-bub { opacity: 1; transform: translate(-50%, 0); }
-@media (prefers-reduced-motion: reduce) { .rng-bub, .rng.act .rng-bub { transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .rng-bub, .rng.act .rng-bub { transform: translate(-50%, 0); } .rng.act > input[type="range"]::-webkit-slider-thumb { scale: none; } }
 .sub-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: .25rem; align-content: start; padding: 0; border: 0; } /* the portfolio pads every <section> */
 .seg { justify-self: start; max-width: 100%; min-height: 3rem; font-family: var(--body); } /* min-height: a scroll-container grid item would otherwise be squeezed to a sliver by a tall pane */
 .seg .d-tab { font-weight: 600; color: var(--muted); background-color: transparent; border: 0; } /* these are <button>s, which daisyUI does not reset */
@@ -741,7 +752,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .topbar-actions { flex-wrap: nowrap; }
   #install { display: none; }
   /* the words leave the screen but stay as the buttons' names for screen readers */
-  .tb-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .tb-btn > span:not(.dn-pill) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #help { display: none; } /* phones: Help is in the More menu; the header keeps room for the date */
   #feedback-btn { display: none; } /* phones: Settings › About has Send feedback */
   .tb-btn { width: 2.75rem; height: 2.75rem; padding: 0; }
@@ -1067,7 +1078,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .qp-rate { min-width: 3.75rem; height: 2.5rem; font-variant-numeric: tabular-nums; }
 .qp-vol { display: inline-flex; align-items: center; gap: .4rem; color: var(--muted); }
 .qp-vol svg { width: 1.3rem; height: 1.3rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.qp-vol input { width: min(8rem, 30vw); accent-color: var(--clear); }
+.qp-vol .rng { width: min(8rem, 30vw); --tk: 1.25rem; }
 /* wide, short screens (the Fire 7 on the wall): the picture on the left, the rest beside it */
 @media (min-width: 50rem) and (orientation: landscape) {
   .qp-now-in { width: min(100%, 60rem); }
@@ -1183,9 +1194,18 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 /* More menu: Adhkar, Quran and Month sit under one entry so the main bar stays short on a wall tablet */
 .more summary { list-style: none; cursor: pointer; }
 .more summary::-webkit-details-marker { display: none; }
-/* the arrow beside More (daisyUI's) flips at the app's pace as the menu opens; app.js brings the entries in one after another */
-.d-menu .more summary::after { transition-duration: var(--m-normal); transition-timing-function: var(--m-ease); }
-@media (prefers-reduced-motion: reduce) { .d-menu .more summary::after { transition: none; } }
+/* More's icon: three lines that turn into a close mark while the menu is open (daisyUI's arrow is not used). app.js brings
+   the entries in one after another. Shown beside the word on phones and wide screens, above it where the tabs have icons. */
+.d-menu .more summary::after { display: none; }
+.mm-ic { position: relative; display: inline-block; flex: none; width: 1.15rem; height: .9rem; vertical-align: middle; }
+.mm-ic i { position: absolute; left: 0; right: 0; height: 2px; border-radius: 1px; background: currentColor;
+  transition: translate var(--m-normal) var(--m-ease), rotate var(--m-normal) var(--m-ease), opacity var(--m-fast), scale var(--m-normal) var(--m-ease); }
+.mm-ic i:nth-child(1) { top: 0; } .mm-ic i:nth-child(2) { top: calc(50% - 1px); } .mm-ic i:nth-child(3) { bottom: 0; }
+[open] > summary .mm-ic i:nth-child(1) { translate: 0 calc(.45rem - 1px); rotate: 45deg; }
+[open] > summary .mm-ic i:nth-child(2) { opacity: 0; scale: 0 1; }
+[open] > summary .mm-ic i:nth-child(3) { translate: 0 calc(1px - .45rem); rotate: -45deg; }
+.dockbar .more summary { grid-auto-flow: column; align-items: center; gap: .4rem; }
+@media (prefers-reduced-motion: reduce) { .mm-ic i { transition: opacity var(--m-fast); } }
 .more details { position: relative; }
 .more-menu { position: absolute; z-index: 20; min-width: 9rem; padding: .35rem; background: var(--paper); border: 1px solid var(--line); box-shadow: 0 6px 20px #0004; }
 .tabbar .more-menu { left: 100%; top: 0; margin-left: .35rem; }
