@@ -584,6 +584,8 @@ async function loadHisnText() {
   if (!r.ok) throw new Error(`hisn-text.json answered ${r.status}`);
   hisnText = (await r.json()).chapters || {};
   for (const c of Object.values(hisnText)) for (const it of c.items || []) for (const k of ['ar', 'en', 'tr']) if (typeof it[k] === 'string') it[k] = tidy(it[k]);
+  // the source writes the letter ʿayn as "AA" in its transliteration ("AAafwa"); show the proper mark ("ʿafwa")
+  for (const c of Object.values(hisnText)) for (const it of c.items || []) if (typeof it.tr === 'string') it.tr = it.tr.replace(/AA/g, 'ʿ');
   return hisnText;
 }
 const hisnItems = (items) => items.map((it, i) => `<article class="au-dua"><div class="au-meta"><span>Dua ${i + 1} of ${items.length}</span>${it.n ? `<span>Read ${it.n} ${it.n === 1 ? 'time' : 'times'}</span>` : ''}</div>`
