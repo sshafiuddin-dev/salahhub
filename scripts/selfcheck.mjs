@@ -173,6 +173,7 @@ const feats = [nwsF('Wind Advisory', 'Moderate', '2026-11-17T23:00:00-05:00'), n
   nwsF('Frost Advisory', 'Minor', '2026-11-17T08:00:00-05:00'), nwsF('Flood Watch', 'Severe', null, { messageType: 'Cancel' })];
 assert.deepEqual(pickAlerts(feats, nov17.getTime()).map(a => a.event), ['Winter Storm Warning', 'Wind Advisory']);
 assert.equal(pickAlerts(feats, nov17.getTime())[1].until, '2026-11-17T23:00:00-05:00', 'the later-ending copy of a repeated advisory');
+assert.deepEqual(pickAlerts([nwsF('Wind Advisory', 'Moderate', null, { description: ' * WHAT...Gusts to 50 mph. ', instruction: undefined })], nov17.getTime()).map(a => [a.text, a.todo]), [['* WHAT...Gusts to 50 mph.', '']], 'the NWS text comes through, trimmed; a missing part is empty');
 {
   const store = new Map(), cache = { match: async (k) => store.get(k.url)?.clone(), put: async (k, r) => { store.set(k.url, r); } };
   let calls = 0, asked = null;

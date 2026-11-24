@@ -7,16 +7,17 @@
 const UA = '(salahhub.pages.dev, https://github.com/sshafiuddin-dev/salahhub)';
 const KEEP_S = 300, OUTSIDE_S = 86400;
 const RANK = { Extreme: 0, Severe: 1, Moderate: 2, Minor: 3, Unknown: 4 };
+const clip = (s) => (typeof s === 'string' ? s.trim().slice(0, 2000) : ''); // NWS text is plain; capped so one odd alert cannot bloat the answer
 const json = (body, status, extra = {}) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...extra } });
 
-// NWS GeoJSON features → [{ event, severity, until, sender }]: real alerts that have not ended, most severe first,
+// NWS GeoJSON features → [{ event, severity, until, sender, text, todo }] (text and todo: NWS's description and instructions): real alerts that have not ended, most severe first,
 // one entry per kind of event (NWS often lists the same advisory twice while an update replaces it).
 export function pick(features, now = Date.now()) {
   const seen = new Set();
   return (Array.isArray(features) ? features : [])
     .map(f => f?.properties || {})
     .filter(p => p.status === 'Actual' && p.messageType !== 'Cancel' && typeof p.event === 'string')
-    .map(p => ({ event: p.event, severity: p.severity in RANK ? p.severity : 'Unknown', until: p.ends || p.expires || null, sender: p.senderName || 'National Weather Service' }))
+    .map(p => ({ event: p.event, severity: p.severity in RANK ? p.severity : 'Unknown', until: p.ends || p.expires || null, sender: p.senderName || 'National Weather Service', text: clip(p.description), todo: clip(p.instruction) }))
     .filter(a => !a.until || Date.parse(a.until) > now)
     .sort((a, b) => RANK[a.severity] - RANK[b.severity] || (Date.parse(b.until) || 0) - (Date.parse(a.until) || 0))
     .filter(a => (seen.has(a.event) ? false : seen.add(a.event)))

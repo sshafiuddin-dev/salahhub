@@ -22,6 +22,8 @@ section { padding-block: clamp(4rem, 9vw, 7.5rem); border-top: 1px solid var(--l
 html, body { height: 100%; }
 body { overflow: hidden; }
 html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer once did in Firefox) */
+/* A TV or big monitor is read from across the room: everything set in rem (bars, buttons, Settings) grows with it */
+@media (min-width: 1600px) and (min-height: 860px) { html { font-size: 125%; } }
 
 /* Weather backdrop: a tint fading into the page plus the printed texture on .sky-print (see sky.js).
    Light-theme sky colours stay light and dark-theme ones stay dark, so muted text keeps AA contrast on them. */
@@ -129,7 +131,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .pm-warm { inset: 0; opacity: var(--o); background: linear-gradient(180deg, transparent 6%, rgba(205, 112, 52, .34) 30%, rgba(205, 112, 52, .12) 40%, transparent 47%); }
 @media (prefers-reduced-motion: reduce) { .sky-printed * { animation: none !important; } }
 /* Over the realistic sky, text in its band gets a soft paper edge so it reads over cloud, glare or rain */
-:root[data-skymode="real"] .topbar, :root[data-skymode="real"] .dx-top, :root[data-skymode="real"] .sh-mid, :root[data-skymode="real"] .sh-warn, :root[data-skymode="real"] .wx-now, :root[data-skymode="real"] #tab-weather > .wx-units {
+:root[data-skymode="real"] .topbar, :root[data-skymode="real"] .iq-ask, :root[data-skymode="real"] .dx-top, :root[data-skymode="real"] .sh-mid, :root[data-skymode="real"] .sh-warn, :root[data-skymode="real"] .wx-warns, :root[data-skymode="real"] .wx-now, :root[data-skymode="real"] #tab-weather > .wx-units {
   text-shadow: 0 0 .5em var(--paper), 0 0 .18em var(--paper), 0 0 .06em var(--paper); }
 :root[data-skymode="real"] .iq-hijri, :root[data-skymode="real"] .dx-meta, :root[data-skymode="real"] .sh-side, :root[data-skymode="real"] .sh-at, :root[data-skymode="real"] .sh-wxat, :root[data-skymode="real"] .sh-wxc, :root[data-skymode="real"] .sh-wxr { color: var(--ink); }
 /* No panel is laid over the sky: the ink keeps its paper halo and sits straight on it, so the board stays one
@@ -327,6 +329,21 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .sh .sh-warn { margin-bottom: calc(var(--u) * 1.4); }
 .sh-warn b { font: 600 max(.9rem, calc(var(--u) * 2.4))/1.2 var(--body); letter-spacing: .01em; }
 .sh-warn span { font: italic 500 max(1rem, calc(var(--u) * 2.8))/1.2 var(--display); color: var(--ink); }
+.sh-warn[data-go] { cursor: pointer; }
+.sh-warn-go { font: 600 max(.85rem, calc(var(--u) * 2.2))/1.2 var(--body); font-style: normal; color: var(--clear); text-decoration: underline; text-underline-offset: .2em; }
+/* The same warnings in full at the top of the Weather tab: one ruled row each, opening to the National Weather Service's text */
+.wx-warns { margin-bottom: 1.5rem; border-top: 2px solid var(--clear); }
+.wx-warn { border-bottom: 1px solid var(--line); }
+.wx-warn summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .9rem; min-height: 2.75rem; padding-block: .6rem; cursor: pointer; color: var(--clear); }
+.wx-warn summary b { font: 600 1.05rem/1.3 var(--body); }
+.wx-warn summary span { font: italic 500 1.05rem/1.3 var(--display); color: var(--ink); }
+.wx-warn > summary { list-style: none; }
+.wx-warn > summary::-webkit-details-marker { display: none; }
+.wx-warn > summary::after { content: ""; align-self: center; width: .45rem; height: .45rem; margin-left: auto; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: translateY(-.15rem) rotate(45deg); } /* drawn like About's folds */
+.wx-warn[open] > summary::after { transform: translateY(.1rem) rotate(-135deg); }
+.wx-warn summary:focus-visible { outline: 2px solid var(--clear); outline-offset: 3px; }
+.wx-warn p { margin: 0 0 .8rem; max-width: 70ch; white-space: pre-line; line-height: 1.5; }
+.wx-warn small { display: block; padding-bottom: .9rem; color: var(--muted); }
 .sh-warn small { margin-left: auto; font: 500 max(.72rem, calc(var(--u) * 1.8))/1.2 var(--body); letter-spacing: .06em; color: var(--muted); }
 .sh-mid { zoom: var(--fit, 1); } /* app.js fitBoard: only below 1 when the screen is too short */
 .sh-mid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: center; gap: calc(var(--u) * 3); min-height: 0; padding-block: calc(var(--u) * 1.5); }
@@ -674,12 +691,12 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   #install { display: none; }
   /* the words leave the screen but stay as the buttons' names for screen readers */
   .tb-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  #help { display: none; } /* phones: Settings › About has Read the guide; the header keeps room for the date */
+  #help { display: none; } /* phones: Help is in the More menu; the header keeps room for the date */
   #feedback-btn { display: none; } /* phones: Settings › About has Send feedback */
   .tb-btn { width: 2.75rem; height: 2.75rem; padding: 0; }
   .tb-btn svg { width: 1.3rem; height: 1.3rem; }
-  .tb-btn[data-short] { width: 3.4rem; height: auto; min-height: 2.75rem; flex-direction: column; gap: .15rem; padding: .35rem 0; }
-  .tb-btn[data-short]::after { content: attr(data-short); font: 600 .66rem/1 var(--body); letter-spacing: .02em; } /* the icon's name, in words, under it */
+  .tb-btn[data-short] { width: 4.6rem; height: auto; min-height: 2.75rem; flex-direction: column; gap: .15rem; padding: .35rem 0; }
+  .tb-btn[data-short]::after { content: attr(data-short); font: 600 .75rem/1 var(--body); white-space: nowrap; letter-spacing: .02em; } /* the icon's name, in words, under it */
   .toast { bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
   .seg { flex-wrap: wrap; overflow: visible; row-gap: 0; } /* five tabs wrap onto a second row: none is hidden off the edge */
   .seg .d-tab { flex: none; padding-inline: .75rem; }

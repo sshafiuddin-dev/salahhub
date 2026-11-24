@@ -133,7 +133,7 @@ function sheetTable(d) {
   // the next prayer's column is marked on every cell (nx-col: the solid bar); the times already gone by are faded (is-past)
   const past = pastKeys(d.next, d.isAhead);
   const cls = (r, own) => { const c = [own, nx(r) ? 'nx-col' : '', past.has(r.key) ? 'is-past' : ''].filter(Boolean).join(' '); return c ? ` class="${c}"` : ''; };
-  const th = d.rows.map(r => `<th scope="col"${cls(r, nx(r) ? 'is-next' : '')}>${nameOf(r)}${d.bells && !d.isAhead ? bell(r, d.bells) : ''}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
+  const th = d.rows.map(r => `<th scope="col"${cls(r, nx(r) ? 'is-next' : '')}>${nameOf(r)}${d.bells ? bell(r, d.bells) : ''}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
   const calledNow = d.next.kind === 'iqama' && d.next.at < 1440; // the adhan time has passed: the Iqama cell carries the mark
   const adhan = d.rows.map(r => `<td${cls(r, nx(r) ? (calledNow ? 'is-passed' : 'is-next') : '')}>${hm(r.adhan)}</td>`).join('');
   const iqama = d.rows.map(r => {
@@ -189,7 +189,7 @@ function board(real) {
       + `<p class="sh-dua-ar" lang="ar" dir="rtl">${esc(k.item.ar)}</p><p class="sh-dua-en">${esc(k.item.en)}</p></div>`
     : ('fold' in d ? foldBtn(d.fold) : '') + sheetTable(d);
   const w = d.warn;
-  const warn = w ? `<p class="sh-warn"><b>${esc(w.event)}</b><span>${esc(w.until)}${w.more ? ` · ${w.more} more` : ''}</span><small>${esc(w.sender)}</small></p>` : '';
+  const warn = w ? `<p class="sh-warn"${d.wxLink ? ' data-go="weather"' : ''}><b>${esc(w.event)}</b><span>${esc(w.until)}${w.more ? ` · ${w.more} more` : ''}</span>${d.wxLink ? '<em class="sh-warn-go">Details ›</em>' : ''}<small>${esc(w.sender)}</small></p>` : '';
   return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}${w ? ' sh-w' : ''}">${warn}<div class="sh-mid">`
     + `<div class="sh-clk"><p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side">${leftOf(d) < 900 && !d.noSec ? `<span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span>` : ''}<span>${ampm(m)}</span></span></p>${wxNow(d)}</div>`
     + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${progress(real)}${nextLine(d)}${wxAt(d.wxAt)}`
