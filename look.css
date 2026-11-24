@@ -38,6 +38,11 @@
 :root[data-palette="eink"][data-dim="1"] { --paper: #D9D6CF; --surface: #D9D6CF; --ink: #161616; --muted: #3D3D3D; --line: #AEABA3; --clear: #161616; --risk: #161616; }
 :root[data-palette="eink"][data-dim="2"] { --paper: #B3B0A8; --surface: #B3B0A8; --ink: #111111; --muted: #2E2E2E; --line: #8F8C85; --clear: #111111; --risk: #111111; }
 :root[data-palette="eink"][data-dim="3"] { --paper: #000000; --surface: #000000; --ink: #9A9A9A; --muted: #767676; --line: #262626; --clear: #9A9A9A; --risk: #9A9A9A; color-scheme: dark; }
+/* Settings at Darkest: set-up work needs easier reading than the clock across the room. The same black page with brighter warm
+   ink (no white, no blue), so the screen still gives off little light at night. Today and the other tabs stay as they are. */
+:root[data-palette="paper"][data-dim="3"][data-tab="settings"] { --ink: #D4A458; --muted: #B8924F; /* 9.3:1 and 7.3:1 on black */ }
+:root[data-palette="hand"][data-dim="3"][data-tab="settings"] { --ink: #CFC2A3; --muted: #ADA38B; }
+:root[data-palette="eink"][data-dim="3"][data-tab="settings"] { --ink: #C4C4C4; --muted: #A2A2A2; --clear: #C4C4C4; --risk: #C4C4C4; }
 
 /* High contrast: white and black, and black and white from Dim */
 :root[data-palette="contrast"] { --paper: #FFFFFF; --surface: #FFFFFF; --ink: #000000; --muted: #262626; --line: #595959; --clear: #0037B3; --risk: #A4001D; --rule-w: 2px; }

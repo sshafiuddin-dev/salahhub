@@ -14,7 +14,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, '../../guide');
 
 export const CHAPTERS = [
-  { slug: 'setup', title: 'Set up your tablet', blurb: 'Android, Fire or iPad: add the app, keep the screen on, allow sound.' },
+  { slug: 'setup', title: 'Set up your device', blurb: 'Android, Fire or iPad: add the app, keep the screen on, allow sound.' },
   { slug: 'location', title: 'Your location and times', blurb: 'ISCJ times or your own city, calculation method, Hijri date.' },
   { slug: 'today', title: 'Reading the Today screen', blurb: 'The clock, the five prayers, iqama, the countdown and the dua.' },
   { slug: 'iqama', title: 'Iqama times', blurb: 'Follow ISCJ, set a fixed time, or minutes after the adhan.' },
@@ -133,5 +133,5 @@ for (const [i, c] of CHAPTERS.entries()) {
 
 const cards = CHAPTERS.map((c, i) => `<li><a href="${c.slug}"><b>Chapter ${i + 1}</b><strong>${esc(c.title)}</strong><span>${esc(c.blurb)}</span></a></li>`).join('\n');
 const home = readFileSync(join(here, 'chapters', '_home.html'), 'utf8').replace('<!-- chapters -->', `<ol class="g-cards">\n${cards}\n</ol>`);
-writeFileSync(join(out, 'index.html'), page({ slug: null, title: 'Iqama Times guide', description: 'How to turn a spare tablet into a home prayer hub with Iqama Times, and how to use every screen.', body: shots(home).trim() }));
+writeFileSync(join(out, 'index.html'), page({ slug: null, title: 'Iqama Times guide', description: 'How to turn a spare tablet, phone, computer or smart TV into a home prayer hub with Iqama Times, and how to use every screen.', body: shots(home).trim() }));
 console.log('wrote index.html');
