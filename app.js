@@ -1048,7 +1048,7 @@ $('weather').addEventListener('click', () => go('weather'));
 // A tap on the weather under the clock on Today opens the Weather tab. The clock is drawn again every second, which can replace the
 // pressed element between finger down and up and so swallow a click: the tap is read from the pointer instead. (Keyboards use the Weather tab.)
 let wxArmed = false;
-$('clock').addEventListener('pointerdown', (e) => { wxArmed = !!e.target.closest('[data-go="weather"]'); });
+$('clock').addEventListener('pointerdown', (e) => { wxArmed = e.target.closest('[data-go]')?.dataset.go || false; }); // the weather line, warnings and the month link
 // The board is redrawn every second; a keyboard user on one of its buttons keeps focus on the new copy
 function redraw(el, html) {
   const f = document.activeElement, key = f && el.contains(f) ? ['data-fold', 'data-swap', 'data-bell'].find(k => f.hasAttribute(k)) : null;
@@ -1119,10 +1119,11 @@ let foldArmed = false;
 const applyFold = () => { $('clock').dataset.fold = settings.tableOpen ? 'open' : 'closed'; };
 const toggleFold = () => { settings.tableOpen = !settings.tableOpen; save(); applyFold(); tick(); };
 applyFold();
-$('clock').addEventListener('pointerdown', (e) => { foldArmed = !!e.target.closest('[data-fold]'); });
-$('clock').addEventListener('pointerup', (e) => { if (foldArmed && e.target.closest('[data-fold]')) toggleFold(); foldArmed = false; });
-$('clock').addEventListener('click', (e) => { if (e.detail === 0 && e.target.closest('[data-fold]')) toggleFold(); });
-$('clock').addEventListener('pointerup', (e) => { if (wxArmed && e.target.closest('[data-go="weather"]')) go('weather'); wxArmed = false; });
+// button[data-fold] only: #clock itself carries data-fold="open|closed" for the stylesheet, and would match any tap on the board
+$('clock').addEventListener('pointerdown', (e) => { foldArmed = !!e.target.closest('button[data-fold]'); });
+$('clock').addEventListener('pointerup', (e) => { if (foldArmed && e.target.closest('button[data-fold]')) toggleFold(); foldArmed = false; });
+$('clock').addEventListener('click', (e) => { if (e.detail === 0 && e.target.closest('button[data-fold]')) toggleFold(); });
+$('clock').addEventListener('pointerup', (e) => { const t = e.target.closest('[data-go]')?.dataset.go; if (wxArmed && t === wxArmed) go(t); wxArmed = false; });
 $('clock').addEventListener('pointercancel', () => { wxArmed = false; });
 document.querySelectorAll('[data-unit]').forEach(b => b.addEventListener('click', () => {
   if (settings.units === b.dataset.unit) return;
