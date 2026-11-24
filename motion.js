@@ -39,6 +39,8 @@ export const rise = (el, dist = T.dist.md) => animate(el, { opacity: [0, 1], tra
 export const fade = (el) => animate(el, { opacity: [0, 1] }, { duration: T.dur.fast, ease: T.ease });
 export const pop = (el) => animate(el, { scale: [1, T.scale.pop, 1] }, spring('bouncy'));
 export const swap = (el) => animate(el, { scale: [T.scale.press, 1], opacity: [.4, 1] }, { duration: T.dur.fast, ease: T.ease });
+// a new icon turns into place as the old one goes (play to pause and back)
+export const turn = (el) => animate(el, { rotate: ['-90deg', '0deg'], scale: [.5, 1], opacity: [0, 1] }, spring('snappy'));
 export const rows = (els) => animate([...els].slice(0, T.staggerMax), { opacity: [0, 1], translate: [`0 ${T.dist.sm}px`, '0 0'] }, { duration: T.dur.normal, ease: T.ease, delay: stagger() });
 export const sheetIn = (el) => animate(el, { opacity: [0, 1], translate: ['0 100%', '0 0'] }, spring('gentle'));
 export const sheetOut = (el) => animate(el, { opacity: [1, 0], translate: ['0 0', '0 100%'] }, { duration: T.dur.fast, ease: T.ease });
