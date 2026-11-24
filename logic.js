@@ -220,7 +220,7 @@ export function km(a, b) {
 
 // Masjids whose iqama times the app can read. The nearest one within NEAR_MILES of the place is used; anywhere else
 // the visitor sets their own. To add a masjid: one entry here, plus a reader for its timetable at its own source.
-export const NEAR_MILES = 15;
+export const NEAR_MILES = 10;
 export const NEAR_KM = NEAR_MILES * 1.609344;
 export const MASJIDS = [
   { id: 'iscj', name: 'ISCJ', full: 'Islamic Society of Central Jersey', town: 'Monmouth Junction, NJ', lat: 40.384, lng: -74.563, zone: 'America/New_York', source: '/api/iqama', daily: 'iqama.json' },

@@ -254,15 +254,16 @@ assert.deepEqual(nextEvent(rows, 313, 320, 400), { key: 'fajr', kind: 'iqama', a
 assert.deepEqual(nextEvent(rows, 313, 400, 400), { key: 'isha', kind: 'adhan', at: 1090 });
 assert.deepEqual(nextEvent(rows, 313, 1100), { key: 'fajr', kind: 'adhan', at: 1753 });
 
-// Distance rule for a masjid's iqama times: the nearest masjid on the list within 15 miles (24.1 km)
-assert.equal(NEAR_MILES, 15);
-assert.ok(Math.abs(NEAR_KM - 24.14) < 0.01, '15 miles is 24.14 km');
+// Distance rule for a masjid's iqama times: the nearest masjid on the list within 10 miles (16.1 km)
+assert.equal(NEAR_MILES, 10);
+assert.ok(Math.abs(NEAR_KM - 16.09) < 0.01, '10 miles is 16.09 km');
 const iscj = MASJIDS.find(m => m.id === 'iscj');
 assert.ok(iscj && iscj.source === '/api/iqama' && iscj.daily === 'iqama.json', 'ISCJ is on the list with its timetable sources');
-assert.equal(nearestMasjid({ lat: 40.388, lng: -74.531 })?.id, 'iscj', 'Dayton is near ISCJ');
-assert.equal(nearestMasjid({ lat: 40.518, lng: -74.412 })?.id, 'iscj', 'Edison (about 12 miles) is near ISCJ');
-assert.equal(nearestMasjid({ lat: 40.222, lng: -74.762 }), null, 'Trenton (about 15.3 miles) is outside 15 miles');
-assert.equal(nearestMasjid({ lat: 40.668, lng: -74.348 }), null, 'Westfield (about 22 miles) was inside the old 25 miles, not inside 15');
+assert.equal(nearestMasjid({ lat: 40.388, lng: -74.531 })?.id, 'iscj', 'Dayton (about 2 miles) is near ISCJ');
+assert.equal(nearestMasjid({ lat: 40.454, lng: -74.482 })?.id, 'iscj', 'North Brunswick (about 6 miles) is near ISCJ');
+assert.equal(nearestMasjid({ lat: 40.486, lng: -74.452 })?.id, 'iscj', 'New Brunswick (about 9 miles) is near ISCJ');
+assert.equal(nearestMasjid({ lat: 40.518, lng: -74.412 }), null, 'Edison (about 12 miles) is outside 10 miles');
+assert.equal(nearestMasjid({ lat: 40.222, lng: -74.762 }), null, 'Trenton (about 15 miles) is outside 10 miles');
 assert.equal(nearestMasjid({ lat: 40.713, lng: -74.006 }), null, 'Manhattan is not near any masjid');
 const two = [{ id: 'far', lat: 40.45, lng: -74.45 }, { id: 'close', lat: 40.39, lng: -74.55 }];
 assert.equal(nearestMasjid({ lat: 40.384, lng: -74.563 }, two)?.id, 'close', 'with two masjids in range, the nearest one is used');
