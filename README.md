@@ -1,7 +1,7 @@
 # IqamaHub
 
 Your salah companion: adhan and iqama times on any screen, even your smart TV. An installable web app that turns a spare
-tablet, phone, computer or smart TV into a quiet prayer clock for your home or masjid: adhan and iqama times, a countdown,
+tablet, phone, computer or smart TV into a prayer clock for your home or masjid: adhan and iqama times, a countdown,
 alerts, weather, adhkar and a Quran player.
 No account, no tracking: settings stay on the device.
 
