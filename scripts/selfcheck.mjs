@@ -212,7 +212,7 @@ assert.deepEqual(pickAlerts([nwsF('Wind Advisory', 'Moderate', null, { descripti
   const [url, auth, mail] = sent[0];
   assert.equal(url, 'https://api.resend.com/emails'); assert.equal(auth, 'Bearer re_test');
   assert.deepEqual(mail.to, ['owner@example.com']); assert.equal(mail.reply_to, 'me@example.com');
-  assert.equal(mail.subject, 'Iqama Times feedback: No sound at Asr');
+  assert.equal(mail.subject, 'IqamaHub feedback: No sound at Asr');
   assert.equal(mail.attachments[0].filename, 'screenshot.png'); assert.equal(mail.attachments[0].content, Buffer.from([137, 80, 78, 71, 1, 2, 3]).toString('base64'));
   assert.ok(mail.text.includes('version: iqama-v35') && mail.text.includes('look: paper') && !mail.text.includes('bad key') && !mail.text.includes('nested'), 'only plain details are kept');
   assert.ok(!mail.html.includes('<script') && (await post({ kind: 'other', message: '<script>x</script>' }, env, resend, '9.9.9.9'))[0] === 200 && sent.at(-1)[2].html.includes('&lt;script&gt;'), 'the message is escaped in the email');

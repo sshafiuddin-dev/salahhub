@@ -121,7 +121,7 @@ export function initQuran({ say, stopOthers }) {
       save();
       loadArabic();
       return cat;
-    }).catch((e) => { catP = null; failed = true; console.warn('Iqama Times: Quran list failed', e); throw e; });
+    }).catch((e) => { catP = null; failed = true; console.warn('IqamaHub: Quran list failed', e); throw e; });
   }
   function loadArabic() {
     if (Date.now() - ar.at < 7 * 864e5 && Object.keys(ar.names).length) return;

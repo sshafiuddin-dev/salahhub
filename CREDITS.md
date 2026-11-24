@@ -1,9 +1,9 @@
 # Sources and credits
 
 Everything in this app that comes from someone else, where it is used, and under what terms.
-Iqama Times shows the same list under Settings, About.
+IqamaHub shows the same list under Settings, About.
 
-## Iqama Times
+## IqamaHub
 
 ### Quran
 
@@ -48,7 +48,7 @@ Iqama Times shows the same list under Settings, About.
 ## Artwork
 
 - The watercolours of the Kaaba and Masjid an-Nabawi in `art/` and the reciter and surah cards (`quran-art.js`) were drawn
-  for Iqama Times (`scripts/art/paint.py`); no outside artwork is used.
+  for IqamaHub (`scripts/art/paint.py`); no outside artwork is used.
 
 ## Libraries and fonts
 

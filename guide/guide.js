@@ -1,4 +1,4 @@
-// Iqama Times guide: the device picker in chapter 1, and the contents list kept open on wide screens.
+// IqamaHub guide: the device picker in chapter 1, and the contents list kept open on wide screens.
 // Kept out of the pages so the Content-Security-Policy can forbid inline scripts. Without it, the pages still work:
 // the contents fold open on tap, and chapter 1 shows Android, Fire and iPad one after another.
 (function () {

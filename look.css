@@ -1,4 +1,4 @@
-/* Iqama Times: the printed-timetable look, the handwritten look, and four brightness levels.
+/* IqamaHub: the printed-timetable look, the handwritten look, and four brightness levels.
    Loaded after styles.css. app.js sets on <html>:
      data-palette  paper | hand | contrast        (Settings, Display, Look)
      data-dim      0 bright, 1 soft, 2 dim, 3 darkest (the brightness button, or Auto after Isha or Maghrib)

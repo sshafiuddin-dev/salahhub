@@ -77,7 +77,7 @@ export function initOffline() {
       if (failed && failed.name === 'QuotaExceededError') {
         for (const j of jobs.splice(0)) { busy.delete(j.url); emit(j.url, j.meta.id, 'state'); }
         emit(null, null, 'full');
-      } else if (failed && failed.name !== 'AbortError') console.warn('Iqama Times: could not keep a recitation', job.url, failed);
+      } else if (failed && failed.name !== 'AbortError') console.warn('IqamaHub: could not keep a recitation', job.url, failed);
       emit(job.url, job.meta.id, failed && failed.name !== 'AbortError' ? 'failed' : 'state');
     }
     running = false;

@@ -1,4 +1,4 @@
-// Builds the Iqama Times guide: node scripts/guide/build.mjs
+// Builds the IqamaHub guide: node scripts/guide/build.mjs
 // Each chapter's text is in scripts/guide/chapters/<slug>.html; this wraps it in the shared page (top bar, contents,
 // previous and next) and writes guide/<slug>.html (Cloudflare Pages serves it at /guide/<slug>, so links leave off .html), plus the guide's front page guide/index.html.
 // The output is committed, so the site still needs no build step, like daisy.css.
@@ -105,14 +105,14 @@ function page({ slug, title, description, body }) {
 <script src="guide.js" defer></script>
 </head>
 <body class="g">
-<header class="g-top"><a class="g-brand" href="./">${BRAND}<span>Iqama Times <em>guide</em></span></a><a class="g-btn g-btn-ink" href="../">Open the app</a></header>
+<header class="g-top"><a class="g-brand" href="./">${BRAND}<span>IqamaHub <em>guide</em></span></a><a class="g-btn g-btn-ink" href="../">Open the app</a></header>
 <div class="g-wrap">
 ${toc(slug)}
 <main class="g-main" id="main">
 ${body}
 </main>
 </div>
-<footer class="g-foot">Iqama Times keeps your settings on this device. <a href="../#settings">Settings</a> · <a href="help">Help and questions</a> · <a href="https://sshafiuddin.pages.dev/">Shafiuddin Syed</a></footer>
+<footer class="g-foot">IqamaHub keeps your settings on this device. <a href="../#settings">Settings</a> · <a href="help">Help and questions</a> · <a href="https://sshafiuddin.pages.dev/">Shafiuddin Syed</a></footer>
 </body>
 </html>
 `;
@@ -127,11 +127,11 @@ for (const [i, c] of CHAPTERS.entries()) {
     + (next ? `<a class="g-next" href="${next.slug}" rel="next"><small>Next · ${i + 2}</small><span>${esc(next.title)}</span></a>` : `<a class="g-next" href="../"><small>Done</small><span>Open the app</span></a>`)
     + `</nav>`;
   const body = `<p class="g-kicker">Chapter ${i + 1}</p>\n<h1>${esc(c.title)}</h1>\n${devices(shots(readFileSync(src, 'utf8'))).trim()}\n${pager}`;
-  writeFileSync(join(out, `${c.slug}.html`), page({ slug: c.slug, title: `${c.title} · Iqama Times guide`, description: c.blurb, body }));
+  writeFileSync(join(out, `${c.slug}.html`), page({ slug: c.slug, title: `${c.title} · IqamaHub guide`, description: c.blurb, body }));
   console.log(`wrote ${c.slug}.html`);
 }
 
 const cards = CHAPTERS.map((c, i) => `<li><a href="${c.slug}"><b>Chapter ${i + 1}</b><strong>${esc(c.title)}</strong><span>${esc(c.blurb)}</span></a></li>`).join('\n');
 const home = readFileSync(join(here, 'chapters', '_home.html'), 'utf8').replace('<!-- chapters -->', `<ol class="g-cards">\n${cards}\n</ol>`);
-writeFileSync(join(out, 'index.html'), page({ slug: null, title: 'Iqama Times guide', description: 'How to turn a spare tablet, phone, computer or smart TV into a home prayer hub with Iqama Times, and how to use every screen.', body: shots(home).trim() }));
+writeFileSync(join(out, 'index.html'), page({ slug: null, title: 'IqamaHub guide', description: 'How to turn a spare tablet, phone, computer or smart TV into a home prayer hub with IqamaHub, and how to use every screen.', body: shots(home).trim() }));
 console.log('wrote index.html');

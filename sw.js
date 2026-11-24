@@ -1,4 +1,4 @@
-// Offline support for Iqama Times. Network first, so a new deploy or new iqama times show at once;
+// Offline support for IqamaHub. Network first, so a new deploy or new iqama times show at once;
 // the cached copy is used only when the network fails.
 const CACHE = 'iqama-v71';
 const SHELL = ['./', 'boot.js', 'fonts.css', 'fonts/newsreader-latin-opsz-normal.woff2', 'fonts/newsreader-latin-opsz-italic.woff2', 'fonts/ibm-plex-sans-latin-400-normal.woff2', 'fonts/ibm-plex-sans-latin-500-normal.woff2', 'fonts/ibm-plex-sans-latin-600-normal.woff2', 'fonts/amiri-arabic-400-normal.woff2', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'quran-art.js', 'art/kaaba.webp', 'art/nabawi.webp', 'motion.js', 'tour.js', 'feedback.js', 'vendor/motion.min.js', 'lib/PrayTimes.js', 'lib/CalculationMethods.js', 'iqama.json', 'hisn-text.json', 'manifest.webmanifest', 'icon-192.png', 'icons/favicon.svg', 'favicon-32.png', 'apple-touch-icon.png',

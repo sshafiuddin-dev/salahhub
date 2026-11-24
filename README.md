@@ -1,11 +1,12 @@
-# Iqama Times
+# IqamaHub
 
-Give an old tablet or iPad a new job. An installable web app that turns a spare Android, Fire or iPad tablet into an always-on
-prayer hub for the home: a large clock with adhan and iqama times, alerts, weather, daily duas, adhkar and a Quran player.
+Your salah companion: adhan and iqama times on any screen, even your smart TV. An installable web app that turns a spare
+tablet, phone, computer or smart TV into a prayer clock for your home or masjid: adhan and iqama times, a countdown,
+alerts, weather, adhkar and a Quran player.
 No account, no tracking: settings stay on the device.
 
-- App: https://salahhub.pages.dev
-- Guide: https://salahhub.pages.dev/guide/
+- App: https://iqamahub.app
+- Guide: https://iqamahub.app/guide/
 - Made by [Shafiuddin Syed](https://sshafiuddin.pages.dev)
 
 ## How it is built

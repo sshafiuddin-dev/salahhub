@@ -14,7 +14,7 @@ web
 
 ## Product Purpose
 
-Adhan and iqama times for your home, on any screen. A countdown to the next prayer, alerts, weather, daily duas, adhkar and a Quran player on one screen you can read from across the room.
+Your salah companion: adhan and iqama times on any screen, even your smart TV. A countdown to the next prayer, alerts, weather, daily duas, adhkar and a Quran player on one screen you can read from across the room.
 Success: the screen is set up once and then trusted all day without anyone touching it, reloading it or wondering whether a time is right.
 
 ## Positioning

@@ -1,4 +1,4 @@
-/* Iqama Times guide: one short page per chapter, in the app's printed-timetable look.
+/* IqamaHub guide: one short page per chapter, in the app's printed-timetable look.
    Colours come from ../look.css (paper, handwritten or high contrast, and the four brightness levels), so the guide
    matches whatever look the app is set to on this tablet. Pages are built by scripts/guide/build.mjs. */
 
