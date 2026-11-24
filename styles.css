@@ -172,6 +172,14 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .topbar-title { display: grid; gap: .3rem; min-width: 0; }
 .topbar h1 { font: 750 clamp(1.7rem, 3.4vw, 2.3rem)/1 var(--display); font-stretch: 80%; letter-spacing: -.02em; }
 .topbar-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .9rem; font-size: .95rem; }
+/* The date line: the Hijri date carries the same weight as the Gregorian one, and a dot sets date, Hijri date and place apart */
+.topbar .iq-hijri { color: var(--ink); font-weight: 600; }
+.topbar .iq-hijri::before, .topbar .iq-place::before { content: "·"; margin-right: .6rem; color: var(--ink); opacity: .55; font-weight: 700; }
+@media (max-width: 48rem) {
+  .topbar .iq-hijri { font: 600 1.05rem/1.2 var(--display); } /* the same size as the date beside it */
+  .topbar .iq-place { flex-basis: 100%; } /* a phone has no room for all three: the place always takes the second line */
+  .topbar .iq-place::before { content: none; }
+}
 .topbar-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .tb-btn { height: 2.6rem; padding-inline: 1rem; border-radius: 99px; text-decoration: none; }
 .tb-btn svg { width: 1.15rem; height: 1.15rem; }
