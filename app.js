@@ -4,6 +4,7 @@ import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTi
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { animate, swap, fade, rows } from './motion.js';
+import { bubble } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
@@ -675,7 +676,7 @@ const khutbahRows = (times) => (times.length ? times : ['']).map((t, i) => `<spa
 function alertCard(k) {
   const a = settings.alerts[k], id = (part) => `al-${k}-${part}`, name = k === 'jumuah' ? 'Jumu’ah' : NAMES[k];
   // each step has its own switch and its own sound; the two "before" steps also have minutes
-  const step = (part, label) => `<div class="al-row" data-part="${part}"><input class="d-toggle d-toggle-success d-toggle-xs" type="checkbox" role="switch" id="${id(`${part}-on`)}" data-k="${k}" aria-label="${name}, ${label.toLowerCase()} alert"${a[part].on ? ' checked' : ''}>`
+  const step = (part, label) => `<div class="al-row" data-part="${part}"><input class="tick" type="checkbox" id="${id(`${part}-on`)}" data-k="${k}" aria-label="${name}, ${label.toLowerCase()} alert"${a[part].on ? ' checked' : ''}>`
     + `<label for="${id(`${part}-type`)}">${label}</label><select class="d-select d-select-sm" id="${id(`${part}-type`)}" data-k="${k}" aria-label="${name}, ${label.toLowerCase()}, sound">${soundOptions(a[part].type)}</select>`
     + (part === 'adhan' ? '' : `<span class="al-min"><input class="d-input d-input-sm" type="number" id="${id(`${part}-min`)}" data-k="${k}" min="1" max="60" step="1" inputmode="numeric" value="${a[part].min}" aria-label="${name}, ${label.toLowerCase()}, minutes"><span>min</span></span>`)
     + '</div>';
@@ -1008,13 +1009,13 @@ function syncDim() {
   for (const id of ['dim-btn', 'dx-dim']) {
     const b = $(id);
     if (!b) continue;
-    b.querySelector('span').textContent = `Brightness: ${name}`;
+    b.querySelector('.dim-label').textContent = `Brightness: ${name}`;
     b.dataset.level = String(dim);
     b.setAttribute('aria-label', `Brightness: ${name}. Tap for ${DIM_NAMES[(dim + 1) % 4].toLowerCase()}`);
   }
   if (!$('set-dim')) return;
   const same = settings.autoDim === 'off', start = settings.nightStart === 'maghrib' ? 'Maghrib' : 'Isha';
-  $('set-dim').value = String(settings.level); $('set-dim-out').textContent = DIM_NAMES[settings.level]; $('set-dim').setAttribute('aria-valuetext', DIM_NAMES[settings.level]);
+  $('set-dim').value = String(settings.level); $('set-dim-out').textContent = DIM_NAMES[settings.level]; $('set-dim').setAttribute('aria-valuetext', DIM_NAMES[settings.level]); $('set-dim').dispatchEvent(new Event('change')); // the fill and its label follow
   $('set-night').value = same ? 'same' : String(settings.nightLevel);
   document.querySelectorAll('input[name="nightstart"]').forEach(r => { r.checked = r.value === settings.nightStart; });
   $('night-row').hidden = same;
@@ -1297,24 +1298,6 @@ $('set-big').addEventListener('change', () => { settings.big = $('set-big').valu
 $('set-dxlayout').value = settings.dxLayout;
 $('set-dxlayout').addEventListener('change', () => { settings.dxLayout = $('set-dxlayout').value; save(); applyLayout(); });
 $('set-arsize').addEventListener('input', () => { const i = +$('set-arsize').value; settings.arSize = AR_SIZES[i]; $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[i]); save(); tick(); });
-// Sliders show their value (its aria-valuetext, as Dim or Large) in a small label above the thumb while it is dragged, or while
-// it is moved with the keys; the label follows the thumb. Wraps the slider in <span class="rng"> for the label to sit in.
-function bubble(input, cls) {
-  const box = document.createElement('span'), tip = document.createElement('span');
-  box.className = `rng ${cls}`; tip.className = 'rng-bub'; tip.setAttribute('aria-hidden', 'true');
-  input.before(box); box.append(input, tip);
-  const place = () => {
-    const min = +input.min || 0, max = +input.max || 100;
-    box.style.setProperty('--p', String(max > min ? (input.value - min) / (max - min) : 0));
-    tip.textContent = input.getAttribute('aria-valuetext') || input.value;
-  };
-  const show = (on) => { if (on) place(); box.classList.toggle('act', on); };
-  input.addEventListener('input', place);
-  input.addEventListener('pointerdown', () => show(true));
-  for (const t of ['pointerup', 'pointercancel', 'blur']) input.addEventListener(t, () => show(false));
-  input.addEventListener('keydown', (e) => { if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End' || e.key.startsWith('Page')) show(true); });
-  place();
-}
 bubble($('set-dim'), 'rng-dim');
 bubble($('set-arsize'), 'rng-ar');
 
@@ -1516,7 +1499,7 @@ if (!navigator.onLine) showNet('off');
 // Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server
 // whether any of its files changed since it loaded; if so, it reloads itself at a quiet moment: no sound playing, no alert,
 // nobody touching it for a minute, no adhan or iqama within 2 minutes. The full screen view is restored after the reload.
-const WATCHED = ['./', 'boot.js', 'tour.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'motion.js', 'feedback.js'];
+const WATCHED = ['./', 'boot.js', 'tour.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'motion.js', 'controls.js', 'feedback.js'];
 let loadedVersion = '', updateWaiting = false, lastTouch = Date.now();
 for (const t of ['pointerdown', 'keydown', 'touchstart']) addEventListener(t, () => { lastTouch = Date.now(); }, { passive: true });
 // A wall tablet comes back to Today by itself: after 2 minutes untouched, off any other screen (but not while audio plays,
