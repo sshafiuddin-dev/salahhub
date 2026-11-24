@@ -448,14 +448,19 @@ function route() {
     if (d) d.open = false;
   });
   $('tab-title').textContent = tab === 'month' ? monthTitle() : TITLES[tab];
-  $('help').href = `guide/${tab === 'settings' ? HELP_SUB[sub] : HELP_TAB[tab]}`;
+  const helpAt = `guide/${tab === 'settings' ? HELP_SUB[sub] : HELP_TAB[tab]}`;
+  for (const a of [$('help'), ...document.querySelectorAll('[data-help]')]) a.href = helpAt; // the top Help button, and Help in the phone's More menu
   document.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-selected', b.dataset.sub === sub));
   document.querySelectorAll('.sub-pane').forEach(p => { p.hidden = p.id !== `sub-${sub}`; });
   if (tab === 'month' && today) { renderMonth(); requestAnimationFrame(() => document.querySelector('#month tr.today')?.scrollIntoView({ block: 'center' })); } // open at today, not the 1st
 }
 addEventListener('hashchange', route);
-// a tap anywhere else (or on a choice in it) closes the More menu
-document.addEventListener('click', (e) => document.querySelectorAll('.more details, details.more').forEach(d => { if (!d.contains(e.target) || e.target.closest('.more-menu a')) d.open = false; }));
+// a tap anywhere else, a choice in it, or Escape closes the More menu. Outside taps are read on pointerdown: the clock is
+// drawn again every second and can swallow the click that would otherwise close it.
+const moreMenus = () => document.querySelectorAll('.more details, details.more');
+document.addEventListener('pointerdown', (e) => moreMenus().forEach(d => { if (!d.contains(e.target)) d.open = false; }));
+document.addEventListener('click', (e) => moreMenus().forEach(d => { if (!d.contains(e.target) || e.target.closest('.more-menu a')) d.open = false; }));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') moreMenus().forEach(d => { if (d.open) { d.open = false; d.querySelector('summary').focus(); } }); });
 document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { sub = b.dataset.sub; route(); }));
 
 // Sharing: the system share sheet where there is one, otherwise the clipboard
@@ -1021,11 +1026,18 @@ function dxCardFor(nowMin) {
   return w === 'morning' ? { kind: 'rest' } : null;
 }
 $('dx-small').addEventListener('click', (e) => { if (e.target.closest('[data-dua]')) { duaTap++; tick(); } });
+// Official warnings at the top of the Weather tab: each one's name and end time, opening to the full NWS text
+function warningsHtml() {
+  if (!alerts.length) return '';
+  const now = new Date(), zone = place().zone;
+  return `<div class="wx-warns" role="region" aria-label="Weather warnings">${alerts.map(a => `<details class="wx-warn"><summary><b>${esc(a.event)}</b> <span>${esc(untilText(a.until, now, zone))}</span></summary>`
+    + `${a.text ? `<p>${esc(a.text)}</p>` : ''}${a.todo ? `<p><b>What to do:</b> ${esc(a.todo)}</p>` : ''}<small>${esc(a.sender)}</small></details>`).join('')}</div>`;
+}
 function renderWeather() {
   const u = settings.units, w = weather;
   $('weather').hidden = !w;
   $('weather').textContent = w ? `${Math.round(w.temp)}°${u}${w.label ? `, ${w.label.toLowerCase()}` : ''}` : '';
-  $('wx-body').innerHTML = w ? weatherHtml(w, u, prayerMarks()) : '<p class="iq-note">Weather is not available right now. The page tries again every 15 minutes.</p>';
+  $('wx-body').innerHTML = warningsHtml() + (w ? weatherHtml(w, u, prayerMarks()) : '<p class="iq-note">Weather is not available right now. The page tries again every 15 minutes.</p>');
   $('wx-updated').textContent = w && w.at != null ? `Updated ${fmt(w.at)} local time. Weather and air quality from Open-Meteo.` : '';
   document.querySelectorAll('[data-unit]').forEach(b => b.setAttribute('aria-pressed', b.dataset.unit === u));
 }
