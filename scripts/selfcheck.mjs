@@ -612,3 +612,26 @@ console.log('hijri at maghrib ok');
   assert.match(h.replace(/<[^>]+>/g, ''), /Iqama 5:38 AM \(default\)/, 'and the line beside the countdown');
   console.log('default iqama ok');
 }
+
+// Quran artwork: Arabic surah names, colours that stay readable, and the drawings themselves
+{
+  const A = await import('../quran-art.js');
+  assert.equal(A.SURAH_AR.length, 114, 'an Arabic name for every surah');
+  assert.equal(A.SURAH_AR[17], 'الكهف'); assert.equal(A.SURAH_AR[113], 'الناس');
+  const lum = (hex) => { const c = hex.match(/\w\w/g).map(x => parseInt(x, 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  for (const ink of A.ART_INKS) assert.ok((lum(A.ART_PAPER) + 0.05) / (lum(ink) + 0.05) >= 4.5, `paper reads on ${ink}`);
+  assert.equal(A.artColor('Mishary Alafasy'), A.artColor('mishary alafasy'), 'a reciter keeps one colour');
+  assert.ok(A.ART_INKS.includes(A.artColor('')) && A.ART_INKS.includes(A.artColor('Maher Al-Muaiqly')));
+  assert.equal(new Set(['Mishary Alafasy', 'Abdulbasit Abdulsamad', 'Maher Al Meaqli', 'Saad Al-Ghamdi', 'Yasser Al-Dosari', 'Ahmad Al-Ajmy'].map(A.artColor)).size > 2, true, 'reciters are spread over the colours');
+  assert.deepEqual(A.initial('Mishary Alafasy', 'مشاري العفاسي'), { ch: 'م', arabic: true });
+  assert.deepEqual(A.initial('Mishary Alafasy', ''), { ch: 'M', arabic: false });
+  assert.deepEqual(A.initial('', null), { ch: '#', arabic: false });
+  const t = A.tileArt({ reciter: 'A <b> & "c"' });
+  assert.ok(!t.includes('<b>') && t.includes('&lt;b&gt; &amp; &quot;c&quot;'), 'names are escaped');
+  const s = A.starArt({ n: 18, reciter: 'Mishary Alafasy', title: '18. Al-Kahf' });
+  assert.ok(s.startsWith('<svg') && s.endsWith('</svg>') && s.includes('الكهف') && s.includes('>18<') && s.includes('aria-label="18. Al-Kahf, Mishary Alafasy"'));
+  assert.ok(!A.starArt({ n: 0 }).includes('direction="rtl"'), 'no name for a surah that does not exist');
+  assert.deepEqual(A.arNames({ reciters: [{ id: '5', name: ' ماهر ' }, { id: 'x', name: 'y' }, { id: 6 }] }), { 5: 'ماهر' });
+  assert.deepEqual(A.arNames(null), {});
+  console.log('quran art ok');
+}
