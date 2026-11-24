@@ -494,7 +494,7 @@ audio.preload = 'auto';
 let soundLocked = false, pending = null, alertNow = null; // alertNow names the alert that is sounding, for the Stop button
 const playing = () => !!audio.src && !audio.paused && !audio.ended;
 function syncSound() {
-  $('alerts-label').textContent = playing() ? 'Stop sound' : `Alerts: ${settings.muted ? 'off' : 'on'}`;
+  $('alerts-label').textContent = `Alerts: ${settings.muted ? 'off' : 'on'}`; // only ever on/off; a playing sound has its own Stop button
   $('alerts-toggle').checked = !settings.muted;
   $('dx-sound').hidden = !soundLocked;
   $('sound-lock').hidden = !soundLocked;
@@ -613,9 +613,8 @@ $('adhkar-audio').addEventListener('click', (e) => {
   play(b.dataset.src);
 });
 
-for (const id of ['alert-stop', 'dx-stop']) $(id).addEventListener('click', () => { audio.pause(); say('Alert stopped. Your alert settings are unchanged.'); });
-$('alerts-toggle').addEventListener('click', (e) => {
-  if (playing()) { e.preventDefault(); return audio.pause(); }
+for (const id of ['alert-stop', 'dx-stop']) $(id).addEventListener('click', () => { const sample = / sample$/.test(alertNow || ''); audio.pause(); say(sample ? 'Sample stopped.' : 'Alert stopped. Your alert settings are unchanged.'); });
+$('alerts-toggle').addEventListener('click', () => {
   settings.muted = !settings.muted;
   save();
   syncSound();
@@ -631,6 +630,7 @@ document.querySelectorAll('[data-try]').forEach(b => b.addEventListener('click',
   if (playing()) return audio.pause();
   const t = b.dataset.try;
   play(t === 'adhan' ? settings.adhan : t === 'fajr-adhan' ? settings.fajrAdhan : t);
+  alertNow = `${b.textContent.trim()} sample`; // shows the same Stop button an alert gets (not passed to play(), which would log it as an alert)
 }));
 
 // Alert cards, one per prayer plus Jumu'ah
@@ -770,6 +770,7 @@ function buildForm() {
       <select class="d-select d-select-sm" id="def-mode"><option value="off">Leave as not set</option><option value="on">Minutes after adhan, labelled default</option></select>
       <input class="d-input d-input-sm" type="number" id="def-min" min="0" max="60" step="1" inputmode="numeric" aria-label="Default iqama, minutes after adhan" hidden>
     </div>
+    <p class="iq-note">For a prayer with no iqama time above: leave it empty, or show a time a set number of minutes after the adhan, marked “default”.</p>
     <button class="d-btn d-btn-sm" type="button" id="iqama-reset">${nearby ? 'Use ISCJ times for all' : 'Clear all'}</button>`;
   $('iqama-reset').addEventListener('click', () => { settings.iqama = {}; save(); fillForm(); loadDay(today); });
   fillForm();
