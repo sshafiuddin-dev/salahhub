@@ -45,6 +45,11 @@ Iqama Times shows the same list under Settings, About.
 | Place search | Open-Meteo geocoding, using [GeoNames](https://www.geonames.org/) | CC BY 4.0 |
 | US weather warnings, watches and advisories | [National Weather Service](https://www.weather.gov/) (NOAA), from [api.weather.gov](https://www.weather.gov/documentation/services-web-api) through `functions/api/alerts.js` | Public domain (US government work). Not affiliated with or endorsed by the NWS |
 
+## Artwork
+
+- The watercolours of the Kaaba and Masjid an-Nabawi in `art/` and the reciter and surah cards (`quran-art.js`) were drawn
+  for Iqama Times (`scripts/art/paint.py`); no outside artwork is used.
+
 ## Libraries and fonts
 
 | What | Source | Licence | Where |

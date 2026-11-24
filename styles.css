@@ -959,6 +959,16 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .qp-cover .qp-seek::-webkit-slider-thumb { background: #FFFFFF; box-shadow: 0 0 0 2px rgba(0, 0, 0, .25); }
 .qp-cover .qp-seek::-moz-range-thumb { background: #FFFFFF; box-shadow: 0 0 0 2px rgba(0, 0, 0, .25); }
 .qp-cover .qp-seek:focus-visible { outline-color: #F4EFE4; }
+/* the painting, with soft shades behind the buttons and the timeline so they read on its light sky and floor */
+.qp-art-lg { position: relative; }
+.qa-paint { display: block; width: 100%; height: 100%; object-fit: cover; }
+.qp-art-lg > svg { display: none; }
+.qa-shade { position: absolute; inset: 0; background: linear-gradient(rgba(0, 0, 0, .42), transparent 24%, transparent 74%, rgba(0, 0, 0, .55)); pointer-events: none; }
+.qa-pill { position: absolute; top: .85rem; left: 50%; translate: -50% 0; padding: .15rem .7rem; border: 1px solid rgba(244, 239, 228, .6); border-radius: 99px; background: rgba(20, 18, 16, .35); color: #F4EFE4; font: 400 .95rem/1.4 Amiri, serif; white-space: nowrap; }
+:root[data-palette="eink"] .qp-art-lg > :not(svg), :root[data-palette="contrast"] .qp-art-lg > :not(svg) { display: none; }
+:root[data-palette="eink"] .qp-art-lg > svg, :root[data-palette="contrast"] .qp-art-lg > svg { display: block; }
+.qp-ar { font: 400 1.6rem/1.2 Amiri, serif; color: var(--ink); }
+:root[data-palette="eink"] .qp-ar, :root[data-palette="contrast"] .qp-ar { display: none; }
 .qp-info { display: grid; justify-items: center; gap: .2rem; text-align: center; }
 .qp-style, .qp-reciter { color: var(--muted); overflow-wrap: anywhere; }
 .qp-style { font-size: .9rem; }

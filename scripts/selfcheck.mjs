@@ -640,5 +640,9 @@ console.log('hijri at maghrib ok');
   const cv = A.starArt({ n: 18, reciter: 'Mishary Alafasy', cover: true });
   const lowest = Math.max(...[...cv.matchAll(/<text[^>]* y="([\d.]+)"/g)].map(m => +m[1]));
   assert.ok(lowest <= 108, 'the cover keeps the foot clear for the timeline');
+  assert.equal(A.paintingOf(18), 'art/kaaba.webp'); assert.equal(A.paintingOf(2), 'art/nabawi.webp'); assert.equal(A.paintingOf(2, true), 'art/kaaba.webp');
+  assert.ok(A.paintedArt({ n: 110 }).includes('art/nabawi.webp') && A.paintedArt({ n: 110 }).includes('مدنية'));
+  const fs = await import('node:fs');
+  for (const f of ['art/kaaba.webp', 'art/nabawi.webp']) assert.ok(fs.statSync(new URL('../' + f, import.meta.url)).size < 120000, `${f} stays small`);
   console.log('quran art ok');
 }
