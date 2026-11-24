@@ -629,9 +629,13 @@ console.log('hijri at maghrib ok');
   const t = A.tileArt({ reciter: 'A <b> & "c"' });
   assert.ok(!t.includes('<b>') && t.includes('&lt;b&gt; &amp; &quot;c&quot;'), 'names are escaped');
   const s = A.starArt({ n: 18, reciter: 'Mishary Alafasy', title: '18. Al-Kahf' });
-  assert.ok(s.startsWith('<svg') && s.endsWith('</svg>') && s.includes('الكهف') && s.includes('>18<') && s.includes('aria-label="18. Al-Kahf, Mishary Alafasy"'));
+  assert.ok(s.startsWith('<svg') && s.endsWith('</svg>') && s.includes('الكهف') && s.includes('>18<') && s.includes('aria-label="18. Al-Kahf, Makki, Mishary Alafasy"'));
   assert.ok(!A.starArt({ n: 0 }).includes('direction="rtl"'), 'no name for a surah that does not exist');
   assert.deepEqual(A.arNames({ reciters: [{ id: '5', name: ' ماهر ' }, { id: 'x', name: 'y' }, { id: 6 }] }), { 5: 'ماهر' });
   assert.deepEqual(A.arNames(null), {});
+  assert.equal([...Array(114)].filter((_, k) => !A.isMakki(k + 1)).length, 28, '28 Madani surahs');
+  assert.ok(A.isMakki(18) && !A.isMakki(2) && !A.isMakki(110) && A.isMakki(1));
+  assert.equal(A.isMakki(2, true), true, "mp3quran's flag wins when it is known");
+  assert.ok(s.includes('Makki · مكية') && A.starArt({ n: 2 }).includes('Madani · مدنية'), 'the card says Makki or Madani');
   console.log('quran art ok');
 }

@@ -18,6 +18,10 @@ export const SURAH_AR = ['الفاتحة', 'البقرة', 'آل عمران', '�
   'القارعة', 'التكاثر', 'العصر', 'الهمزة', 'الفيل', 'قريش', 'الماعون', 'الكوثر', 'الكافرون', 'النصر',
   'المسد', 'الإخلاص', 'الفلق', 'الناس'];
 
+// Surahs revealed in Madinah, as in the Madinah mushaf (mp3quran's own 'makkia' flag is used when the lists are in)
+const MADANI = new Set([2, 3, 4, 5, 8, 9, 13, 22, 24, 33, 47, 48, 49, 55, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 76, 98, 99, 110]);
+export const isMakki = (n, known) => (typeof known === 'boolean' ? known : !MADANI.has(+n));
+
 // Muted inks that the paper colour reads on at 4.5:1 or better (checked in selfcheck.mjs)
 export const ART_PAPER = '#F4EFE4';
 export const ART_INKS = ['#0F6E56', '#993C1D', '#3C3489', '#3B6D11', '#72243E', '#185FA5', '#854F0B', '#0C447C'];
@@ -49,15 +53,17 @@ export function tileArt({ reciter, reciterAr }) {
 
 const square = (cx, cy, r, turn, attrs) => `<rect x="${cx - r}" y="${cy - r}" width="${2 * r}" height="${2 * r}"${turn ? ` transform="rotate(45 ${cx} ${cy})"` : ''} ${attrs}/>`;
 const star = (cx, cy, r, attrs) => square(cx, cy, r, false, attrs) + square(cx, cy, r, true, attrs);
-// Large card: the surah inside an eight-point star, on a field of small stars
-export function starArt({ n, reciter, title }) {
-  const ink = artColor(reciter), name = SURAH_AR[n - 1] || '';
+// Large card: the surah inside an eight-point star, on a field of small stars, with Makki or Madani at the top
+export function starArt({ n, reciter, title, makki }) {
+  const ink = artColor(reciter), name = SURAH_AR[n - 1] || '', mk = isMakki(n, makki);
   let field = '';
   for (let x = 0; x <= 140; x += 35) for (let y = 0; y <= 140; y += 35) field += star(x, y, 6, `class="qa-line" fill="none" stroke="${ART_PAPER}" stroke-opacity=".2"`);
-  return svgOpen(`${title || `Surah ${n}`}${reciter ? `, ${reciter}` : ''}`)
+  return svgOpen(`${title || `Surah ${n}`}${name ? `, ${mk ? 'Makki' : 'Madani'}` : ''}${reciter ? `, ${reciter}` : ''}`)
     + `<rect class="qa-bg" width="140" height="140" fill="${ink}"/>${field}`
-    + star(70, 60, 30, `class="qa-bg qa-edge" fill="${ink}" stroke="${ART_PAPER}" stroke-width="1.2"`)
-    + `<text class="qa-fg" x="70" y="${n > 99 ? 67 : 68}" text-anchor="middle" font-size="${n > 99 ? 19 : 22}" font-family="Newsreader, Georgia, serif" fill="${ART_PAPER}">${n}</text>`
+    + (name ? `<rect class="qa-bg qa-edge" x="38" y="7" width="64" height="17" rx="8.5" fill="${ink}" stroke="${ART_PAPER}" stroke-opacity=".6" stroke-width=".8"/>`
+      + `<text class="qa-fg" x="70" y="19" text-anchor="middle" font-size="9.5" font-family="${AR_FONT}" fill="${ART_PAPER}">${mk ? 'Makki · مكية' : 'Madani · مدنية'}</text>` : '')
+    + star(70, 65, 26, `class="qa-bg qa-edge" fill="${ink}" stroke="${ART_PAPER}" stroke-width="1.2"`)
+    + `<text class="qa-fg" x="70" y="${n > 99 ? 71 : 72}" text-anchor="middle" font-size="${n > 99 ? 17 : 20}" font-family="Newsreader, Georgia, serif" fill="${ART_PAPER}">${n}</text>`
     + (name ? `<text class="qa-fg" x="70" y="122" text-anchor="middle" font-size="${name.length > 7 ? 17 : 20}" font-family="${AR_FONT}" fill="${ART_PAPER}" direction="rtl">${xml(name)}</text>` : '')
     + '</svg>';
 }

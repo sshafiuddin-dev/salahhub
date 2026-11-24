@@ -7,7 +7,7 @@ import {
 } from './quran-logic.js';
 import * as mo from './motion.js';
 import { initOffline } from './quran-offline.js';
-import { tileArt, starArt, artPicture, arNames } from './quran-art.js';
+import { tileArt, starArt, artPicture, arNames, isMakki } from './quran-art.js';
 import { esc } from './logic.js';
 
 const API = 'https://mp3quran.net/api/v3';
@@ -135,7 +135,7 @@ export function initQuran({ say, stopOthers }) {
     if (key === artKey) return;
     artKey = key;
     player.querySelector('.qp-art').innerHTML = i ? tileFor(i.reciter, reciterOf(cur.id)) : '';
-    now.querySelector('.qp-art').innerHTML = i ? starArt({ n: i.n, reciter: i.reciter, title: label(i) }) : '';
+    now.querySelector('.qp-art').innerHTML = i ? starArt({ n: i.n, reciter: i.reciter, title: label(i), makki: cat?.surahs.get(i.n)?.makki }) : '';
   }
   // What a track is: from mp3quran's lists, or, with none (offline), from what was kept with the recitation
   function savedInfo(id) {
@@ -344,12 +344,13 @@ export function initQuran({ say, stopOthers }) {
   // Lock screen and headset buttons
   function mediaMeta() {
     if (!('mediaSession' in navigator) || !cur) return;
-    const set = (artwork) => { try { navigator.mediaSession.metadata = new MediaMetadata({ title: cur.label, artist: cur.sub, album: 'Quran', artwork }); } catch (e) {} };
+    const mk = cat?.surahs.get(+String(cur.id).split(':')[1])?.makki;
+    const set = (artwork) => { try { navigator.mediaSession.metadata = new MediaMetadata({ title: cur.label, artist: cur.sub, album: `Quran · ${isMakki(+String(cur.id).split(':')[1], mk) ? 'Makki' : 'Madani'}`, artwork }); } catch (e) {} };
     const icon = [{ src: 'icon-512.png', sizes: '512x512', type: 'image/png' }], i = info(cur.id), id = cur.id;
     set(icon);
     if (!i) return;
     // the surah's card as the lock-screen picture, once it is drawn (the app icon until then, or where it cannot be)
-    artPicture(starArt({ n: i.n, reciter: i.reciter, title: label(i) })).then((src) => {
+    artPicture(starArt({ n: i.n, reciter: i.reciter, title: label(i), makki: cat?.surahs.get(i.n)?.makki })).then((src) => {
       if (!src) return;
       if (!cur || cur.id !== id) return URL.revokeObjectURL(src);
       if (artUrl) URL.revokeObjectURL(artUrl);
