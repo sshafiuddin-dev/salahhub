@@ -23,7 +23,8 @@ const shown = (el) => {
 // The screen's parts: the page scrolls under bars that stay put. The arrows keep to the part they are in (so ↓ walks the
 // whole page, scrolling it, before it reaches the player or the bottom bar) and cross to the next part at its edge.
 const PART = '.topbar-actions, .topbar, .qp-player, .tabbar, .dockbar, .dx-top, .more-menu'; // nearest wins: the top bar's buttons sit at the foot on a wide screen
-const part = (el) => el.closest(PART);
+// On a wide screen the top bar's buttons are fixed into the bottom bar's right end: the two are one row for the remote
+const part = (el) => { const p = el.closest(PART); return p?.matches('.topbar-actions') && getComputedStyle(p).position === 'fixed' ? document.querySelector('.tabbar') : p; };
 const inView = (el) => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth; };
 // a closed details hides everything inside it except its summary
 const reachable = (el) => !el.closest('details:not([open]) > :not(summary)');
@@ -87,6 +88,9 @@ export function initRemote({ busy = () => false } = {}) {
     }
     if (!next) return; // nothing that way: the page may scroll as usual
     e.preventDefault();
+    // ↑ out of the page into the top line: the page goes back to its top too, so the top line reads with what is under it
+    const page = dir[1] < 0 && next.closest('.topbar, .dx-top') && !next.closest('.topbar-actions') && at.closest('.tab');
+    if (page) { page.scrollTop = 0; scrollTo(0, 0); }
     next.focus({ preventScroll: true });
     next.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   });
