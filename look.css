@@ -81,7 +81,7 @@ body { font-feature-settings: "kern", "liga"; }
 .tabbar .d-menu a { border-radius: 0; font-weight: 500; color: var(--muted); }
 @media (hover: hover) { .tabbar .d-menu a:hover { background: transparent; color: var(--ink); } }
 .tabbar .d-menu a.d-menu-active, .tabbar .d-menu a.d-menu-active:hover { background: transparent; color: var(--ink); box-shadow: inset 3px 0 0 var(--clear); }
-.brand-bg { fill: var(--ink); } .brand-sq { fill: var(--paper); } .brand-accent { fill: var(--clear); }
+
 .dockbar { background: var(--paper); }
 
 :root[data-theme="dark"] { --on: var(--clear); } /* at night the softer accent, so nothing glows */
