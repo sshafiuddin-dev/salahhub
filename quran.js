@@ -469,7 +469,7 @@ export function initQuran({ say, stopOthers }) {
     app.inert = true;
     now.scrollTop = 0; // open at the top: the picture, the surah and the controls
     mo.sheetIn(now.firstElementChild);
-    now.querySelector('[data-q="close"]').focus({ preventScroll: true }); // the sheet is still below the screen as it slides in: focusing must not scroll it
+    now.querySelector('.qp-round [data-q="toggle"]').focus({ preventScroll: true }); // Play/Pause, the likeliest next press (a remote's OK); the sheet is still sliding in, so focusing must not scroll it
     ensureCat().then(() => { restoreQueue(); renderQueue(); }).catch(() => {});
   }
   function closeNow(fromHistory = false) {
