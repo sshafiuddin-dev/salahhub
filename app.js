@@ -6,6 +6,7 @@ import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { animate, swap, fade, rows } from './motion.js';
 import { bubble, stepper, searchBox } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
+import { initRemote } from './remote.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
 import { HISN, hisnUrl } from './hisn.js';
@@ -484,13 +485,17 @@ function route() {
   if (tab === 'month' && today) { renderMonth(); requestAnimationFrame(() => document.querySelector('#month tr.today')?.scrollIntoView({ block: 'center' })); } // open at today, not the 1st
 }
 addEventListener('hashchange', route);
+initRemote({ busy: tourOpen }); // TV remote: the arrows move between controls (remote.js); the tour keeps them while it is open
 // a tap anywhere else, a choice in it, or Escape closes the More menu. Outside taps are read on pointerdown: the clock is
 // drawn again every second and can swallow the click that would otherwise close it.
 const moreMenus = () => document.querySelectorAll('.more details, details.more');
 // Opening it: its entries rise in one after another, Quran (next to More) first
 moreMenus().forEach(d => d.addEventListener('toggle', () => { if (d.open) rows(d.querySelectorAll('.more-menu a')); }));
 document.addEventListener('pointerdown', (e) => moreMenus().forEach(d => { if (!d.contains(e.target) || e.target === d) d.open = false; })); // e.target === d: the dimmed page behind it
-document.addEventListener('click', (e) => moreMenus().forEach(d => { if (!d.contains(e.target) || e.target === d || e.target.closest('.more-menu a')) d.open = false; }));
+document.addEventListener('click', (e) => moreMenus().forEach(d => {
+  if (!d.contains(e.target) || e.target === d || e.target.closest('.more-menu a')) d.open = false;
+  if (e.detail === 0 && d.contains(e.target) && e.target.closest('.more-menu a')) d.querySelector('summary').focus(); // OK on a remote: the focus goes back to More, not lost
+}));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') moreMenus().forEach(d => { if (d.open) { d.open = false; d.querySelector('summary').focus(); } }); });
 document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { sub = b.dataset.sub; route(); }));
 
@@ -1479,7 +1484,7 @@ if (!navigator.onLine) showNet('off');
 // Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server
 // whether any of its files changed since it loaded; if so, it reloads itself at a quiet moment: no sound playing, no alert,
 // nobody touching it for a minute, no adhan or iqama within 2 minutes. The full screen view is restored after the reload.
-const WATCHED = ['./', 'boot.js', 'tour.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'motion.js', 'controls.js', 'feedback.js'];
+const WATCHED = ['./', 'boot.js', 'tour.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'motion.js', 'controls.js', 'remote.js', 'feedback.js'];
 let loadedVersion = '', updateWaiting = false, lastTouch = Date.now();
 for (const t of ['pointerdown', 'keydown', 'touchstart']) addEventListener(t, () => { lastTouch = Date.now(); }, { passive: true });
 // A wall tablet comes back to Today by itself: after 2 minutes untouched, off any other screen (but not while audio plays,

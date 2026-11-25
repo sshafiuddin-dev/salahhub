@@ -98,6 +98,20 @@ Use these; do not build a second version of any of them.
 | Listen / Play | `.au-play` (`.is-on` while playing) | styles.css | ▶ turns into ■ |
 | Dialog | `.qp-dlg` › `.qp-dlg-in`, `.fb` | styles.css | rounded card, ink primary button on the right |
 
+## TV remote and keyboard
+
+`remote.js` moves the focus with the arrow keys, as a TV's own menus do, because many TV browsers only scroll with them.
+
+- ↑ ↓ ← → go to the nearest control that way; OK (Enter) presses it; Back (Escape) closes what is open.
+- The arrows keep to the part of the screen they are in (the page, the player, the bottom bar, the top-bar buttons) and
+  cross to the next part at its edge; ← and → keep to the row unless nothing on the row is that way.
+- An open window (Now playing, a dialog, the More menu) keeps the arrows inside it. A window opens with the focus on
+  its likeliest control (Now playing: Play/Pause); choosing from a menu with OK puts the focus back on the menu's button.
+- Controls keep the arrows they need: text being typed (← → move the caret until its end), a slider (← →), a number
+  box (↑ ↓), a time box, the tour, a playlist row being moved.
+- Anything new must be reachable this way: a real `button`, `a`, `input`, `select` or `summary`, visible, not
+  `tabindex="-1"`. Check it with the keyboard only, at 1280×720 and 1920×1080.
+
 ## Words
 
 Plain words that explain themselves (no one is there to help): "this device", never "this tablet"; a control's name
@@ -108,7 +122,8 @@ Settings and its page in the guide (`scripts/guide/chapters`, then `node scripts
 
 - [ ] Uses the components and tokens above; no new hex colours, radii or durations
 - [ ] Controls are rounded, the sheet stays printed
-- [ ] 44px targets, visible focus, works with keyboard and TV remote, labelled for screen readers
+- [ ] 44px targets, visible focus, labelled for screen readers
+- [ ] Every new control reachable with the arrow keys alone (TV remote), and a new window opens with the focus inside it
 - [ ] Checked by day and at Darkest, in the Printed and E-ink looks, at phone (390px) and Fire 7 (1024×648) sizes
 - [ ] Reduce motion: nothing moves; E-ink: nothing animates
 - [ ] `node scripts/selfcheck.mjs` passes; `sw.js` cache name raised; a new file added to `SHELL` and `WATCHED`
