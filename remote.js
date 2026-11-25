@@ -87,6 +87,9 @@ export function initRemote({ busy = () => false } = {}) {
       next = pick(at, dir, mine) || pick(at, dir, list) || (dir[0] ? pick(at, dir, mine, false) || pick(at, dir, list, false) : null);
     }
     if (!next) return; // nothing that way: the page may scroll as usual
+    // ↑ or ↓ into a list from outside it lands on a row's first control (its name), not whichever button lines up best
+    const row = dir[1] && next.closest('li');
+    if (row && at.closest?.('li')?.parentElement !== row.parentElement) next = [...row.querySelectorAll(FOCUSABLE)].find(el => shown(el) && reachable(el)) || next;
     e.preventDefault();
     // ↑ out of the page into the top line: the page goes back to its top too, so the top line reads with what is under it
     const page = dir[1] < 0 && next.closest('.topbar, .dx-top') && !next.closest('.topbar-actions') && at.closest('.tab');

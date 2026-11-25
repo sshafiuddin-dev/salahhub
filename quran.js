@@ -482,6 +482,32 @@ export function initQuran({ say, stopOthers }) {
   }
   now.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); closeNow(); } });
 
+  // ---- TV remote: the player is the last stop after every row of a list, so Back (it arrives as Escape) jumps to it.
+  // From anywhere else, with nothing open that Back should close, it goes to Play/Pause; pressed there, it goes back to
+  // where it came from. The remote's own media buttons work the player from anywhere.
+  let backFrom = null;
+  const shownEl = (el) => !!el && el.isConnected && !el.closest('[hidden], [inert]') && el.getClientRects().length > 0;
+  addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || player.hidden || nowOpen) return;
+    if (document.querySelector('dialog[open], .more details[open], details.more[open], .tour') || !$('display').hidden) return; // Back closes those first
+    const at = document.activeElement;
+    if (at && at.matches('input:not([type="range"]), textarea, select')) return; // the search box folds itself away
+    e.preventDefault(); e.stopPropagation();
+    if (player.contains(at)) { if (shownEl(backFrom)) backFrom.focus(); backFrom = null; return; }
+    backFrom = at && at !== document.body ? at : null;
+    player.querySelector('.qp-btns [data-q="toggle"]').focus();
+    if (!store.knowsBack) { store.knowsBack = true; save(); }
+  }, true);
+  const MEDIA = { MediaPlayPause: () => togglePlay(), MediaPlay: () => { if (!active()) togglePlay(); }, MediaPause: () => { if (active()) pause(); }, MediaStop: () => { if (active()) pause(); }, MediaTrackNext: () => step(1), MediaTrackPrevious: () => step(-1) };
+  addEventListener('keydown', (e) => {
+    const fn = MEDIA[e.key];
+    if (!fn || !cur) return;
+    e.preventDefault();
+    fn();
+  });
+  let hinted = false; // once a visit, until Back has been used
+  const hintBack = () => { if (!store.knowsBack && !hinted) { hinted = true; setTimeout(() => say('Press Back on the remote to reach the player.'), 600); } };
+
   function onPlayerClick(e) {
     const b = e.target.closest('[data-q]');
     if (!b) return;
@@ -499,7 +525,14 @@ export function initQuran({ say, stopOthers }) {
     else if (a === 'extras') { const x = $('qp-extras'), open = x.hidden; x.hidden = !open; b.setAttribute('aria-expanded', String(open)); if (open) mo.fade(x); }
     else if (a === 'open') openNow();
     else if (a === 'close') closeNow();
-    else if (a === 'dismiss') { if (nowOpen) closeNow(); dismiss(); }
+    else if (a === 'dismiss') {
+      const had = player.contains(document.activeElement) || now.contains(document.activeElement);
+      if (nowOpen) closeNow();
+      dismiss();
+      // the player is going: the focus goes back to where Back came from, or the open list, so a remote is not left lost
+      if (had) (shownEl(backFrom) ? backFrom : [...document.querySelectorAll(`#tab-${location.hash.slice(1) || 'today'} button, #tab-${location.hash.slice(1) || 'today'} a[href]`)].find(shownEl))?.focus();
+      backFrom = null;
+    }
     else if (a === 'jump' && q) { q.pos = +b.dataset.pos; load(current(q), 0, true); }
   }
   player.addEventListener('click', onPlayerClick);
@@ -898,6 +931,8 @@ export function initQuran({ say, stopOthers }) {
     renderList();
     renderDetail(true);
     if (getComputedStyle(listEl).display === 'none') detailEl.querySelector('.qp-back')?.focus();
+    // side by side, the list is drawn again and the pressed row with it: the focus goes on to the first surah, not lost
+    else if (!fromHistory && (document.activeElement === document.body || !document.activeElement)) detailEl.querySelector('li[data-track] .qp-main, li .qp-main')?.focus({ preventScroll: true });
   }
   const queueFrom = (li) => { const ids = [...li.parentElement.querySelectorAll(':scope > li[data-track]')].map(x => x.dataset.track).filter(playable); return [ids, ids.indexOf(li.dataset.track)]; };
 
@@ -937,7 +972,7 @@ export function initQuran({ say, stopOthers }) {
       if (cur && cur.id === li.dataset.track && audio.getAttribute('src')) return togglePlay();
       if (!playable(li.dataset.track)) return say('This surah is not saved on this device. Connect to the internet to play it.');
       const [ids, i] = queueFrom(li);
-      if (i >= 0) playQueue(ids, i);
+      if (i >= 0) { playQueue(ids, i); if (e.detail === 0) hintBack(); } // OK on a remote or Enter: point to Back
     } else if (li && a === 'fav-t') { favTrack(li.dataset.track); love(b); }
     else if (li && a === 'add') { const i = info(li.dataset.track); if (i) openAdd(i.id, `${label(i)} · ${i.reciter}`); }
     else if (li && a === 'remove') {
