@@ -6,7 +6,7 @@ import {
   cleanStore, hafsId, legacyTrack, retryWait, shouldRetry, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
 } from './quran-logic.js';
 import * as mo from './motion.js';
-import { bubble } from './controls.js';
+import { bubble, searchBox } from './controls.js';
 import { initOffline } from './quran-offline.js';
 import { tileArt, starArt, paintedArt, paintingOf, arNames, isMakki, SURAH_AR } from './quran-art.js';
 import { esc } from './logic.js';
@@ -903,7 +903,7 @@ export function initQuran({ say, stopOthers }) {
 
   tabEl.addEventListener('click', (e) => {
     const v = e.target.closest('[data-view]');
-    if (v) { view = v.dataset.view; query = $('qp-search').value = ''; foldSearch(false); setPane('list'); return renderList(true); }
+    if (v) { view = v.dataset.view; query = $('qp-search').value = ''; qsearch.fold(false); setPane('list'); return renderList(true); }
     const b = e.target.closest('[data-act]');
     if (!b) return;
     const a = b.dataset.act, li = b.closest('li[data-track]');
@@ -925,7 +925,7 @@ export function initQuran({ say, stopOthers }) {
     else if (a === 'open-list') openDetail({ type: 'list', id: b.dataset.id });
     else if (a === 'back') { // the same as the phone's back gesture, when the reciter added a step; else straight to the list
       if (hState().qp === 'detail') history.back();
-      else { setPane('list'); (listEl.querySelector('.is-open .qp-main') || ($('qp-sx').classList.contains('open') ? $('qp-search') : $('qp-sxb'))).focus(); }
+      else { setPane('list'); (listEl.querySelector('.is-open .qp-main') || (qsearch.box.classList.contains('open') ? $('qp-search') : qsearch.button)).focus(); }
     }
     else if (a === 'moshaf') { detail.m = +b.dataset.m; renderDetail(true); }
     else if (a === 'fav-r') { favReciter(+b.dataset.id); love(b); }
@@ -1027,24 +1027,7 @@ export function initQuran({ say, stopOthers }) {
   for (const ev of ['online', 'offline']) addEventListener(ev, () => { if (!tabEl.hidden) { renderList(); renderDetail(); } });
 
   $('qp-search').addEventListener('input', (e) => { query = e.target.value.trim(); setPane('list'); renderList(); });
-  // Search sits behind a round magnifier: a tap opens it into a field (and the magnifier turns into ×); × or Escape clears
-  // the search and folds it away again
-  function foldSearch(on) {
-    $('qp-sx').classList.toggle('open', on);
-    $('qp-sxb').setAttribute('aria-expanded', String(on));
-    $('qp-sxb').setAttribute('aria-label', on ? 'Close search' : 'Search reciters and surahs');
-    $('qp-search').tabIndex = on ? 0 : -1;
-  }
-  function closeSearch() {
-    foldSearch(false);
-    if ($('qp-search').value) { $('qp-search').value = ''; query = ''; setPane('list'); renderList(); }
-  }
-  $('qp-sxb').addEventListener('click', () => {
-    if ($('qp-sx').classList.contains('open')) return closeSearch();
-    foldSearch(true);
-    setTimeout(() => $('qp-search').focus(), quiet() ? 0 : 220);
-  });
-  $('qp-search').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeSearch(); $('qp-sxb').focus(); } });
+  const qsearch = searchBox($('qp-search')); // controls.js: behind a round magnifier, × or Escape clears and folds it
   $('qp-riwaya').addEventListener('change', (e) => {
     store.riwaya = e.target.value === 'all' ? 'all' : +e.target.value; save();
     renderList(true); renderDetail();

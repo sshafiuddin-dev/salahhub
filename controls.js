@@ -68,3 +68,35 @@ export function stepper(input) {
   new MutationObserver(follow).observe(input, { attributes: true, attributeFilter: ['hidden', 'disabled'] });
   follow();
 }
+
+// Search behind a round magnifier (the Quran and Adhkar tabs). A tap opens it into a field across its column and the
+// magnifier turns into ×; × or Escape clears the search (firing the box's own input event, so its list refills) and
+// folds it away. It opens by itself when the box already holds a search. Returns { fold(on), box, button }.
+const SX_ICONS = '<svg class="sx-m" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/></svg>'
+  + '<svg class="sx-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+export function searchBox(input) {
+  const box = document.createElement('div'), button = document.createElement('button'), label = input.getAttribute('aria-label') || 'Search';
+  box.className = 'sx';
+  button.type = 'button'; button.className = 'sx-btn'; button.innerHTML = SX_ICONS;
+  if (input.id) { button.id = `${input.id}-btn`; button.setAttribute('aria-controls', input.id); }
+  input.before(box); box.append(input, button);
+  const fold = (on) => {
+    box.classList.toggle('open', on);
+    button.setAttribute('aria-expanded', String(on));
+    button.setAttribute('aria-label', on ? 'Close search' : label);
+    input.tabIndex = on ? 0 : -1;
+  };
+  const close = () => {
+    fold(false);
+    if (input.value) { input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true })); }
+  };
+  const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.palette === 'eink';
+  button.addEventListener('click', () => {
+    if (box.classList.contains('open')) return close();
+    fold(true);
+    setTimeout(() => input.focus(), still() ? 0 : 220);
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); button.focus(); } });
+  fold(!!input.value);
+  return { fold, box, button };
+}

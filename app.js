@@ -4,7 +4,7 @@ import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTi
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { animate, swap, fade, rows } from './motion.js';
-import { bubble, stepper } from './controls.js';
+import { bubble, stepper, searchBox } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
@@ -489,8 +489,8 @@ addEventListener('hashchange', route);
 const moreMenus = () => document.querySelectorAll('.more details, details.more');
 // Opening it: its entries rise in one after another, Quran (next to More) first
 moreMenus().forEach(d => d.addEventListener('toggle', () => { if (d.open) rows(d.querySelectorAll('.more-menu a')); }));
-document.addEventListener('pointerdown', (e) => moreMenus().forEach(d => { if (!d.contains(e.target)) d.open = false; }));
-document.addEventListener('click', (e) => moreMenus().forEach(d => { if (!d.contains(e.target) || e.target.closest('.more-menu a')) d.open = false; }));
+document.addEventListener('pointerdown', (e) => moreMenus().forEach(d => { if (!d.contains(e.target) || e.target === d) d.open = false; })); // e.target === d: the dimmed page behind it
+document.addEventListener('click', (e) => moreMenus().forEach(d => { if (!d.contains(e.target) || e.target === d || e.target.closest('.more-menu a')) d.open = false; }));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') moreMenus().forEach(d => { if (d.open) { d.open = false; d.querySelector('summary').focus(); } }); });
 document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { sub = b.dataset.sub; route(); }));
 
@@ -601,6 +601,7 @@ function filterAdhkar() {
   $('au-count').textContent = shown ? (q ? `${shown} of ${HISN.length} chapters` : `${HISN.length} chapters`) : 'No chapters match.';
 }
 $('au-search').addEventListener('input', filterAdhkar);
+searchBox($('au-search')); // controls.js: behind a round magnifier, like the Quran tab's
 filterAdhkar();
 // The text is copied from hisnmuslim.com into hisn-text.json by scripts/fetch-hisn.mjs, so it loads from this site
 // Light editorial pass on the copied text: no ((double brackets)) around the Arabic, "PBUH" spelled out
