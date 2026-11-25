@@ -1,6 +1,6 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText } from './logic.js';
+import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { animate, swap, fade, rows } from './motion.js';
@@ -390,6 +390,7 @@ function tick() {
   for (const id of BIG_HOSTS) $(id).dataset.big = big;
   const html = renderClock(settings.clock, { noSec: !settings.seconds, bells: bellsNow(), big, fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
   redraw($('clock'), html);
+  paintMark(progressOf(nowMin, prevEventAt(rows, ev, day.sunrise), ev.at), ev, left, rows);
   nowMinute = nowMin;
   if (setHijri(nowMin)) showHijri();
   if (currentDim() !== shownDim || (root.dataset.black === '1') !== blackNow()) applyLook();
@@ -1032,6 +1033,29 @@ addEventListener('pointerup', (e) => { if (wakeTap) { e.preventDefault(); e.stop
 addEventListener('click', (e) => { if (wakeTap || root.dataset.black === '1') { e.preventDefault(); e.stopPropagation(); wakeTap = false; wake(); } }, true);
 addEventListener('keydown', (e) => { if (root.dataset.black === '1') { e.preventDefault(); e.stopPropagation(); wake(); } else wakeUntil = Date.now() + WAKE_MS; }, true);
 syncDim();
+
+// The mark follows the countdown to the next prayer, as the bar under it does: the ring in the side bar, the browser tab's
+// icon (redrawn as an SVG only when the ring moves a whole percent) and the tab's title ("Isha in 12 min · IqamaHub").
+// Browsers that cannot show an SVG icon keep favicon-32.png.
+const FAV_LINK = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
+const favSvg = (pct) => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#F3EDE1"/>'
+  + '<circle cx="16" cy="16" r="10.5" fill="none" stroke="#CFC4AE" stroke-width="4"/>'
+  + `<circle cx="16" cy="16" r="10.5" fill="none" stroke="#1B6B52" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="${pct} 100" transform="rotate(-90 16 16)"/>`
+  + '<path d="M12.5 22V16.5C12.5 14 14 12.6 16 11.5C18 12.6 19.5 14 19.5 16.5V22Z" fill="#1C1914"/></svg>';
+let markPct = -1, markTitle = '';
+function paintMark(f, ev, left, rows) {
+  const pct = Math.round(f * 100);
+  if (pct !== markPct) {
+    markPct = pct;
+    document.querySelectorAll('.mk-ring').forEach(el => el.setAttribute('stroke-dashoffset', String(100 - pct)));
+    if (FAV_LINK) FAV_LINK.href = `data:image/svg+xml,${encodeURIComponent(favSvg(pct))}`;
+  }
+  const mins = Math.max(1, Math.ceil(left / 60)), span = mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`;
+  const khutbah = ev.kind === 'iqama' && rows.find(r => r.key === ev.key)?.jumuah?.length;
+  const name = ev.key === 'sunrise' ? 'Sunrise' : khutbah ? 'Khutbah' : `${NAMES[ev.key]}${ev.kind === 'iqama' ? ' iqama' : ''}`;
+  const title = `${name} in ${span} · IqamaHub`;
+  if (title !== markTitle) document.title = markTitle = title;
+}
 
 // Weather, for the header, the backdrop and the Weather panel; the page works the same without it
 let wxReq = 0;

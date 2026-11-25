@@ -16,6 +16,21 @@ and moves.
 
 Never mix them up: no rounded cards around timetable rows, no square or underlined controls.
 
+## The mark
+
+The app's mark is the **countdown ring**: a small mihrab arch inside a ring that fills green toward the next prayer
+(chosen from four options in November 2026).
+
+- Icons: `icons/icon.svg` (rounded tile), `icons/icon-square.svg` (full bleed, for iOS), `icons/icon-maskable.svg`
+  (the ring inside Android's safe area), `icons/favicon.svg`, and the PNGs made from them (`icon-192/512`,
+  `icon-maskable-192/512`, `apple-touch-icon` 180, `favicon-32`). A still icon shows the ring three quarters full.
+- Live: the mark at the start of the bottom bar, the browser tab's icon and the tab's title ("Isha in 12 min ·
+  IqamaHub") follow the countdown, the same fraction as the bar under it (`paintMark` in app.js).
+- Opening (Settings › About, each time it opens): the tile settles, the arch rises, the ring draws round, a dot pops in
+  at the top with a ripple, the pill grows. About 2.5 s, once; no loop on a screen that stays on.
+- Colours: paper tile, ink arch, `#1B6B52` ring on the fixed icons; in the app the mark uses `--line`, `--on` and `--ink`,
+  so it follows the look and brightness.
+
 ## Colour
 
 All colours live in `look.css`, per look (Printed, Handwritten, High contrast, E-ink) and per brightness level

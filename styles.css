@@ -163,7 +163,29 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .tabbar svg, .dockbar svg, .tb-btn svg { width: 1.4rem; height: 1.4rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .dockbar { display: none; position: static; }
 .dockbar .d-dock-label { font-size: .75rem; } /* daisyUI's small dock sets 10px */
-.brand-bg { fill: var(--ink); } .brand-sq { fill: var(--paper); } .brand-accent { fill: var(--clear); }
+/* The mark: the countdown ring round a small arch. In the side bar it fills toward the next prayer (app.js paintMark) */
+.mk-track { fill: none; stroke: var(--line); stroke-width: 3.4; }
+.mk-ring { fill: none; stroke: var(--on); stroke-width: 3.4; stroke-linecap: round; transition: stroke-dashoffset var(--m-slow) linear; }
+.mk-arch { fill: var(--ink); }
+/* Its opening, in Settings › About (it plays each time About opens): the tile settles, the arch rises, the ring draws
+   round, and a dot pops in at the top with a ripple */
+.mark-open { width: 6rem; height: 6rem; margin-bottom: .5rem; }
+.mark-open :is(.mo-tile, .mo-dot, .mo-rip, .mo-arch, .mo-pill) { transform-box: fill-box; transform-origin: center; } /* not the ring: its rotate() starts it at the top */
+.mo-tile { fill: var(--surface); stroke: var(--line); stroke-width: .6; animation: mo-tile .55s var(--m-pop) both; }
+.mo-track { fill: none; stroke: var(--line); stroke-width: 4.5; animation: mo-fade .5s .45s both; }
+.mo-ring { fill: none; stroke: var(--on); stroke-width: 4.5; stroke-linecap: round; stroke-dashoffset: 0; animation: mo-draw 1.3s var(--m-ease) .8s both; }
+.mo-dot { fill: var(--on); animation: mo-pop .5s var(--m-pop) 2.05s both; }
+.mo-rip { fill: none; stroke: var(--on); stroke-width: 1; opacity: 0; animation: mo-rip .9s var(--m-ease) 2.05s both; }
+.mo-arch { fill: var(--ink); animation: mo-rise .6s var(--m-ease) .4s both; }
+.mo-pill { fill: var(--surface); transform-origin: left center; animation: mo-grow .45s var(--m-ease) 2.3s both; }
+@keyframes mo-tile { from { opacity: 0; transform: scale(.6); } }
+@keyframes mo-fade { from { opacity: 0; } }
+@keyframes mo-draw { from { stroke-dashoffset: 100; } }
+@keyframes mo-pop { 0% { transform: scale(0); } 70% { transform: scale(1.35); } }
+@keyframes mo-rip { 0% { opacity: .7; transform: scale(1); } 100% { opacity: 0; transform: scale(3.4); } }
+@keyframes mo-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes mo-grow { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .mark-open * { animation: none !important; } .mo-rip { opacity: 0; } .mk-ring { transition: none; } }
 .view { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .topbar {
   flex: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem 1.25rem;
@@ -782,7 +804,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
     padding: 0 max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-left, 0px));
     background: var(--paper); border-right: 0; border-top: 1px solid var(--ink);
   }
-  .brand { display: none; }
+  .app > .tabbar .brand { display: block; flex: none; align-self: center; width: 1.9rem; height: 1.9rem; margin: 0 1.1rem 0 0; } /* the live mark starts the bar (DESIGN.md) */
   .app .tabbar .d-menu { flex-direction: row; flex-wrap: nowrap; width: auto; gap: 0 clamp(.8rem, 1.8vw, 1.6rem); }
   .app .tabbar .d-menu li { display: flex; }
   .app .tabbar .d-menu a, .app .tabbar .d-menu .more summary, .app .tb-btn, .app .tb-btn.d-btn {
