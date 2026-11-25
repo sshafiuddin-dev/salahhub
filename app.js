@@ -1,9 +1,9 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt } from './logic.js';
+import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
-import { animate, swap, fade, rows } from './motion.js';
+import { animate, swap, fade, rows, fly } from './motion.js';
 import { bubble, stepper, searchBox } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
 import { initRemote } from './remote.js';
@@ -493,13 +493,13 @@ addEventListener('hashchange', route);
 initRemote({ busy: tourOpen }); // TV remote: the arrows move between controls (remote.js); the tour keeps them while it is open
 // a tap anywhere else, a choice in it, or Escape closes the More menu. Outside taps are read on pointerdown: the clock is
 // drawn again every second and can swallow the click that would otherwise close it.
-const moreMenus = () => document.querySelectorAll('.more details, details.more');
+const moreMenus = () => document.querySelectorAll('.more details, details.more, details.share');
 // Opening it: its entries rise in one after another, Quran (next to More) first
 moreMenus().forEach(d => d.addEventListener('toggle', () => { if (d.open) rows(d.querySelectorAll('.more-menu a')); }));
 document.addEventListener('pointerdown', (e) => moreMenus().forEach(d => { if (!d.contains(e.target) || e.target === d) d.open = false; })); // e.target === d: the dimmed page behind it
 document.addEventListener('click', (e) => moreMenus().forEach(d => {
-  if (!d.contains(e.target) || e.target === d || e.target.closest('.more-menu a')) d.open = false;
-  if (e.detail === 0 && d.contains(e.target) && e.target.closest('.more-menu a')) d.querySelector('summary').focus(); // OK on a remote: the focus goes back to More, not lost
+  if (!d.contains(e.target) || e.target === d || e.target.closest('.more-menu a, .share-pills button')) d.open = false;
+  if (e.detail === 0 && d.contains(e.target) && e.target.closest('.more-menu a, .share-pills button')) d.querySelector('summary').focus(); // OK on a remote: the focus goes back to More, not lost
 }));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') moreMenus().forEach(d => { if (d.open) { d.open = false; d.querySelector('summary').focus(); } }); });
 document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { sub = b.dataset.sub; route(); }));
@@ -515,17 +515,28 @@ async function share(title, text) {
     if (e.name !== 'AbortError') say('Sharing is blocked in this browser. Copy the page address instead.');
   }
 }
-$('share-day').addEventListener('click', () => share('IqamaHub', [
-  `Prayer times for ${today.weekday}, ${MONTHS[today.m - 1]} ${today.d} (${place().name})`,
-  ...day.rows.map(r => `${NAMES[r.key]}: ${fmt(r.adhan)}${r.iqama == null ? '' : `, iqama ${fmt(r.iqama)}`}`),
-  ...(jumuah() ? [`Jumu'ah khutbah: ${jumuah()}`] : []),
-].join('\n')));
+// The weather for a prayer's time, for the shared message (none when it has not loaded)
+const wxFor = (m) => (weather?.hours?.length ? prayerWeather([...(weather.dayHours || []), ...weather.hours], m) : null);
+$('share-day').addEventListener('click', () => share('IqamaHub', shareDayText({
+  date: `${today.weekday}, ${MONTHS[today.m - 1]} ${today.d}`, place: place().name,
+  iqamaFrom: masjidTimes() && !masjid.failed && day.rows.some(r => r.iqama != null && !r.own) ? masjidName() : '',
+  rows: day.rows.map(r => ({ name: NAMES[r.key], adhan: r.adhan, iqama: r.iqama })), khutbah: jumuah(), units: settings.units, wx: wxFor,
+})));
 $('share-month').addEventListener('click', () => share('IqamaHub', [
   `Prayer times for ${MONTHS[today.m - 1]} ${today.y} (${place().name})`,
   'Day: Fajr, Sunrise, Dhuhr, Asr, Maghrib, Isha',
   ...monthRows().map(r => `${r.weekday} ${r.d}: ${r.times.map(fmt).join(', ')}`),
 ].join('\n')));
 $('share-app').addEventListener('click', () => share('IqamaHub', 'Your salah companion: adhan and iqama times on any screen.'));
+$('share-dua').addEventListener('click', () => $('dk-share').click());
+// Opening the share menu: the dua pill only when a dua is showing, the pills rise in, and the plane flies out of its button and back
+$('share-menu').addEventListener('toggle', () => {
+  const menu = $('share-menu');
+  if (!menu.open) return;
+  $('share-dua').hidden = $('adhkar').hidden;
+  rows(menu.querySelectorAll('.share-pills button:not([hidden])'));
+  fly(menu.querySelector('.sh-plane'));
+});
 
 // Sound: one shared player for the adhan, alert sounds and previews.
 // Browsers only allow sound after the page has been touched in this visit. The first touch unlocks it; until then an

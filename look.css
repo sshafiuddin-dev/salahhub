@@ -202,7 +202,7 @@ body { font-feature-settings: "kern", "liga"; }
 .seg::-webkit-scrollbar { display: none; }
 /* phone: the Settings sections wrap onto two rows so all five show at once (a scrolling row hid Display and About) */
 @media (max-width: 40rem) {
-  #tab-settings .seg { flex-wrap: wrap; overflow: visible; justify-self: stretch; align-self: start; border-radius: 1.5rem; margin-bottom: 1rem; }
+  #tab-settings .seg { flex-wrap: wrap; overflow: visible; justify-self: stretch; align-self: start; border-radius: 1.5rem; min-height: calc(5.75rem + 2px); } /* shortcut: the page grid sizes this row from min-height, not from the wrapped tabs; two rows of tabs, so a phone narrower than about 300px would need a third */
   #tab-settings .seg .d-tab { padding-inline: .75rem; }
 }
 .seg .d-tab { flex: none; height: auto; min-height: 2.5rem; padding-inline: 1rem; border-radius: 99px; font-weight: 500; color: var(--muted); background: transparent; box-shadow: none; white-space: nowrap;

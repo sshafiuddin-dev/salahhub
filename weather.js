@@ -28,6 +28,9 @@ export async function fetchWeather(lat, lng, units) {
     today: typeof t === 'string' && t.slice(0, 10) === now.slice(0, 10), min: minutesOf(t),
     temp: col('temperature_2m', start + k), code: col('weather_code', start + k), pop: col('precipitation_probability', start + k),
   })).filter(x => x.min != null);
+  // every hour of today, past ones too: the shared message gives the weather at each prayer, including one that has gone
+  const dayHours = times.map((t, i) => ({ t, i })).filter(({ t }) => typeof t === 'string' && now && t.slice(0, 10) === now.slice(0, 10))
+    .map(({ t, i }) => ({ today: true, min: minutesOf(t), temp: col('temperature_2m', i), code: col('weather_code', i), pop: col('precipitation_probability', i) })).filter(x => x.min != null);
   const first = (name) => (dl[name] || [])[0];
   const dates = Array.isArray(dl.time) ? dl.time : [];
   const rainOf = (i) => { const r = num((dl.rain_sum || [])[i]), s = num((dl.showers_sum || [])[i]); return r == null && s == null ? null : (r || 0) + (s || 0); };
@@ -45,7 +48,7 @@ export async function fetchWeather(lat, lng, units) {
       max: num(first('temperature_2m_max')), min: num(first('temperature_2m_min')), uv: num(first('uv_index_max')),
       rain: num(first('precipitation_sum')), pop: num(first('precipitation_probability_max')), sunrise: minutesOf(first('sunrise')), sunset: minutesOf(first('sunset')),
     },
-    hours, days,
+    hours, dayHours, days,
     // for the moving sky, in fixed units whatever the app shows: rain in mm and snow in cm in the last hour, wind in km/h
     sky: {
       rain: (() => { const r = num(c.rain), sh = num(c.showers), p = num(c.precipitation); const v = r == null && sh == null ? p : (r || 0) + (sh || 0); return v == null ? null : v * (f ? 25.4 : 1); })(),

@@ -239,7 +239,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 @keyframes net-arc { 0%, 100% { opacity: .25; } 40% { opacity: 1; } }
 @media (max-width: 48rem) {
   .topbar .iq-hijri { font: 600 1.05rem/1.2 var(--display); } /* the same size as the date beside it */
-  .topbar .iq-place { flex-basis: 100%; } /* a phone has no room for all three: the place always takes the second line */
+  .topbar .iq-loc { flex-basis: 100%; } /* a phone has no room for all three: the place (and the share button) always take the second line */
   .topbar .iq-place::before { content: none; }
 }
 .topbar-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -1308,6 +1308,26 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   transition: scale var(--m-fast) var(--m-ease), border-color var(--m-fast); }
 .more-menu a:active { scale: .95; }
 @media (hover: hover) { .more-menu a:hover { border-color: var(--ink); background: var(--surface); } }
+/* Share: a round plane button at the end of the location line; its pills open like More's */
+.iq-loc { display: inline-flex; align-items: center; gap: .5rem; min-width: 0; }
+.iq-loc .iq-place { min-width: 0; }
+.share { position: relative; flex: none; }
+.share summary { list-style: none; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; margin-block: -.7rem; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); overflow: hidden; cursor: pointer;
+  transition: scale var(--m-fast) var(--m-ease), border-color var(--m-fast); }
+.share summary::-webkit-details-marker { display: none; }
+.share summary:active { scale: .95; }
+.share summary:focus-visible { outline: 3px solid var(--clear); outline-offset: 3px; }
+@media (hover: hover) { .share summary:hover { border-color: var(--ink); } }
+.sh-plane { display: block; width: 1.2rem; height: 1.2rem; fill: var(--ink); }
+.share-pills { position: absolute; z-index: 20; top: calc(100% + .9rem); left: 0; display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; }
+.share-pills button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .5rem 1.15rem; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); color: var(--ink);
+  font: 500 1rem/1.2 var(--body); white-space: nowrap; cursor: pointer; box-shadow: 0 2px 10px rgba(0, 0, 0, .14); transition: scale var(--m-fast) var(--m-ease), border-color var(--m-fast); }
+.share-pills button[hidden] { display: none; }
+.share-pills button:active { scale: .95; }
+@media (hover: hover) { .share-pills button:hover { border-color: var(--ink); } }
+@media (max-width: 40rem) { .share-pills { left: auto; right: 0; align-items: flex-end; } }
+@media (prefers-reduced-motion: reduce) { .share summary:active, .share-pills button:active { scale: none; } }
+:root[data-noplace] .share { display: none; }
 .more-menu .mm-ar { font: 400 1.15rem/1 var(--ar, "Amiri", serif); }
 .more-menu .d-dock-label { font: inherit; letter-spacing: inherit; }
 /* the bars' own link rules (flat words, no border, a tab's hover fade) must not reach the pills */

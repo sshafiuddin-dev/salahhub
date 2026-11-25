@@ -326,6 +326,17 @@ export function prayerWeather(hours, at) {
   return { temp: h.temp, words: (label || '').toLowerCase(), pop: null };
 }
 
+// The message "Today's times" sends: the place (and the masjid its iqama times come from, when it has one), then a line per
+// prayer with the forecast for that time. rows: [{ name, adhan, iqama }] in minutes; wx(adhanMinutes) gives { temp, words, pop } or null.
+export function shareDayText({ date, place, iqamaFrom, rows, khutbah, units, wx }) {
+  const weather = (m) => { const w = wx ? wx(m) : null; return w ? ` · ${Math.round(w.temp)}°${units}${w.words ? `, ${w.words}` : ''}${w.pop != null ? ` (${Math.round(w.pop)}%)` : ''}` : ''; };
+  return [
+    `Prayer times for ${date} (${place}${iqamaFrom ? ` · iqama from ${iqamaFrom}` : ''})`,
+    ...rows.map(r => `${r.name}: ${fmt(r.adhan)}${r.iqama == null ? '' : `, iqama ${fmt(r.iqama)}`}${weather(r.adhan)}`),
+    ...(khutbah ? [`Jumu'ah khutbah: ${khutbah}`] : []),
+  ].join('\n');
+}
+
 // When an official warning ends, in the place's time zone: "until 7:00 PM", "until 7:00 PM Wed" on a later day,
 // or "until further notice" when NWS gives no end. iso is an ISO time with offset; now is a Date.
 export function untilText(iso, now, zone) {
