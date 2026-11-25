@@ -781,6 +781,7 @@ export function initQuran({ say, stopOthers }) {
 
   function renderList(animateIn) {
     tabEl.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-selected', String(!query && b.dataset.view === view)));
+    { const row = tabEl.querySelector('.qp-tabs'), on = row?.querySelector('[aria-selected="true"]'); if (row && on) row.scrollLeft = on.offsetLeft - row.offsetLeft - (row.clientWidth - on.offsetWidth) / 2; } // keep the open tab in view on a phone
     tabEl.toggleAttribute('data-offline', offline());
     const note = offline() ? `<p class="qp-offline">You are offline. Surahs saved on this device still play; the others are greyed out.</p>` : '';
     if (view === 'downloads' && !query) { listEl.innerHTML = note + downloadsHtml(); markRows(); fillSpace(); if (animateIn) { listEl.scrollTop = 0; mo.rows(listEl.querySelectorAll('.qp-row')); } return; }

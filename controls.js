@@ -1,3 +1,5 @@
+import { animate } from './motion.js';
+
 // Small pieces shared by app.js and quran.js for the form controls drawn in look.css (switches, ticks, radios, sliders).
 
 // Sliders show their value in a small label above the thumb while it is dragged, or while it is moved with the keys; the
@@ -20,4 +22,49 @@ export function bubble(input, cls = '', text = null) {
   input.addEventListener('keydown', (e) => { if (/^(Arrow|Page|Home$|End$)/.test(e.key)) show(true); });
   place();
   return place; // call after changing the value from a script, so the fill and label follow
+}
+
+// − and + round a number box (adhan offsets, alert minutes, iqama minutes after adhan). The number can still be typed.
+// A tap moves it one step; holding repeats, after a short pause; Enter or Space on a button steps once. The number slides
+// the way it moved, and gives a small shake at its limit (the box's min and max). Each step fires the box's own input and
+// change events, so the code that saves it needs nothing new. The buttons follow the box: hidden with it, disabled with it.
+export function stepper(input) {
+  if (input.closest('.stp')) return;
+  const box = document.createElement('span'), name = input.getAttribute('aria-label') || 'Value';
+  box.className = 'stp';
+  const mk = (d, sign) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'stp-btn'; b.textContent = sign; b.dataset.step = String(d);
+    b.setAttribute('aria-label', `${name}: ${d < 0 ? 'one less' : 'one more'}`);
+    return b;
+  };
+  const less = mk(-1, '−'), more = mk(1, '+');
+  input.before(box); box.append(less, input, more);
+  const step = (d) => {
+    const min = input.min === '' ? -Infinity : +input.min, max = input.max === '' ? Infinity : +input.max;
+    const now = Math.round(+input.value) || 0, next = Math.max(min, Math.min(max, now + d));
+    if (next === now) { animate(input, { translate: ['0 0', '-3px 0', '3px 0', '0 0'] }, { duration: .3 }); return false; }
+    input.value = String(next);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    animate(input, { translate: [`0 ${d > 0 ? -6 : 6}px`, '0 0'], opacity: [.35, 1] }, { duration: .18 });
+    return true;
+  };
+  let hold = 0;
+  const stop = () => { clearTimeout(hold); hold = 0; };
+  for (const b of [less, more]) {
+    b.addEventListener('pointerdown', (e) => {
+      if (e.button || b.disabled) return;
+      e.preventDefault(); // the tap must not also count as a click, nor select text while held
+      stop();
+      if (!step(+b.dataset.step)) return;
+      const again = (wait) => { hold = setTimeout(() => { if (step(+b.dataset.step)) again(90); }, wait); };
+      again(450);
+    });
+    for (const t of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(t, stop);
+    b.addEventListener('click', (e) => { if (e.detail === 0) step(+b.dataset.step); }); // Enter or Space
+  }
+  const follow = () => { box.hidden = input.hidden; less.disabled = more.disabled = input.disabled; };
+  new MutationObserver(follow).observe(input, { attributes: true, attributeFilter: ['hidden', 'disabled'] });
+  follow();
 }

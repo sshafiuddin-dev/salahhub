@@ -212,7 +212,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .al-top .iq-note { margin: 0; }
 .toast {
   position: fixed; left: 50%; bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); z-index: 40; max-width: min(34rem, calc(100vw - 2rem));
-  margin: 0; padding: .75rem 1.1rem; border-radius: 8px; background: var(--ink); color: var(--paper); font-size: .95rem;
+  margin: 0; padding: .75rem 1.25rem; border-radius: 1.4rem; background: var(--ink); color: var(--paper); font-size: .95rem;
   transform: translate(-50%, .75rem); opacity: 0; pointer-events: none; transition: opacity .15s ease-out, transform .15s ease-out; /* leaving: quick and small */
 }
 .toast.has-act.show { pointer-events: auto; } /* a message with a button (Undo) can be tapped */
@@ -760,8 +760,6 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .tb-btn[data-short] { width: 4.6rem; height: auto; min-height: 2.75rem; flex-direction: column; gap: .15rem; padding: .35rem 0; }
   .tb-btn[data-short]::after { content: attr(data-short); font: 600 .75rem/1 var(--body); white-space: nowrap; letter-spacing: .02em; } /* the icon's name, in words, under it */
   .toast { bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
-  .seg { flex-wrap: wrap; overflow: visible; row-gap: 0; } /* five tabs wrap onto a second row: none is hidden off the edge */
-  .seg .d-tab { flex: none; padding-inline: .75rem; }
   .dk { padding: 1rem 1.1rem; }
   .dk-ar { font-size: 1.55rem; }
   .dk[data-size="s"] .dk-ar { font-size: 1.3rem; }
@@ -900,10 +898,14 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .au-toggle { flex: 1; display: flex; align-items: center; gap: .5rem; min-height: 2.75rem; padding: .35rem .8rem; background: none; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .au-toggle::after { content: ''; width: .45rem; height: .45rem; margin-left: auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); opacity: .6; transition: transform .15s; }
 .au-toggle[aria-expanded="true"]::after { transform: rotate(-135deg); }
-/* Listen / Play / Stop: a printed text action in the accent colour, not a filled box; still a 44 px tap target */
-.app .au-play.d-btn { min-height: 2.75rem; height: auto; padding: 0 .4rem; border: 0; background: none; box-shadow: none;
-  font: 600 .9rem/1 var(--body); letter-spacing: .01em; color: var(--clear); text-decoration: underline 1.5px; text-underline-offset: .35em; }
-@media (hover: hover) { .app .au-play.d-btn:hover { background: none; color: var(--ink); } }
+/* Listen / Play / Stop: a small pill with ▶ (or ■ while it plays) before the word; 44px to touch */
+.app .au-play.d-btn { display: inline-flex; align-items: center; gap: .45rem; min-height: 2.75rem; height: auto; padding: 0 1rem 0 .8rem; border: 1px solid var(--line); border-radius: 99px;
+  background: var(--surface); box-shadow: none; font: 600 .9rem/1 var(--body); letter-spacing: .01em; color: var(--ink); text-decoration: none; transition: scale var(--m-fast) var(--m-ease), background-color var(--m-fast); }
+.app .au-play.d-btn::before { content: ""; flex: none; width: .7rem; height: .75rem; background: var(--on); clip-path: polygon(0 0, 100% 50%, 0 100%); transition: clip-path var(--m-normal) var(--m-ease); }
+.app .au-play.d-btn.is-on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.app .au-play.d-btn.is-on::before { background: currentColor; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+.app .au-play.d-btn:active { scale: .95; }
+@media (hover: hover) { .app .au-play.d-btn:not(.is-on):hover { background: var(--surface); border-color: var(--ink); color: var(--ink); } }
 .au-body { padding: .25rem .9rem .9rem; border-top: 1px solid var(--line, rgba(128, 128, 128, .3)); }
 .au-dua { padding: .75rem 0; }
 .au-dua + .au-dua { border-top: 1px dashed var(--line, rgba(128, 128, 128, .3)); }
@@ -935,7 +937,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .qp-tabs { grid-column: 1 / -1; display: flex; gap: .4rem; overflow-x: auto; padding-block: .15rem; scrollbar-width: none; }
 .qp-tabs .d-btn { flex: none; min-height: 2.75rem; padding-inline: 1rem; border-radius: 99px; background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 600; box-shadow: none; }
 .qp-tabs .d-btn[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-@media (max-width: 30rem) { .qp-tabs .d-btn { flex: 1 0 auto; padding-inline: .3rem; } } /* a phone fits all five, with no tab cut off at the edge */
+@media (max-width: 30rem) { .qp-tabs .d-btn { padding-inline: .85rem; } } /* a phone scrolls the row sideways; the open tab is kept in view */
 .qp-panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: .75rem; min-height: 0; }
 .qp-pane { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: .25rem .5rem 1rem; border: 1px solid var(--line); border-top: 0; border-radius: .9rem; background: var(--surface); }
 .iqama .qp-pane { padding-block: .5rem 1rem; border-top: 1px solid var(--line); } /* outranks the page-wide `section` rule */
@@ -1192,7 +1194,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 }
 
 /* Feedback form: a printed sheet over the dimmed page */
-.fb { width: min(38rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 0; border-top: 3px double var(--ink); border-radius: 2px;
+.fb { width: min(38rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 1px solid var(--line); border-radius: 1rem;
   background: var(--paper); color: var(--ink); box-shadow: 0 .75rem 2.5rem rgba(0, 0, 0, .35); overflow: auto; overscroll-behavior: contain; }
 .fb::backdrop { background: rgba(20, 16, 10, .45); }
 .fb-form { display: grid; gap: .55rem; padding: 1.25rem clamp(1rem, 4vw, 1.75rem) 1.25rem; }
@@ -1281,10 +1283,10 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
    The veil catches every tap, so nothing under it is pressed by accident. */
 .tour { position: fixed; inset: 0; z-index: 70; }
 .tour-veil { position: absolute; inset: 0; }
-.tour-spot { position: fixed; border-radius: 2px; outline: 2px solid var(--paper); box-shadow: 0 0 0 2px var(--ink), 0 0 0 100vmax rgb(0 0 0 / .55); pointer-events: none; }
+.tour-spot { position: fixed; border-radius: .75rem; outline: 2px solid var(--paper); box-shadow: 0 0 0 2px var(--ink), 0 0 0 100vmax rgb(0 0 0 / .55); pointer-events: none; }
 .tour-card {
   position: fixed; width: min(22rem, calc(100vw - 1rem)); display: grid; gap: .5rem; padding: 1rem 1.1rem .9rem;
-  background: var(--paper); color: var(--ink); border-top: 3px double var(--ink); border-radius: 2px; box-shadow: 0 .75rem 2rem rgb(0 0 0 / .35);
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 1rem; box-shadow: 0 .75rem 2rem rgb(0 0 0 / .35);
 }
 .tour-card h2 { margin: 0; font: 600 1.15rem/1.25 var(--display); max-width: none; }
 .tour-card p { margin: 0; font-size: .95rem; line-height: 1.45; }

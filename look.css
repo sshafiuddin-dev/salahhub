@@ -60,14 +60,14 @@
 :root[data-nightsky="0"][data-dim="3"] .sky-live, :root[data-nightsky="0"][data-dim="3"] .sky-real, :root[data-nightsky="0"][data-dim="2"]:not([data-palette="contrast"]):not([data-tab="weather"]) .sky-live, :root[data-nightsky="0"][data-dim="2"]:not([data-palette="contrast"]):not([data-tab="weather"]) .sky-real { display: none; } /* a brightness you set by hand (Dim, Darkest) is a still page; the night sky shows when the realistic sky is on and night brings its own dark look */
 
 /* Print, not app: square corners, hairlines, no filled pills */
-:root { --radius-selector: 2px; --radius-field: 2px; --radius-box: 2px; }
+:root { --radius-selector: 99px; --radius-field: .625rem; --radius-box: 1rem; } /* DESIGN.md: fields and buttons .625rem, cards and dialogs 1rem, pills round */
 body { font-feature-settings: "kern", "liga"; }
-.tb-btn { border-radius: 2px; }
+.tb-btn { border-radius: .75rem; }
 .d-btn { box-shadow: none; text-transform: none; font-weight: 500; letter-spacing: .005em; }
 .d-btn-primary:not(.d-btn-soft) { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 .d-btn-soft.d-btn-primary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
 @media (hover: hover) { .d-btn-soft.d-btn-primary:hover { border-color: var(--ink); background: transparent; } }
-.iq-ask, .dk, .qp-dlg-in, .au-list li, .qp-pane { border-radius: 2px; }
+.iq-ask, .dk, .qp-dlg-in { border-radius: 1rem; } .au-list li, .qp-pane { border-radius: 0; }
 .iq-ask { background: transparent; border: 0; border-top: 2px solid var(--ink); border-bottom: var(--rule-w) solid var(--line); padding-inline: 0; }
 .dk { background: transparent; border: 0; border-top: 2px solid var(--ink); border-radius: 0; padding-inline: 0; }
 
@@ -145,14 +145,18 @@ body { font-feature-settings: "kern", "liga"; }
 .tune-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .5rem 1.25rem; width: 100%; max-width: 40rem; }
 .tune-row { display: flex; align-items: center; gap: .5rem; }
 .tune-row > span:first-child { min-width: 4.2rem; font-weight: 500; }
-.iqama .tune-row input[type="number"] { width: 3.6rem; padding-inline: .25rem; text-align: center; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
-.tune-row input::-webkit-inner-spin-button, .tune-row input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } /* the − and + buttons replace the tiny arrows */
-/* − and + round the minutes: square ink keys like the switches, 44px to touch, a dip when pressed */
-.stp { display: inline-flex; align-items: center; gap: .25rem; }
-.stp-btn { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 1px solid var(--line); border-radius: 2px; background: var(--surface); color: var(--ink);
+/* Stepper (controls.js): a pill holding round − and + keys either side of the number; 44px to touch, a dip when pressed */
+.stp { display: inline-flex; align-items: center; gap: .15rem; padding: .2rem; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); }
+.stp[hidden] { display: none; }
+.iqama .stp input[type="number"] { color: var(--ink); width: 3.4rem; min-height: 0; height: 2.5rem; padding: 0; border: 0; background: transparent; box-shadow: none; text-align: center; font: 600 1.05rem/1 var(--body);
+  font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.stp input::-webkit-inner-spin-button, .stp input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.stp:focus-within { border-color: var(--ink); }
+.stp-btn { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; border: 0; border-radius: 50%; background: var(--paper); color: var(--ink);
   font: 500 1.35rem/1 var(--body); cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; transition: scale var(--m-fast) var(--m-ease), border-color var(--m-fast); }
-.stp-btn:active { scale: .9; border-color: var(--ink); }
-@media (hover: hover) { .stp-btn:hover { border-color: var(--ink); } }
+.stp-btn:active { scale: .9; background: var(--line); }
+.stp-btn:disabled { opacity: .4; cursor: default; }
+@media (hover: hover) { .stp-btn:not(:disabled):hover { background: var(--line); } }
 @media (prefers-reduced-motion: reduce) { .stp-btn:active { scale: none; } }
 .tune-row small { color: var(--muted); }
 
@@ -192,12 +196,17 @@ body { font-feature-settings: "kern", "liga"; }
 /* ---- The other tabs, set like the same printed sheet ---- */
 
 /* Segmented choices (°F/°C, Settings sections, Quran views): square, underlined when chosen, no filled pills */
-.seg { background: transparent; border-bottom: var(--rule-w) solid var(--line); border-radius: 0; padding: 0; gap: 0; }
-.seg .d-tab { border-radius: 0; font-weight: 500; padding-inline: .9rem; }
-.seg .d-tab[aria-selected="true"] { background: transparent; box-shadow: inset 0 -2px 0 var(--clear); color: var(--ink); }
-.wx-units { gap: 0; }
-.wx-units .d-btn, .d-join .d-btn { border-radius: 0; box-shadow: none; }
-.wx-units .d-btn[aria-pressed="true"], .d-join .d-btn:checked, .d-join input.d-btn:checked { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+/* Segmented choices (Settings sections, °F/°C): a pill track holding pill buttons; the chosen one fills with ink.
+   One row that scrolls sideways on a phone, never wrapping onto a second row. */
+.seg { position: relative; display: flex; flex-wrap: nowrap; gap: .25rem; width: auto; max-width: 100%; padding: .25rem; overflow-x: auto; scrollbar-width: none; background: var(--surface); border: 1px solid var(--line); border-radius: 99px; }
+.seg::-webkit-scrollbar { display: none; }
+.seg .d-tab { flex: none; height: auto; min-height: 2.5rem; padding-inline: 1rem; border-radius: 99px; font-weight: 500; color: var(--muted); background: transparent; box-shadow: none; white-space: nowrap;
+  transition: background-color var(--m-normal) var(--m-ease), color var(--m-normal) var(--m-ease); }
+.seg .d-tab[aria-selected="true"] { background: var(--ink); color: var(--paper); box-shadow: none; }
+.wx-units { display: inline-flex; justify-self: start; width: max-content; gap: .25rem; padding: .25rem; background: var(--surface); border: 1px solid var(--line); border-radius: 99px; }
+.wx-units .d-btn { min-height: 2.5rem; height: 2.5rem; padding-inline: 1rem; border: 0; border-radius: 99px; background: transparent; color: var(--muted); box-shadow: none;
+  transition: background-color var(--m-normal) var(--m-ease), color var(--m-normal) var(--m-ease); }
+.wx-units .d-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 
 /* Weather: a forecast column from a newspaper */
 .wx-temp { font: 400 3.6rem/1 var(--display); font-stretch: normal; letter-spacing: -.02em; }
@@ -237,9 +246,9 @@ body { font-feature-settings: "kern", "liga"; }
 .au-search, .qp-search { max-width: 40rem; }
 
 /* Quran: sections underlined like a contents page; lists ruled, not boxed */
-.qp-tabs { gap: 0; border-bottom: var(--rule-w) solid var(--line); }
-.qp-tabs .d-btn, .qp-tabs .d-btn:hover { border: 0; border-radius: 0; background: transparent; color: var(--muted); font-weight: 500; }
-.qp-tabs .d-btn[aria-selected="true"] { background: transparent; color: var(--ink); box-shadow: inset 0 -2px 0 var(--clear); }
+.qp-tabs { gap: .35rem; padding-bottom: .5rem; border-bottom: var(--rule-w) solid var(--line); }
+.qp-tabs .d-btn, .qp-tabs .d-btn:hover { border: 1px solid var(--line); border-radius: 99px; background: var(--surface); color: var(--muted); font-weight: 500; transition: background-color var(--m-normal) var(--m-ease), color var(--m-normal) var(--m-ease); }
+.qp-tabs .d-btn[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); box-shadow: none; }
 .qp-pane { border: 0; border-top: 2px solid var(--ink); border-radius: 0; padding-inline: 0; background: transparent; }
 .qp-panes { gap: 1.5rem; }
 .qp-rows { gap: 0; }
@@ -342,7 +351,7 @@ body { font-feature-settings: "kern", "liga"; }
   .d-range::-webkit-slider-thumb { box-shadow: 0 0 0 2rem var(--surface) inset; }
 }
 
-/* Settings: ruled rows, labelled square swatches and drawn clock styles, with the controls from the approved preview:
+/* Settings: ruled rows, swatches and drawn clock styles, with the controls from the approved preview (DESIGN.md):
    round switches, tick boxes and radio choices in the accent colour (--clear), each with its own small motion */
 
 /* Switches: a round knob on a pill. Off: a pale track; on: the accent. The knob springs across; the switch dips when pressed.
@@ -403,14 +412,14 @@ body { font-feature-settings: "kern", "liga"; }
 .al-card:first-child { border-top: 2px solid var(--ink); }
 
 .ck-picker { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .75rem; width: min(100%, 38rem); }
-.ck-opt { display: grid; justify-items: center; gap: .35rem; padding: .6rem .5rem .5rem; min-height: 5.5rem; background: transparent; border: 1px solid var(--line); border-radius: 2px; color: var(--muted); font: 500 .9rem/1.2 var(--body); cursor: pointer; }
+.ck-opt { display: grid; justify-items: center; gap: .35rem; padding: .6rem .5rem .5rem; min-height: 5.5rem; background: transparent; border: 1px solid var(--line); border-radius: .75rem; color: var(--muted); font: 500 .9rem/1.2 var(--body); cursor: pointer; }
 .ck-opt svg { width: 4rem; height: 2.5rem; }
 @media (hover: hover) { .ck-opt:hover { border-color: var(--ink); color: var(--ink); } }
-.ck-opt[aria-checked="true"] { border: 2px solid var(--ink); padding: calc(.6rem - 1px) calc(.5rem - 1px) calc(.5rem - 1px); color: var(--ink); background: var(--surface); }
+.ck-opt[aria-checked="true"] { border: 2px solid var(--on); padding: calc(.6rem - 1px) calc(.5rem - 1px) calc(.5rem - 1px); color: var(--ink); background: var(--surface); }
 
 .sw-picker { gap: 1rem; }
 .swatch { width: auto; height: auto; display: grid; justify-items: center; gap: .4rem; padding: .25rem; border-radius: 0; background: none; box-shadow: none; color: var(--muted); font: 500 .9rem/1.2 var(--body); }
-.sw-chip { width: 3.5rem; height: 3.5rem; border-radius: 2px; background: linear-gradient(135deg, var(--a) 50%, var(--b) 50%); box-shadow: inset 0 0 0 1px var(--line); }
+.sw-chip { width: 3.5rem; height: 3.5rem; border-radius: .75rem; background: linear-gradient(135deg, var(--a) 50%, var(--b) 50%); box-shadow: inset 0 0 0 1px var(--line); }
 .swatch[aria-checked="true"] { outline: 0; color: var(--ink); }
 .swatch[aria-checked="true"] .sw-chip { outline: 3px solid var(--ink); outline-offset: 3px; }
 
@@ -469,11 +478,6 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .dockbar details.more { align-self: auto; height: 55px; } /* the same box as its neighbours, so the labels share a baseline */
 .seg { margin-bottom: .75rem; }
 
-/* Phase 10: phone Settings tabs sit in a steady grid (three, then two) instead of a ragged wrap */
-@media (max-width: 40rem) {
-  .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-self: stretch; }
-  .seg .d-tab { justify-content: center; text-align: center; padding-inline: .25rem; white-space: normal; line-height: 1.15; }
-}
 
 /* Phase 11: the dock's More item is as wide as a tap target needs */
 .dockbar details.more { min-width: 4rem; }
