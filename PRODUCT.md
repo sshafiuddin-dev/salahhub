@@ -39,6 +39,10 @@ Success: the screen is set up once and then trusted all day without anyone touch
 - Interface wording says "this device", never "this tablet".
 - Arabic prayer names appear in every look.
 
+## Design
+
+- DESIGN.md is the baseline for all future work: the printed sheet for times, and the approved rounded controls with their motion for everything you press.
+
 ## Evidence on Hand
 
 - User guide: /guide/ (built from scripts/guide/chapters).

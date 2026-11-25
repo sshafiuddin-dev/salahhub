@@ -9,6 +9,10 @@ No account, no tracking: settings stay on the device.
 - Guide: https://iqamahub.app/guide/
 - Made by [Shafiuddin Syed](https://sshafiuddin.pages.dev)
 
+## Design
+
+[DESIGN.md](DESIGN.md) is the baseline for every change: colours, shapes, type, motion and the controls to use.
+
 ## How it is built
 
 A static site with no build step (the output of the two small build scripts is committed), hosted on Cloudflare Pages.

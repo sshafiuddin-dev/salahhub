@@ -4,7 +4,7 @@ import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTi
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { animate, swap, fade, rows } from './motion.js';
-import { bubble } from './controls.js';
+import { bubble, stepper } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
@@ -479,6 +479,7 @@ function route() {
   const helpAt = `guide/${tab === 'settings' ? HELP_SUB[sub] : HELP_TAB[tab]}`;
   for (const a of [$('help'), ...document.querySelectorAll('[data-help]')]) a.href = helpAt; // the top Help button, and Help in the phone's More menu
   document.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-selected', b.dataset.sub === sub));
+  { const seg = document.querySelector('.seg'), on = seg?.querySelector('[aria-selected="true"]'); if (seg && on) seg.scrollLeft = on.offsetLeft - (seg.clientWidth - on.offsetWidth) / 2; } // a phone's tab row scrolls: keep the open section in view
   document.querySelectorAll('.sub-pane').forEach(p => { p.hidden = p.id !== `sub-${sub}`; });
   if (tab === 'month' && today) { renderMonth(); requestAnimationFrame(() => document.querySelector('#month tr.today')?.scrollIntoView({ block: 'center' })); } // open at today, not the 1st
 }
@@ -531,7 +532,7 @@ function syncSound() {
   if (!playing() && !pending) alertNow = null;
   const stop = !!alertNow && playing();
   for (const id of ['alert-stop', 'dx-stop']) { $(id).hidden = !stop; if (stop) $(id).querySelector('span').textContent = `Stop ${alertNow}`; }
-  document.querySelectorAll('.au-play').forEach(b => { b.textContent = playing() && audio.src === b.dataset.src ? 'Stop' : (b.dataset.label || 'Play'); });
+  document.querySelectorAll('.au-play').forEach(b => { const on = playing() && audio.src === b.dataset.src; b.textContent = on ? 'Stop' : (b.dataset.label || 'Play'); b.classList.toggle('is-on', on); }); // look.css draws ▶ or ■ before the word
 }
 // The Quran player has its own audio element. It steps aside for any sound played here and comes back when that sound is over.
 const quran = initQuran({ say, stopOthers: () => { pending = null; if (playing() && !audio.muted) audio.pause(); } }); // a muted sound is the silent unlock, which must finish
@@ -705,7 +706,7 @@ function syncCard(k) {
   });
   $(`al-${k}-sum`).textContent = alertSummary(k, a);
 }
-function buildAlerts() { $('alert-cards').innerHTML = ALERT_KEYS.map(alertCard).join(''); ALERT_KEYS.forEach(syncCard); jumuahNote(); }
+function buildAlerts() { $('alert-cards').innerHTML = ALERT_KEYS.map(alertCard).join(''); $('alert-cards').querySelectorAll('input[type="number"]').forEach(stepper); ALERT_KEYS.forEach(syncCard); jumuahNote(); }
 function jumuahNote() {
   const el = $('al-jumuah-note');
   if (!el) return;
@@ -805,6 +806,7 @@ function buildForm() {
     <p class="iq-note">For a prayer with no iqama time above: leave it empty, or show a time a set number of minutes after the adhan, marked “default”.</p>
     <button class="d-btn d-btn-sm" type="button" id="iqama-reset">${nearby ? `Use ${masjidName()} times for all` : 'Clear all'}</button>`;
   $('iqama-reset').addEventListener('click', () => { settings.iqama = {}; save(); fillForm(); loadDay(today); });
+  $('iqama-form').querySelectorAll('input[type="number"]').forEach(stepper);
   fillForm();
 }
 function fillForm() {
@@ -935,34 +937,11 @@ const recalc = () => { save(); today = null; tick(); };
 $('method').addEventListener('change', () => { settings.method = $('method').value; recalc(); });
 $('asr').addEventListener('change', () => { settings.asr = $('asr').value; recalc(); });
 // Adhan time offsets and the Hijri day shift
-// Each prayer: − and + round its minutes (the number can still be typed). Holding a button repeats it; the number slides in
-// the way it moved, and gives a small shake at the 30-minute limit.
-$('tune-form').innerHTML = PRAYERS.map(k => `<div class="tune-row"><span id="tune-${k}">${NAMES[k]}</span><span class="stp">`
-  + `<button class="stp-btn" type="button" data-step="-1" data-for="${k}" aria-label="${NAMES[k]} adhan one minute earlier">−</button>`
+// Each prayer: − and + round its minutes (controls.js stepper; the number can still be typed)
+$('tune-form').innerHTML = PRAYERS.map(k => `<div class="tune-row"><span id="tune-${k}">${NAMES[k]}</span>`
   + `<input class="d-input d-input-sm" type="number" inputmode="numeric" min="-30" max="30" step="1" data-k="${k}" value="${settings.tune[k]}" aria-label="${NAMES[k]} adhan, minutes earlier or later">`
-  + `<button class="stp-btn" type="button" data-step="1" data-for="${k}" aria-label="${NAMES[k]} adhan one minute later">+</button></span><small>min</small></div>`).join('');
-function stepTune(btn) {
-  const input = $('tune-form').querySelector(`input[data-k="${btn.dataset.for}"]`), d = +btn.dataset.step;
-  const now = Math.round(+input.value) || 0, next = Math.max(-30, Math.min(30, now + d));
-  if (next === now) { animate(input, { translate: ['0 0', '-3px 0', '3px 0', '0 0'] }, { duration: .3 }); return false; }
-  input.value = next;
-  input.dispatchEvent(new Event('change', { bubbles: true }));
-  animate(input, { translate: [`0 ${d > 0 ? -6 : 6}px`, '0 0'], opacity: [.35, 1] }, { duration: .18 });
-  return true;
-}
-let stepHold = 0;
-const stopHold = () => { clearTimeout(stepHold); stepHold = 0; };
-$('tune-form').addEventListener('pointerdown', (e) => {
-  const b = e.target.closest('.stp-btn');
-  if (!b || e.button) return;
-  e.preventDefault(); // keeps the tap from also counting as a click, and the page from selecting text while held
-  stopHold();
-  if (!stepTune(b)) return;
-  const again = (wait) => { stepHold = setTimeout(() => { if (stepTune(b)) again(90); }, wait); };
-  again(450);
-});
-for (const t of ['pointerup', 'pointercancel', 'pointerout']) $('tune-form').addEventListener(t, stopHold);
-$('tune-form').addEventListener('click', (e) => { const b = e.target.closest('.stp-btn'); if (b && e.detail === 0) stepTune(b); }); // Enter or Space on the button
+  + '<small>min</small></div>').join('');
+$('tune-form').querySelectorAll('input').forEach(stepper);
 $('tune-form').addEventListener('submit', (e) => e.preventDefault());
 $('tune-form').addEventListener('change', (e) => {
   const k = e.target.dataset.k, v = Math.round(+e.target.value);
