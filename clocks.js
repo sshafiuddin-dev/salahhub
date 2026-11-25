@@ -195,7 +195,7 @@ function board(real) {
     + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${progress(real)}${nextLine(d)}${wxAt(d.wxAt)}`
     + `${ruler(d)}</div></div>`
     + body
-    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.big ? swapBtn(d.big) : ''}${d.month ? `<a class="sh-month" href="#month" data-go="month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</p></div>`;
+    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.big || d.month ? `<span class="sh-acts">${d.big ? swapBtn(d.big) : ''}${d.month ? `<a class="sh-month" href="#month" data-go="month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</span>` : ''}</p></div>`;
 }
 
 function timeline(d) {

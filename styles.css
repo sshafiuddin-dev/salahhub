@@ -503,6 +503,10 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   [data-big="count"] .sh-n { font-size: calc(var(--u) * 21); }
 }
 @media (max-height: 34rem) { [data-big="count"] .sh-n { font-size: calc(var(--u) * 19); } }
+/* The swap button and the month link have a row of their own: swap always on the left, the month always on the right,
+   so neither moves when the swap's label changes length */
+.sh-acts { flex: 1 0 100%; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.sh-acts .sh-month { margin-left: auto; }
 .sh-foot .sh-swap {
   min-height: 44px; padding: .5rem .25rem; margin: -.5rem 0; background: none; border: 0; font: inherit; color: var(--ink);
   text-decoration: underline; text-underline-offset: .2em; text-decoration-thickness: 1px; cursor: pointer; -webkit-tap-highlight-color: transparent;
