@@ -25,7 +25,12 @@ The app's mark is the **countdown ring**: a small mihrab arch inside a ring that
   (the ring inside Android's safe area), `icons/favicon.svg`, and the PNGs made from them (`icon-192/512`,
   `icon-maskable-192/512`, `apple-touch-icon` 180, `favicon-32`). A still icon shows the ring three quarters full.
 - Live: the mark at the start of the bottom bar, the browser tab's icon and the tab's title ("Isha in 12 min ·
-  IqamaHub") follow the countdown, the same fraction as the bar under it (`paintMark` in app.js).
+  IqamaHub") follow the countdown, the same fraction as the bar under it (`paintMark` in app.js). The mark is a link to
+  Today (on Today, to its top).
+- It comes alive only when it matters: in the last 15 minutes before an adhan or iqama (the countdown's highlight) a
+  soft light travels round the ring and its tip breathes; when the time comes the ring closes and the dot pops in with
+  a ripple; when the screen is opened or touched after a quiet minute the ring sweeps round once. Otherwise it only
+  fills. It never spins like a loading circle.
 - Opening (Settings › About, each time it opens): the tile settles, the arch rises, the ring draws round, a dot pops in
   at the top with a ripple, the pill grows. About 2.5 s, once; no loop on a screen that stays on.
 - Colours: paper tile, ink arch, `#1B6B52` ring on the fixed icons; in the app the mark uses `--line`, `--on` and `--ink`,
@@ -85,7 +90,8 @@ Every duration, easing and distance comes from `motion.js` (`T`) or its CSS copi
   Every new animation needs its `@media (prefers-reduced-motion: reduce)` rule, or goes through `motion.js`, which
   handles it.
 - **E-ink look**: nothing animates at all (one rule in `look.css` turns off every transition and animation).
-- Nothing moves on its own on a screen left running all day, except the clock, the countdown and the realistic sky.
+- Nothing moves on its own on a screen left running all day, except the clock, the countdown, the realistic sky and
+  the mark in the last 15 minutes before a prayer.
 
 ## Components
 

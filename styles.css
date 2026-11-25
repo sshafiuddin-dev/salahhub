@@ -167,6 +167,31 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .mk-track { fill: none; stroke: var(--line); stroke-width: 3.4; }
 .mk-ring { fill: none; stroke: var(--on); stroke-width: 3.4; stroke-linecap: round; transition: stroke-dashoffset var(--m-slow) linear; }
 .mk-arch { fill: var(--ink); }
+/* The mark is a link to Today: a 44px target round it, a visible ring of focus for a keyboard or TV remote */
+.brand-link { display: flex; align-items: center; justify-content: center; flex: none; min-width: 2.75rem; min-height: 2.75rem; border-radius: 50%; }
+.brand-link:focus-visible { outline: 2px solid var(--on); outline-offset: 2px; }
+.brand-link:active .brand { scale: .92; } .brand { transition: scale var(--m-fast) var(--m-ease); }
+/* The mark comes alive only when it matters (app.js paintMark):
+   .is-near    the last 15 minutes before an adhan or iqama, as the countdown's highlight: a soft light travels round the
+               ring and its tip breathes
+   .is-arrived the time has come: the ring closes, the dot pops in at the top with a ripple
+   .is-sweep   the screen was opened or touched after a quiet minute: the ring sweeps round once to where it is
+   The rest of the time it only fills, slowly. Reduce motion: none of it moves (the tip still shows when near). */
+.mk-glint { fill: none; stroke: var(--paper); stroke-width: 3.4; stroke-linecap: round; opacity: 0; }
+.mk-tip, .mk-rip { transform-box: fill-box; transform-origin: center; opacity: 0; }
+.mk-tip { fill: var(--on); }
+.mk-rip { fill: none; stroke: var(--on); stroke-width: .8; }
+.is-near .mk-glint { animation: mk-glint 2.4s linear infinite; }
+.is-near .mk-tip { opacity: 1; animation: mk-breathe 1.6s ease-in-out infinite; }
+.is-arrived .mk-tip { opacity: 1; animation: mk-pop .5s var(--m-pop) both; }
+.is-arrived .mk-rip { animation: mk-rip .9s var(--m-ease) both; }
+.is-sweep .mk-ring { animation: mk-sweep 1s var(--m-ease); }
+@keyframes mk-glint { 0% { stroke-dashoffset: 100; opacity: 0; } 12%, 85% { opacity: .85; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes mk-breathe { 50% { transform: scale(1.45); opacity: .55; } }
+@keyframes mk-pop { 0% { transform: scale(0); } 70% { transform: scale(1.4); } }
+@keyframes mk-rip { 0% { opacity: .7; transform: scale(1); } 100% { opacity: 0; transform: scale(3); } }
+@keyframes mk-sweep { from { stroke-dashoffset: 100; } }
+@media (prefers-reduced-motion: reduce) { .mk-glint, .mk-tip, .mk-rip, .mk-ring { animation: none !important; } .brand-link:active .brand { scale: none; } }
 /* Its opening, in Settings › About (it plays each time About opens): the tile settles, the arch rises, the ring draws
    round, and a dot pops in at the top with a ripple */
 .mark-open { width: 6rem; height: 6rem; margin-bottom: .5rem; }
@@ -788,7 +813,8 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
     padding: 0 max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(clamp(1rem, 3vw, 2.5rem), env(safe-area-inset-left, 0px));
     background: var(--paper); border-right: 0; border-top: 1px solid var(--ink);
   }
-  .app > .tabbar .brand { display: block; flex: none; align-self: center; width: 1.9rem; height: 1.9rem; margin: 0 1.1rem 0 0; } /* the live mark starts the bar (DESIGN.md) */
+  .app > .tabbar .brand-link { align-self: center; margin: 0 .6rem 0 -.4rem; } /* the live mark starts the bar (DESIGN.md) */
+  .app > .tabbar .brand { display: block; width: 1.9rem; height: 1.9rem; margin: 0; }
   .app .tabbar .d-menu { flex-direction: row; flex-wrap: nowrap; width: auto; gap: 0 clamp(.8rem, 1.8vw, 1.6rem); }
   .app .tabbar .d-menu li { display: flex; }
   .app .tabbar .d-menu a, .app .tabbar .d-menu .more summary, .app .tb-btn, .app .tb-btn.d-btn {
