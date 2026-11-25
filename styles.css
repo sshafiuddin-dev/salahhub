@@ -442,19 +442,6 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .sh-wxt { font: 500 max(1.6rem, calc(var(--u) * 7.5))/1 var(--display); letter-spacing: -.015em; }
 .sh-wxc { font: italic 400 max(1.05rem, calc(var(--u) * 4))/1.2 var(--display); color: var(--muted); }
 .sh-wxr { font: 400 max(1rem, calc(var(--u) * 3.4))/1.3 var(--display); color: var(--muted); }
-/* The day ruler: a hairline from an hour before Fajr to an hour after Isha. The part of the day already gone is inked in,
-   hours are short marks, prayers are tall ticks lettered underneath, and a red ring marks now. */
-.sh-rule { --base: max(8px, calc(var(--u) * 2.4)); position: relative; height: calc(var(--base) + max(1.2rem, calc(var(--u) * 4.4))); margin-top: calc(var(--u) * .6); }
-.sh-rule::before { content: ""; position: absolute; inset-inline: 0; top: var(--base); border-top: 1px solid var(--line); }
-.sh-done { position: absolute; left: 0; top: calc(var(--base) - 1px); height: 3px; background: var(--ink); }
-.sh-hr { position: absolute; top: calc(var(--base) - max(4px, calc(var(--u) * .9))); height: max(4px, calc(var(--u) * .9)); border-left: 1px solid var(--muted); }
-.sh-tk { position: absolute; top: calc(var(--base) - max(9px, calc(var(--u) * 2))); height: max(16px, calc(var(--u) * 3.4)); margin-left: -1px; border-left: 2px solid var(--ink); }
-.sh-tk i { position: absolute; top: 100%; left: 0; transform: translateX(-50%); padding-top: 2px; font: 600 max(.8rem, calc(var(--u) * 2.4))/1 var(--body); font-style: normal; letter-spacing: .06em; color: var(--ink); }
-.sh-tk.sm { top: calc(var(--base) - max(5px, calc(var(--u) * 1.1))); height: max(10px, calc(var(--u) * 2.2)); margin-left: -.5px; border-left-width: 1px; }
-.sh-tk.sm i { font: italic 400 max(.88rem, calc(var(--u) * 2.6))/1 var(--display); letter-spacing: 0; }
-.sh-tk.nx { border-color: var(--clear); }
-.sh-tk.nx i { color: var(--clear); }
-.sh-now { position: absolute; top: var(--base); width: max(11px, calc(var(--u) * 2.2)); aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: var(--paper); border: 2px solid var(--clear); }
 .sh .sh-tt { width: 100%; border-collapse: collapse; table-layout: fixed; border-top: var(--rule-w, 1px) solid var(--ink); border-bottom: 3px double var(--ink); }
 .sh .sh-tt th, .sh .sh-tt td { padding: 0; text-align: center; border: 0; background: none; white-space: normal; }
 .sh .sh-tt thead th { padding-top: calc(var(--u) * 1.1); font: 600 max(.8rem, calc(var(--u) * 1.85))/1.2 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); vertical-align: bottom; }
@@ -503,13 +490,10 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .sh .sh-tt thead th, .sh .sh-tt tbody th { letter-spacing: .04em; }
 }
 
-/* The day ruler repeats the timetable, so it only stays where there is room to spare: screens at least 1280 wide and 720 tall.
-   On phones and 7-inch tablets the space goes to the next prayer and its countdown instead. */
-/* In its place, the wait as one thin printed rule filling left to right (clocks.js). It moves once a second with the
+/* The wait as one thin printed rule filling left to right (clocks.js), on every screen. It moves once a second with the
    clock, so it needs no transition; transform only, so the Fire 7 does no layout work for it. */
-.sh-prog { display: none; position: relative; height: 3px; margin-block: calc(var(--u) * 1.4) calc(var(--u) * .4); background: var(--line); overflow: hidden; }
+.sh-prog { position: relative; height: 3px; margin-block: calc(var(--u) * 1.4) calc(var(--u) * .4); background: var(--line); overflow: hidden; }
 .sh-prog span { position: absolute; inset: 0; background: var(--ink); transform-origin: left center; }
-@media (max-width: 79.99rem), (max-height: 44.99rem) { .sh-rule { display: none; } .sh-prog { display: block; } }
 /* Phones held upright: the timetable folds away under the next prayer, opened by a full-width button (app.js keeps
    the choice). It opens at once: the board is redrawn every second, which would cut an opening animation short. */
 /* The larger number (app.js sets data-big on the clock's container). "count": the countdown is the hero and takes the wider
@@ -1276,6 +1260,9 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 /* The entries: a stack of round-ended pills that rise in above More, Quran (nearest) first, with the Arabic beside Quran and Adhkar */
 /* the bars sit on their own layer above the page, so an open menu is never drawn under the lists or the sheet */
 .tabbar, .dockbar { position: relative; z-index: 30; }
+/* On a wide screen the top bar's buttons (Help, Brightness, Keep screen on, Full screen) are fixed into the bottom bar's
+   right end: they sit one layer above it, or the bar's own background covers them */
+@media (min-width: 48.01rem) { .topbar-actions { z-index: 31; } }
 /* while More is open the page behind it dims, so the pills read clearly (a tap there closes the menu, app.js) */
 .more details[open]::before, details.more[open]::before { content: ""; position: fixed; inset: 0; z-index: -1; background: rgba(0, 0, 0, .35);
   background: color-mix(in srgb, var(--paper) 88%, transparent); animation: mm-dim var(--m-normal) var(--m-ease); }

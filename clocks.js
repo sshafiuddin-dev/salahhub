@@ -108,24 +108,6 @@ function nextLine(d) {
   const when = d.next.at >= 1440 || d.isAhead ? ' tomorrow' : ''; // after Isha this is tomorrow's Fajr
   return `<p class="sh-at">Adhan <b>${fmt(row.adhan)}</b>${when} &nbsp;·&nbsp; ${low}</p>`;
 }
-// The day ruler: a printed scale from an hour before Fajr to an hour after Isha, an hour mark for each hour,
-// a tick per prayer (single letters, "rise" for sunrise) and a marker for now. The next prayer's tick is red.
-// It repeats what the table says, so it is hidden from screen readers.
-const LETTER = { fajr: 'F', dhuhr: 'D', asr: 'A', maghrib: 'M', isha: 'I' };
-function ruler(d) {
-  const a = Math.max(0, d.rows[0].adhan - 60), b = Math.min(1440, d.rows[4].adhan + 60);
-  const at = (m) => `${(((Math.min(b, Math.max(a, m)) - a) / (b - a)) * 100).toFixed(2)}%`;
-  const nextKey = d.next.at >= 1440 ? 'fajr-tomorrow' : d.next.key;
-  let h = `<span class="sh-done" style="width:${at(d.now)}"></span>`;
-  for (let m = Math.ceil(a / 60) * 60; m <= b; m += 60) h += `<span class="sh-hr" style="left:${at(m)}"></span>`;
-  const marks = [[d.rows[0], 'fajr'], [{ adhan: d.sunrise }, 'sunrise'], ...d.rows.slice(1).map(r => [r, r.key])];
-  for (const [r, key] of marks) {
-    if (r.adhan == null) continue;
-    const label = key === 'sunrise' ? 'rise' : r.jumuah ? 'J' : LETTER[key];
-    h += `<span class="sh-tk${key === 'sunrise' ? ' sm' : ''}${key === nextKey ? ' nx' : ''}" style="left:${at(r.adhan)}"><i>${label}</i></span>`;
-  }
-  return `<div class="sh-rule" aria-hidden="true">${h}<span class="sh-now" style="left:${at(d.now)}"></span></div>`;
-}
 // "At Dhuhr: 45°, rain likely (80%)", from d.wxAt = { name, temp, words, pop }
 const wxAt = (w) => (w ? `<p class="sh-wxat">At ${w.name}: <b>${Math.round(w.temp)}°${w.words ? `, ${esc(w.words)}` : ''}</b>${w.pop != null ? ` (${Math.round(w.pop)}%)` : ''}</p>` : '');
 function sheetTable(d) {
@@ -146,7 +128,7 @@ function sheetTable(d) {
     + `<tbody><tr><th scope="row">Adhan</th>${adhan}</tr><tr class="sh-iq"><th scope="row">${low}</th>${iqama}</tr></tbody></table>`;
 }
 // After the Isha iqama the sheet shows tomorrow: d.ahead = { rows, sunrise } is tomorrow's day. The big clock and the
-// countdown stay on real time; the table, ruler, top line and foot read as the early hours before tomorrow's Fajr.
+// countdown stay on real time; the table, top line and foot read as the early hours before tomorrow's Fajr.
 const aheadView = (d) => ({ ...d, isAhead: true, rows: d.ahead.rows, sunrise: d.ahead.sunrise, now: d.now - 1440, next: { ...d.next, at: d.next.at - 1440 } });
 // The next event as a headline: "Asr · العصر" with what is coming ("adhan in") beside it, readable from across a room.
 function nextHead(d) {
@@ -169,8 +151,7 @@ function wxNow(d) {
   return `<p class="sh-wxnow"${d.wxLink ? ' data-go="weather"' : ''}>`
     + `<span class="sh-wxt">${w.temp}°${w.unit}</span>${w.words ? `<span class="sh-wxc">${esc(w.words)}</span>` : ''}${sub ? `<span class="sh-wxr">${sub}</span>` : ''}</p>`;
 }
-// The wait as a thin printed rule filling from left to right, for screens too small for the day ruler (CSS shows one or
-// the other). No knob, so it never looks like a slider; the countdown and the line under it carry the meaning.
+// The wait as a thin printed rule filling from left to right, on every screen. No knob, so it never looks like a slider; the countdown and the line under it carry the meaning.
 function progress(real) {
   const f = progressOf(real.now, prevEventAt(real.rows, real.next, real.sunrise), real.next.at);
   return `<div class="sh-prog" aria-hidden="true"><span style="transform:scaleX(${f.toFixed(4)})"></span></div>`;
@@ -193,7 +174,7 @@ function board(real) {
   return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}${w ? ' sh-w' : ''}">${warn}<div class="sh-mid">`
     + `<div class="sh-clk"><p class="sh-time"><span class="sh-hm">${hm(m)}</span><span class="sh-side">${leftOf(d) < 900 && !d.noSec ? `<span>:${String(Math.floor(d.sec % 60)).padStart(2, '0')}</span>` : ''}<span>${ampm(m)}</span></span></p>${wxNow(d)}</div>`
     + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${progress(real)}${nextLine(d)}${wxAt(d.wxAt)}`
-    + `${ruler(d)}</div></div>`
+    + `</div></div>`
     + body
     + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.big || d.month ? `<span class="sh-acts">${d.big ? swapBtn(d.big) : ''}${d.month ? `<a class="sh-month" href="#month" data-go="month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</span>` : ''}</p></div>`;
 }

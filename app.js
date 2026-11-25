@@ -443,7 +443,7 @@ const monthTitle = () => (today ? new Intl.DateTimeFormat('en-US', { month: 'lon
 const TAB_IDS = ['today', 'weather', 'adhkar', 'quran', 'month', 'settings'];
 const MORE_TABS = ['adhkar', 'quran', 'month'];
 const TITLES = { today: 'Today', weather: 'Weather', adhkar: 'Adhkar audio', quran: 'Quran', settings: 'Settings' };
-let tab = 'today', sub = 'location';
+let tab = 'today', sub = 'location', shownSub = sub;
 let feedback = null; // the feedback form, once set up
 function go(t, s) {
   if (s) sub = s;
@@ -459,9 +459,13 @@ function route() {
   if (h === 'feedback') { history.replaceState(null, '', `#${tab}`); h = tab; setTimeout(() => feedback?.open(), 0); } // the guide links here
   tab = TAB_IDS.includes(h) ? h : 'today';
   if (!placeKnown() && (tab === 'month' || tab === 'weather')) tab = 'today'; // both need a place: Today asks for one
+  const moved = root.dataset.tab !== tab || (tab === 'settings' && sub !== shownSub);
   if (root.dataset.tab !== tab) setTimeout(() => { applyLook(); tick(); }, 0); // the Weather tab has its own sky rules
   root.dataset.tab = tab; // the stylesheet lays out Today as one sheet
   for (const id of TAB_IDS) $(`tab-${id}`).hidden = id !== tab;
+  // a tab (or a Settings section) always opens at its top, not where it was last left; Month then moves to today below
+  if (moved) { $(`tab-${tab}`).scrollTop = 0; scrollTo(0, 0); }
+  shownSub = sub;
   document.querySelectorAll('.tabbar a, .dockbar a').forEach(a => {
     const on = a.getAttribute('href') === `#${tab}`;
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -1160,8 +1164,8 @@ function fitBoard(el) {
   if (over()) { while (over() && fit > 0.6) set(fit - 0.05); return; }
   while (fit < 1) { set(fit + 0.05); if (over()) { set(fit - 0.05); return; } }
 }
-// The larger number on the board: Automatic is the countdown where the day ruler is hidden (phones, 7-inch tablets:
-// the same sizes as in styles.css) and the clock on bigger screens. The Bigger clock/countdown button swaps it.
+// The larger number on the board: Automatic is the countdown on smaller screens (phones, 7-inch tablets: under 1280
+// by 720) and the clock on bigger screens. The Bigger clock/countdown button swaps it.
 const BIG_HOSTS = ['clock', 'dx-clock', 'dx-small'];
 const smallBoard = matchMedia('(max-width: 79.99rem), (max-height: 44.99rem)');
 const bigAuto = () => (smallBoard.matches ? 'count' : 'time');
