@@ -919,21 +919,23 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .qp { --qp-fast: .18s; --qp-row: 3.25rem; overflow: hidden; gap: .75rem; padding-bottom: .75rem; }
 .qp-top { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 18rem); gap: .6rem .75rem; align-items: center; }
 .qp-search, .qp-riwaya { width: 100%; min-height: 2.75rem; }
-/* Search behind a round magnifier (quran.js foldSearch): it opens into a field across its column and the magnifier turns into × */
-.qp-sx { justify-self: start; display: flex; align-items: center; width: 2.75rem; height: 2.75rem; max-width: 40rem; border: 1px solid var(--line); border-radius: 99px;
+/* Search behind a round magnifier (controls.js searchBox; Quran and Adhkar): it opens into a field across its column and
+   the magnifier turns into × */
+.sx { justify-self: start; display: flex; align-items: center; width: 2.75rem; height: 2.75rem; max-width: 40rem; margin: .25rem 0; border: 1px solid var(--line); border-radius: 99px;
   background: var(--surface); overflow: hidden; transition: width var(--m-normal) var(--m-ease), border-color var(--m-fast); }
-.qp-sx.open { width: 100%; }
-.qp-sx:focus-within { border-color: var(--ink); }
-.qp-sx .qp-search { flex: 1; width: 0; min-width: 0; min-height: 0; height: 100%; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; outline: 0; opacity: 0; transition: opacity var(--m-fast); }
-.qp-sx.open .qp-search { padding: 0 .25rem 0 1rem; opacity: 1; transition-delay: .12s; }
-.qp-sx .qp-search::-webkit-search-cancel-button { -webkit-appearance: none; } /* the × beside it clears the search */
-.qp-sxb { order: 2; flex: none; display: grid; place-items: center; width: calc(2.75rem - 2px); height: 100%; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer; }
-.qp-sxb svg { grid-area: 1 / 1; width: 1.3rem; height: 1.3rem; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; transition: opacity var(--m-fast), rotate var(--m-normal) var(--m-pop); }
-.qp-sxb .qp-sx-x { opacity: 0; rotate: -90deg; }
-.qp-sx.open .qp-sx-m { opacity: 0; rotate: 90deg; }
-.qp-sx.open .qp-sx-x { opacity: 1; rotate: 0deg; }
-.qp-sxb:focus-visible { outline: 3px solid var(--clear); outline-offset: -3px; }
-@media (prefers-reduced-motion: reduce) { .qp-sx { transition: border-color var(--m-fast); } .qp-sxb svg { transition: opacity var(--m-fast); } }
+.sx.open { width: 100%; }
+.sx:focus-within { border-color: var(--ink); }
+.sx .d-input { flex: 1; width: 0; max-width: none; min-width: 0; min-height: 0; height: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; outline: 0;
+  opacity: 0; transition: opacity var(--m-fast); }
+.sx.open .d-input { padding: 0 .25rem 0 1rem; opacity: 1; transition-delay: .12s; }
+.sx .d-input::-webkit-search-cancel-button { -webkit-appearance: none; } /* the × beside it clears the search */
+.sx-btn { order: 2; flex: none; display: grid; place-items: center; width: calc(2.75rem - 2px); height: 100%; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer; }
+.sx-btn svg { grid-area: 1 / 1; width: 1.3rem; height: 1.3rem; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; transition: opacity var(--m-fast), rotate var(--m-normal) var(--m-pop); }
+.sx-btn .sx-x { opacity: 0; rotate: -90deg; }
+.sx.open .sx-m { opacity: 0; rotate: 90deg; }
+.sx.open .sx-x { opacity: 1; rotate: 0deg; }
+.sx-btn:focus-visible { outline: 3px solid var(--clear); outline-offset: -3px; }
+@media (prefers-reduced-motion: reduce) { .sx { transition: border-color var(--m-fast); } .sx-btn svg { transition: opacity var(--m-fast); } }
 .qp-tabs { grid-column: 1 / -1; display: flex; gap: .4rem; overflow-x: auto; padding-block: .15rem; scrollbar-width: none; }
 .qp-tabs .d-btn { flex: none; min-height: 2.75rem; padding-inline: 1rem; border-radius: 99px; background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 600; box-shadow: none; }
 .qp-tabs .d-btn[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
@@ -1246,6 +1248,12 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 @media (prefers-reduced-motion: reduce) { .mm-ic i, .mm-btn { transition: opacity var(--m-fast), background-color var(--m-fast), color var(--m-fast); } [open] > summary .mm-btn { scale: none; } }
 .more details { position: relative; }
 /* The entries: a stack of round-ended pills that rise in above More, Quran (nearest) first, with the Arabic beside Quran and Adhkar */
+/* the bars sit on their own layer above the page, so an open menu is never drawn under the lists or the sheet */
+.tabbar, .dockbar { position: relative; z-index: 30; }
+/* while More is open the page behind it dims, so the pills read clearly (a tap there closes the menu, app.js) */
+.more details[open]::before, details.more[open]::before { content: ""; position: fixed; inset: 0; z-index: -1; background: rgba(0, 0, 0, .35);
+  background: color-mix(in srgb, var(--paper) 88%, transparent); animation: mm-dim var(--m-normal) var(--m-ease); }
+@keyframes mm-dim { from { opacity: 0; } }
 .more-menu { position: absolute; z-index: 20; display: flex; flex-direction: column-reverse; align-items: center; gap: .5rem; padding: 0; background: none; border: 0; box-shadow: none; }
 .tabbar .more-menu { left: 100%; top: 0; margin-left: .6rem; flex-direction: column; align-items: flex-start; }
 .dockbar .more-menu { left: 50%; bottom: calc(100% + .6rem); translate: -50% 0; } /* opens upward, centred over More: Quran, the first item, sits next to it */

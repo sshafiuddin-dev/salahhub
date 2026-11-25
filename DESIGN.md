@@ -86,12 +86,12 @@ Use these; do not build a second version of any of them.
 | Slider | `<input type="range">` then `bubble(input, cls, text?)` | controls.js | track fills `--on`, thumb grows, value label above it |
 | Button | `.d-btn` (`-primary` ink, `-outline`, `-ghost`, `-error`) | daisyUI + look.css | dips when pressed |
 | Brightness | `.dn-pill` inside `.dim-btn` | look.css | day/night switch, steps across the four levels |
-| More menu | `.more` › `.mm-btn` › `.mm-ic` and `.more-menu` | styles.css, app.js | lines turn into × in a round ink button; pill entries rise in, Quran nearest |
+| More menu | `.more` › `.mm-btn` › `.mm-ic` and `.more-menu` | styles.css, app.js | lines turn into × in a round ink button; pill entries rise in, Quran nearest; the page behind dims and a tap there closes it. The bars sit on their own layer (`z-index: 30`) so a menu is never under the page |
 | Message | `say(text, action?, ok?)` | app.js | rises; `ok` draws a tick; a replacement settles in |
 | Stop while an alert sounds | `#alert-stop`, `#dx-stop` | styles.css | drops in; the bell rings three times |
 | Connection note | `[data-net]`, `showNet()` | app.js | only offline, or briefly when back online; arcs light in turn while syncing |
 | Loading placeholder | grey shapes that breathe (`.wx-skel`) | styles.css | opacity only; real content fades in |
-| Search behind a magnifier | `.qp-sx` with `#qp-sxb` | styles.css, quran.js | opens into a field, magnifier turns into × |
+| Search behind a magnifier | `<input type="search">` then `searchBox(input)` (Quran, Adhkar, and any new list) | controls.js, styles.css (`.sx`) | opens into a field, magnifier turns into ×; × or Escape clears and folds it |
 | Favourite heart | `.qp-heart`, `love(b)` | quran.js | pops; sparks fly when it turns on |
 | Download | `.qp-dl` (`data-state`, `--p`) | styles.css, quran.js | ring fills smoothly; the tick draws in once saved |
 | Progress ring | `.qp-ring` (`pathLength="100"`) | styles.css, quran.js | fills as the surah plays |
