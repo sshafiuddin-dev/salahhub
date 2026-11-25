@@ -397,7 +397,7 @@ assert.deepEqual(tick([{ key: 'jumuah', adhan: 720, iqama: null }], { jumuah: { 
   assert.equal(Q.cleanStore({ v: 2, riwaya: 'all' }).riwaya, 'hafs', 'the old default All becomes Hafs once');
   assert.equal(Q.cleanStore({ v: 3, riwaya: 'all' }).riwaya, 'all', 'All picked since then is kept');
   const blank = Q.cleanStore(null);
-  assert.deepEqual(blank, { v: 3, last: null, riwaya: 'hafs', favR: [], favT: [], lists: [], repeat: 'off', shuffle: false, vol: 1, rate: 1 });
+  assert.deepEqual(blank, { v: 3, last: null, riwaya: 'hafs', favR: [], favT: [], lists: [], repeat: 'off', shuffle: false, vol: 1, rate: 1, knowsBack: false });
   const old = Q.cleanStore({ reciter: "Maher Al Meaqli (Rewayat Hafs A'n Assem - Almusshaf Al Mojawwad)", surah: 18 });
   assert.deepEqual(old.legacy, { reciter: "Maher Al Meaqli (Rewayat Hafs A'n Assem - Almusshaf Al Mojawwad)", surah: 18 }, 'the old player\'s save is kept for carrying over');
   assert.equal(Q.legacyTrack(cat, old.legacy), '133:18');
@@ -406,7 +406,7 @@ assert.deepEqual(tick([{ key: 'jumuah', adhan: 720, iqama: null }], { jumuah: { 
   const dirty = Q.cleanStore({ last: { id: '102:18', t: 93.5, title: 'x', sub: 'y', url: 'javascript:alert(1)', queue: ['102:1', 'bad', '102:1'] }, riwaya: 2, favR: [102, '5', 102], favT: ['102:18', 7, '102:18'],
     lists: [{ id: 'a', name: '  Morning   set ', tracks: ['102:1', 'nope'] }, { id: 'b', name: '   ' }, null], repeat: 'forever', shuffle: 'yes', vol: 4, rate: 9 });
   assert.deepEqual(dirty, { v: 3, last: { id: '102:18', t: 93.5, title: 'x', sub: 'y', queue: ['102:1'], url: '' }, riwaya: 2, favR: [102], favT: ['102:18'],
-    lists: [{ id: 'a', name: 'Morning set', tracks: ['102:1'] }], repeat: 'off', shuffle: false, vol: 1, rate: 1 }, 'anything malformed falls back');
+    lists: [{ id: 'a', name: 'Morning set', tracks: ['102:1'] }], repeat: 'off', shuffle: false, vol: 1, rate: 1, knowsBack: false }, 'anything malformed falls back');
   assert.equal(Q.cleanStore({ last: { id: '102:18', url: 'https://cdn.example/maher/r1/018.mp3' } }).last.url, 'https://cdn.example/maher/r1/018.mp3');
   assert.deepEqual([Q.nextRepeat('off'), Q.nextRepeat('all'), Q.nextRepeat('one')], ['all', 'one', 'off']);
   assert.deepEqual([Q.toggle([1, 2], 2), Q.toggle([1], 2)], [[1], [1, 2]]);

@@ -119,6 +119,7 @@ export function cleanStore(raw) {
     shuffle: o.shuffle === true,
     vol: Number.isFinite(o.vol) && o.vol >= 0 && o.vol <= 1 ? o.vol : 1,
     rate: RATES.includes(o.rate) ? o.rate : 1,
+    knowsBack: o.knowsBack === true, // has used Back to reach the player (the remote's hint is no longer shown)
   };
   if (!last && typeof o.reciter === 'string' && Number.isInteger(o.surah)) out.legacy = { reciter: o.reciter, surah: o.surah };
   else if (!last && o.legacy && typeof o.legacy.reciter === 'string' && Number.isInteger(o.legacy.surah)) out.legacy = { reciter: o.legacy.reciter, surah: o.legacy.surah };
