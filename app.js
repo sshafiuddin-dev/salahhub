@@ -490,6 +490,9 @@ function route() {
   if (tab === 'month' && today) { renderMonth(); requestAnimationFrame(() => document.querySelector('#month tr.today')?.scrollIntoView({ block: 'center' })); } // open at today, not the 1st
 }
 addEventListener('hashchange', route);
+// A tab row that scrolls sideways fades at the edge where more tabs wait, so Display and About are not missed on a phone
+const segFade = (s) => { s.toggleAttribute('data-more-r', s.scrollLeft + s.clientWidth < s.scrollWidth - 2); s.toggleAttribute('data-more-l', s.scrollLeft > 2); };
+for (const s of document.querySelectorAll('.seg')) { s.addEventListener('scroll', () => segFade(s), { passive: true }); new ResizeObserver(() => segFade(s)).observe(s); }
 initRemote({ busy: tourOpen }); // TV remote: the arrows move between controls (remote.js); the tour keeps them while it is open
 // a tap anywhere else, a choice in it, or Escape closes the More menu. Outside taps are read on pointerdown: the clock is
 // drawn again every second and can swallow the click that would otherwise close it.
@@ -906,8 +909,8 @@ function showAsk() {
   $('ask').hidden = settings.asked && !!pl;
   $('ask-keep').hidden = !pl;
   $('ask-text').textContent = !pl ? 'Set your location to see the prayer times for where you are.'
-    : pl.approx ? `Showing times for ${pl.name}, worked out roughly from your internet connection. Is that right?`
-    : `Showing times for ${pl.name}. Somewhere else? Set your location for your own adhan times.`;
+    : pl.approx ? `Times for ${pl.name}, from your internet connection. Is that right?`
+    : `Times for ${pl.name}. Somewhere else? Set your location for your own adhan times.`;
 }
 showAsk();
 
