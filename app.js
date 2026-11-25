@@ -466,7 +466,7 @@ function route() {
   // a tab (or a Settings section) always opens at its top, not where it was last left; Month then moves to today below
   if (moved) { $(`tab-${tab}`).scrollTop = 0; scrollTo(0, 0); }
   shownSub = sub;
-  document.querySelectorAll('.tabbar a, .dockbar a').forEach(a => {
+  document.querySelectorAll('.tabbar a:not(.brand-link), .dockbar a').forEach(a => { // the mark links to Today too, but is not a tab
     const on = a.getAttribute('href') === `#${tab}`;
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     a.classList.toggle('d-menu-active', on && !!a.closest('.tabbar'));
@@ -1046,12 +1046,29 @@ const favSvg = (pct) => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32
   + '<circle cx="16" cy="16" r="10.5" fill="none" stroke="#CFC4AE" stroke-width="4"/>'
   + `<circle cx="16" cy="16" r="10.5" fill="none" stroke="#1B6B52" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="${pct} 100" transform="rotate(-90 16 16)"/>`
   + '<path d="M12.5 22V16.5C12.5 14 14 12.6 16 11.5C18 12.6 19.5 14 19.5 16.5V22Z" fill="#1C1914"/></svg>';
-let markPct = -1, markTitle = '';
+// It comes alive only when it matters (styles.css): near (the last 15 minutes before an adhan or iqama, as the countdown's
+// highlight), arrived (the event just came: the ring closes and the dot pops for a moment), and a sweep when the screen is
+// opened or touched after a quiet minute. Otherwise it only fills.
+const MARK = document.querySelector('.brand-link');
+let markPct = -1, markTitle = '', markEv = '', markHold = 0, markSwept = 0;
+const markTip = (pct) => { const a = pct / 50 * Math.PI; return [16 + 12 * Math.sin(a), 16 - 12 * Math.cos(a)]; };
+function markClass(name, ms) { if (!MARK) return; MARK.classList.remove(name); void MARK.offsetWidth; MARK.classList.add(name); setTimeout(() => MARK.classList.remove(name), ms); }
+function sweepMark() { if (Date.now() - markSwept < 60e3) return; markSwept = Date.now(); markClass('is-sweep', 1100); }
+for (const t of ['pointerdown', 'keydown']) addEventListener(t, sweepMark, { passive: true });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) sweepMark(); });
+MARK?.addEventListener('click', () => { if (location.hash === '#today') document.querySelector('.view')?.scrollTo({ top: 0, behavior: 'smooth' }); }); // already on Today: back to its top
 function paintMark(f, ev, left, rows) {
-  const pct = Math.round(f * 100);
+  const key = `${ev.key}|${ev.kind}|${ev.at}`;
+  if (markEv && key !== markEv) { markHold = Date.now() + 2600; markPct = -1; markClass('is-arrived', 2600); } // the last event has just come
+  if (!markEv) sweepMark(); // the page has just opened
+  markEv = key;
+  MARK?.classList.toggle('is-near', left < 900 && ev.key !== 'sunrise' && Date.now() >= markHold);
+  const pct = Date.now() < markHold ? 100 : Math.round(f * 100); // held full while the dot pops
   if (pct !== markPct) {
     markPct = pct;
+    const [x, y] = markTip(pct);
     document.querySelectorAll('.mk-ring').forEach(el => el.setAttribute('stroke-dashoffset', String(100 - pct)));
+    document.querySelectorAll('.mk-tip, .mk-rip').forEach(el => { el.setAttribute('cx', x.toFixed(2)); el.setAttribute('cy', y.toFixed(2)); });
     if (FAV_LINK) FAV_LINK.href = `data:image/svg+xml,${encodeURIComponent(favSvg(pct))}`;
   }
   const mins = Math.max(1, Math.ceil(left / 60)), span = mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`;
