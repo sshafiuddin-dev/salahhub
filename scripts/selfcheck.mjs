@@ -6,7 +6,7 @@ import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/ale
 import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { where as whereFrom, handle as whereHandle } from '../functions/api/where.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { MASJIDS, NEAR_MILES, NEAR_KM, nearestMasjid, wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf, bellState } from '../logic.js';
+import { MASJIDS, NEAR_MILES, NEAR_KM, nearestMasjid, wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf, bellState } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -157,6 +157,14 @@ assert.ok(Array.from({ length: 9 }, (_, i) => burnShift(i * 120, 6)).every(([x, 
 const hrs = [[true, 11, 45, 61, 80], [true, 12, 44, 3, 40], [true, 13, 46, 2, 5], [false, 5, 30, 71, 70]].map(([today, h, temp, code, pop]) => ({ today, min: h * 60, temp, code, pop }));
 assert.deepEqual(prayerWeather(hrs, 703), { temp: 45, words: 'rain likely', pop: 80 });
 assert.deepEqual(prayerWeather(hrs, 750), { temp: 44, words: 'chance of rain', pop: 40 });
+{ // the shared message: place, masjid, a line per prayer with its forecast; no weather or masjid when there is none
+  const rows = [{ name: 'Fajr', adhan: 336, iqama: 360 }, { name: 'Dhuhr', adhan: 705, iqama: null }];
+  const wx = (m) => (m === 336 ? { temp: 34.4, words: 'clear', pop: null } : m === 705 ? { temp: 45, words: 'rain likely', pop: 80 } : null);
+  assert.equal(shareDayText({ date: 'Wed, Nov 25', place: 'Edison, NJ', iqamaFrom: 'ISCJ', rows, khutbah: '12:00 PM, 1:10 PM', units: 'F', wx }),
+    "Prayer times for Wed, Nov 25 (Edison, NJ · iqama from ISCJ)\nFajr: 5:36 AM, iqama 6:00 AM · 34°F, clear\nDhuhr: 11:45 AM · 45°F, rain likely (80%)\nJumu'ah khutbah: 12:00 PM, 1:10 PM");
+  assert.equal(shareDayText({ date: 'Wed, Nov 25', place: 'Edison, NJ', rows, units: 'C' }),
+    'Prayer times for Wed, Nov 25 (Edison, NJ)\nFajr: 5:36 AM, iqama 6:00 AM\nDhuhr: 11:45 AM');
+}
 assert.deepEqual(prayerWeather(hrs, 790), { temp: 46, words: 'partly cloudy', pop: null });
 assert.deepEqual(prayerWeather(hrs, 1440 + 329), { temp: 30, words: 'snow likely', pop: 70 }, 'tomorrow Fajr uses tomorrow’s hour');
 assert.equal(prayerWeather(hrs, 1200), null, 'no forecast hour, no line');

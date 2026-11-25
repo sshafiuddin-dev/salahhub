@@ -7,7 +7,7 @@ const M = globalThis.Motion;
 export const T = {
   dur: { instant: .08, fast: .18, normal: .35, slow: .6 },
   ease: [.22, 1, .36, 1],
-  dist: { xs: 4, sm: 8, md: 16, lg: 24 },
+  dist: { xs: 4, sm: 8, md: 16, lg: 24, xl: 34 },
   scale: { press: .95, pop: 1.3 },
   gap: .05, // seconds between list rows; the motion rules keep this between .05 and .10
   staggerMax: 14, // only the first screenful of a list animates in
@@ -41,6 +41,12 @@ export const pop = (el) => animate(el, { scale: [1, T.scale.pop, 1] }, spring('b
 export const swap = (el) => animate(el, { scale: [T.scale.press, 1], opacity: [.4, 1] }, { duration: T.dur.fast, ease: T.ease });
 // a new icon turns into place as the old one goes (play to pause and back)
 export const turn = (el) => animate(el, { rotate: ['-90deg', '0deg'], scale: [.5, 1], opacity: [0, 1] }, spring('snappy'));
+// The share plane leaves its round button up and to the right, then comes back in from below left (a fade with "reduce motion", nothing in E-ink)
+export async function fly(el) {
+  const d = T.dist.xl;
+  await done(animate(el, { translate: ['0 0', `${d}px -${d}px`], scale: [1, .8], opacity: [1, 0] }, { duration: T.dur.slow, ease: T.ease }));
+  animate(el, { translate: [`-${d}px ${d}px`, '0 0'], scale: [.8, 1], opacity: [0, 1] }, { duration: T.dur.normal, ease: T.ease });
+}
 export const rows = (els) => animate([...els].slice(0, T.staggerMax), { opacity: [0, 1], translate: [`0 ${T.dist.sm}px`, '0 0'] }, { duration: T.dur.normal, ease: T.ease, delay: stagger() });
 export const sheetIn = (el) => animate(el, { opacity: [0, 1], translate: ['0 100%', '0 0'] }, spring('gentle'));
 export const sheetOut = (el) => animate(el, { opacity: [1, 0], translate: ['0 0', '0 100%'] }, { duration: T.dur.fast, ease: T.ease });
