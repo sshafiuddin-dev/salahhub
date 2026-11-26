@@ -72,7 +72,7 @@ Every control is at least 44px to touch, and has a visible focus ring (`--clear`
 
 - Body and controls: IBM Plex Sans (`--body`), 500 for buttons and tabs, 600 for chosen or primary.
 - The sheet and headings: Newsreader (`--display`).
-- Arabic: Amiri (`--ar`; Aref Ruqaa in the Handwritten look), always with `lang="ar" dir="rtl"`.
+- Arabic: Amiri (`--ar`; Marhey in the Handwritten look, a marker hand that reads clearly across a room), always with `lang="ar" dir="rtl"`.
 - Arabic prayer names appear in every look; Quran and Adhkar carry their Arabic names in menus.
 
 ## Motion
