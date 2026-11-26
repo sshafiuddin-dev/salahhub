@@ -670,6 +670,7 @@ $('share-menu').querySelector('summary').addEventListener('click', (e) => {
   e.preventDefault();
   $('shs').querySelector('[data-share="share-dua"]').hidden = $('adhkar').hidden;
   shsSheet.open();
+  fly(e.currentTarget.querySelector('.sh-plane'));
   $('shs').querySelector('[data-share]').focus({ preventScroll: true });
 });
 $('shs').addEventListener('click', (e) => {
@@ -1681,8 +1682,8 @@ bubble($('set-arsize'), 'rng-ar');
 bubble($('set-wxvol'), 'rng-vol');
 
 // Keep screen on (Screen Wake Lock); also held while full screen is open. The browser drops it when the app is hidden.
-let lock = null, locking = false, displayOpen = false;
-const wantAwake = () => settings.awake || displayOpen;
+let lock = null, locking = false, displayOpen = false, dxSleep = false; // dxSleep: Screen on was turned off inside this full screen visit
+const wantAwake = () => settings.awake || (displayOpen && !dxSleep);
 async function updateLock() {
   if (wantAwake() && !lock && !locking && document.visibilityState === 'visible' && 'wakeLock' in navigator) {
     locking = true;
@@ -1709,7 +1710,10 @@ function syncAwake() {
   $('awake').setAttribute('aria-pressed', settings.awake);
   $('awake-label').textContent = settings.awake ? 'Screen stays on' : 'Keep screen on';
   $('awake-switch').checked = settings.awake;
-  $('dx-awake').hidden = !lock;
+  // Full screen's Screen on tile: pressed while the screen is kept on; hidden where the browser cannot keep it on
+  $('dx-awake').hidden = !('wakeLock' in navigator);
+  $('dx-awake').setAttribute('aria-pressed', !!lock);
+  $('dx-awake-label').textContent = lock ? 'Screen stays on' : 'Keep screen on';
 }
 function setAwake(on) {
   settings.awake = on;
@@ -1719,6 +1723,12 @@ function setAwake(on) {
   updateLock();
 }
 $('awake').addEventListener('click', () => setAwake(!settings.awake));
+// In full screen: off lets the screen sleep (and turns off Keep screen on); on keeps it on again for this visit
+$('dx-awake').addEventListener('click', () => {
+  if (wantAwake()) { dxSleep = true; if (settings.awake) return setAwake(false); say('The screen can sleep again.'); }
+  else { dxSleep = false; say('The screen stays on while full screen is open.', null, true); }
+  updateLock();
+});
 $('awake-switch').addEventListener('change', () => setAwake($('awake-switch').checked));
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
@@ -1760,6 +1770,7 @@ const flagDisplay = (on) => { try { on ? localStorage.setItem(DISPLAY_KEY, '1') 
 async function openDisplay() {
   if (!placeKnown()) return openLocation(); // nothing to show yet
   displayOpen = true;
+  dxSleep = false;
   flagDisplay(true);
   mountSky($('display')); // the moving sky goes with the view
   applyLayout();
