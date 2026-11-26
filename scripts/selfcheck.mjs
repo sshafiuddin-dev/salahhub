@@ -243,6 +243,11 @@ assert.deepEqual(pickAlerts([nwsF('Wind Advisory', 'Moderate', null, { descripti
   assert.equal(sky({ kind: 'snow', sky: { snow: 3 } }).snow, 1);
   assert.equal(sky({ kind: 'storm', sky: { hail: true } }).hail, .7, 'a thunderstorm with hail (WMO 96, 99) brings hail');
   assert.equal(sky({ kind: 'rain', sky: { hail: true } }).hail, 0, 'hail only comes with a thunderstorm');
+  assert.equal(sky({ kind: 'clear', sky: { temp: 30 } }).heat, 0, 'no haze below 32 °C');
+  assert.equal(sky({ kind: 'clear', sky: { temp: 38 } }).heat, 1, 'full haze at 38 °C by day');
+  assert.equal(sky({ kind: 'clear', sky: { temp: 40 } }, { now: 1100, sunrise: 407, maghrib: 999 }).heat, 0, 'no haze at night');
+  assert.equal(sky({ kind: 'rain', sky: { temp: 36 } }).heat, 0, 'no haze in the rain');
+  assert.equal(sky({ kind: 'clear' }).heat, 0, 'no haze without a temperature');
   assert.equal(sky({ kind: 'fog' }).fog, .8); assert.equal(sky({ kind: 'clear', vis: 600 }).fog, .5);
   assert.equal(sky({ kind: 'clear', dir: 270, sky: { wind: 40 } }).wind, 1, 'a west wind (from 270°) blows the rain to the right, full lean at 40 km/h');
   assert.equal(sky({ kind: 'clear', dir: 90, sky: { wind: 20 } }).wind, -.5);

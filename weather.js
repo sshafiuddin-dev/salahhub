@@ -56,6 +56,7 @@ export async function fetchWeather(lat, lng, units) {
       wind: num(c.wind_speed_10m) == null ? null : num(c.wind_speed_10m) * (f ? 1.609 : 1),
       day: num(c.is_day),
       hail: [96, 99].includes(num(c.weather_code)), // a thunderstorm with hail (WMO 96, 99)
+      temp: num(c.temperature_2m) == null ? null : f ? (num(c.temperature_2m) - 32) * 5 / 9 : num(c.temperature_2m), // °C, for the heat haze
     },
     air: a ? { aqi: num(a.us_aqi), pm25: num(a.pm2_5), pm10: num(a.pm10), o3: num(a.ozone), no2: num(a.nitrogen_dioxide) } : null,
   };
