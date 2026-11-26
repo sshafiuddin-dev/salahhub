@@ -45,7 +45,7 @@ function fit() {
   W = w; H = h; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   BAND = Math.min(H * .66, 460) + 40; // below this the sky is masked away, so nothing needs to fall further
   AREA = clamp(W * BAND / (1280 * 500), .3, 1.8);
-  drops = []; flakes = []; hail = [];
+  drops = []; flakes = []; hail = []; glassOn = false; // the pane starts again at the new size
   return true;
 }
 
@@ -62,10 +62,10 @@ function rain(dt) {
   const vr = scene.wind * .4;
   for (const d of drops) { d.y += d.v * dt; d.x += vr * d.v * dt; if (d.y - d.len > BAND) spawnDrop(d, false); }
 }
-function drawRain(f, k, col) {
-  const vr = scene.wind * .4;
+function drawRain(f, k, col, glass) {
+  const vr = scene.wind * .4, g = glass ? .55 : 1; // seen through wet glass the rain outside is softer: fainter, wider streaks
   for (const [z0, z1, a, w] of [[0, .35, .16, .6], [.35, .7, .28, 1], [.7, 1.01, .45, 1.6]]) {
-    ctx.strokeStyle = rgba(col, Math.min(1, a * (1 + f * 1.4) * k)); ctx.lineWidth = w; ctx.beginPath();
+    ctx.strokeStyle = rgba(col, Math.min(1, a * (1 + f * 1.4) * k * g)); ctx.lineWidth = w * (glass ? 2 : 1); ctx.beginPath();
     for (const d of drops) { if (d.z < z0 || d.z >= z1) continue; ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - vr * d.len, d.y - d.len); }
     ctx.stroke();
   }
@@ -143,20 +143,92 @@ function drawBolt(f, k, light) {
   }
 }
 
+// ---- rain on glass (Settings › Display › Rain on glass, only while it rains) ----
+// The sky behind is drawn soft by sky.js. On the pane: many small droplets that build up, and bigger drops that act
+// as little lenses (the sky upside down inside them); a heavy one slides down, swallows what is in its way, leaves a
+// trail of tiny drops, and joins the drops it meets.
+let glassC = null, gctx = null, dropSpr = null, gStatic = [], gDrops = [], glassOn = false, GS = 1;
+function dropSprite() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.beginPath(); x.arc(32, 32, 31, 0, TAU);
+  let g = x.createRadialGradient(32, 28, 14, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,.05)'); g.addColorStop(.72, 'rgba(0,0,0,.10)'); g.addColorStop(1, 'rgba(0,0,0,.45)'); x.fillStyle = g; x.fill();
+  g = x.createRadialGradient(32, 44, 0, 32, 44, 18); g.addColorStop(0, 'rgba(255,255,255,.28)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fill();
+  x.fillStyle = 'rgba(255,255,255,.8)'; x.beginPath(); x.ellipse(22, 19, 6.5, 4, -.6, 0, TAU); x.fill();
+  x.fillStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.ellipse(43, 47, 4, 2, -.6, 0, TAU); x.fill();
+  return c;
+}
+const wet = () => clamp((scene.rain || 0) + (scene.hail || 0) * .5, 0, 1);
+function addStatic(x, y, r) { gStatic.push({ x, y, r }); gctx.drawImage(dropSpr, x - r, y - r, r * 2, r * 2); }
+function newDrop(y) { return { x: rnd() * W, y, r: (2.5 + rnd() * rnd() * 7) * GS, vy: 0, slide: false, seed: rnd() * 99, trail: 0 }; }
+function glassReset() {
+  if (!glassC) { glassC = document.createElement('canvas'); gctx = glassC.getContext('2d'); dropSpr = dropSprite(); }
+  const dpr = cv.width / W; glassC.width = cv.width; glassC.height = cv.height; gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  GS = clamp(Math.min(W, H) / 480, .8, 2); gStatic = []; gDrops = [];
+  const a = wet();
+  for (let i = 0, n = a * 900 * AREA; i < n; i++) addStatic(rnd() * W, rnd() * BAND, (.6 + rnd() * rnd() * 2.6) * GS);
+  for (let i = 0, n = Math.round(6 + a * 20); i < n; i++) gDrops.push(newDrop(rnd() * BAND));
+}
+function glassMove(dt) {
+  const a = wet(), maxS = a * 1400 * AREA;
+  let add = a * 280 * dt * AREA;
+  while (add > 0 && gStatic.length < maxS) { if (rnd() < add) addStatic(rnd() * W, rnd() * BAND, (.6 + rnd() * rnd() * 2.6) * GS); add--; }
+  if (gDrops.length < 8 + a * 28 && rnd() < a * 8 * dt) gDrops.push(newDrop(rnd() * BAND * .9));
+  gctx.globalCompositeOperation = 'destination-out';
+  for (let i = gDrops.length - 1; i >= 0; i--) {
+    const d = gDrops[i]; if (!d) continue;
+    if (!d.slide) { d.r += a * dt * .25 * GS * rnd(); if (d.r > 5.5 * GS && rnd() < dt * .5) { d.slide = true; d.vy = 15; } continue; }
+    d.vy = Math.min(d.vy + 130 * dt, 60 + d.r * 14 / GS); if (rnd() < dt * .7) d.vy *= .15; // drops stick and let go as they run
+    const dy = d.vy * dt; d.y += dy; d.x += Math.sin(d.y * .045 + d.seed) * .35;
+    gctx.beginPath(); gctx.arc(d.x, d.y, d.r * .95, 0, TAU); gctx.fill(); // the path it wipes clear
+    d.trail += dy;
+    if (d.trail > d.r * (.8 + rnd())) {
+      d.trail = 0; gctx.globalCompositeOperation = 'source-over';
+      const tr = d.r * (.22 + rnd() * .22); addStatic(d.x + (rnd() - .5) * d.r * .6, d.y - d.r * 1.3, tr);
+      gctx.globalCompositeOperation = 'destination-out'; d.r = Math.max(2 * GS, d.r - tr * .05);
+    }
+    for (let j = gDrops.length - 1; j >= 0; j--) {
+      const o = gDrops[j];
+      if (o !== d && Math.hypot(o.x - d.x, o.y - d.y) < d.r + o.r * .7) { d.r = Math.sqrt(d.r * d.r + o.r * o.r); gDrops.splice(j, 1); if (j < i) i--; }
+    }
+    if (d.y - d.r > BAND) gDrops.splice(gDrops.indexOf(d), 1);
+  }
+  gctx.globalCompositeOperation = 'source-over';
+  const sl = gDrops.filter(d => d.slide);
+  if (sl.length) gStatic = gStatic.filter(s => !sl.some(d => Math.abs(s.x - d.x) < d.r && Math.abs(s.y - d.y) < d.r));
+}
+function drawGlass(src, darkLook, k) {
+  ctx.fillStyle = darkLook ? 'rgba(40,46,58,.12)' : 'rgba(225,230,236,.12)'; ctx.fillRect(0, 0, W, BAND); // a little mist on the pane
+  ctx.globalAlpha = k; ctx.drawImage(glassC, 0, 0, W, H);
+  const s = src.width / W, sw = src.width, sh = src.height;
+  for (const d of gDrops) {
+    const rx = d.r * (d.slide ? .82 : .95), ry = d.r * (d.slide ? 1.12 : 1), R = d.r * 7;
+    const ss = Math.min(2 * R * s, sw, sh), sx = clamp((d.x - R) * s, 0, sw - ss), sy = clamp((d.y - R) * s, 0, sh - ss);
+    ctx.save(); ctx.beginPath(); ctx.ellipse(d.x, d.y, rx, ry, 0, 0, TAU); ctx.clip(); ctx.translate(d.x, d.y); ctx.scale(-1, -1);
+    ctx.drawImage(src, sx, sy, ss, ss, -rx, -ry, rx * 2, ry * 2); ctx.restore();
+    ctx.drawImage(dropSpr, d.x - rx, d.y - ry, rx * 2, ry * 2);
+  }
+  ctx.globalAlpha = 1;
+}
+
 // sky.js, once a frame. still: one frame, nothing moves (Movement off, or the device asks for less motion).
-// darkLook: the page is in its dark look, so the night's colours.
-export function fxFrame(now, p, still, darkLook) {
+// darkLook: the page is in its dark look, so the night's colours. src: the sky's canvas when it rains on the glass.
+export function fxFrame(now, p, still, darkLook, src) {
   if (!cv || !p || !fit()) return;
   scene = p;
+  const onGlass = !!src;
+  if (onGlass && (!glassOn || glassC.width !== cv.width)) glassReset();
+  glassOn = onGlass;
   let dt = still || !last ? 0 : Math.min(.05, (now - last) / 1000); last = now; T += dt;
-  rain(dt); snow(dt); hailMove(dt);
+  rain(dt); snow(dt); hailMove(dt); if (glassOn && dt) glassMove(dt);
   if (p.storm && !still) { L.next -= dt; L.t += dt; if (L.next <= 0) strike(); }
   else { L.pulses = []; L.lines = null; }
   const flicker = fxFlash() / .45, dim = Number(root.dataset.dim) || 0, k = dim >= 3 ? .35 : dim === 2 ? .6 : 1;
   const col = darkLook ? RAIN_NIGHT : mix(RAIN_NIGHT, RAIN_DAY, clamp(p.day, 0, 1));
   ctx.clearRect(0, 0, W, H);
   drawBolt(flicker, k, !darkLook);
-  if (drops.length) drawRain(flicker, k, col);
+  if (drops.length) drawRain(flicker, k, col, glassOn);
   if (hail.length) drawHail(flicker, k);
   if (flakes.length) drawSnow(flicker, k);
+  if (glassOn) drawGlass(src, darkLook, k);
 }
