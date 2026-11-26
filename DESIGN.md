@@ -120,7 +120,8 @@ Use these; do not build a second version of any of them.
 | Dhikr counter | `counterHtml(key, n, group, index)`; the full view is `#ctf` (`.ctf`, `.ct.ct-big`) | counter.js, styles.css (`.ct`) | ring fills `--on` with each tap (`pathLength="100"`); at the count the number gives way to a tick that pops; a dua said once ticks in one tap (`.is-once`); every dua has Full view, which steps through its group with a progress bar; key is `chapter:entry`, kept until the next Fajr |
 | Category pills | `.qp-tabs.au-cats` buttons (`role="tab"`, `aria-selected`), data in `HISN_CATS` (hisn.js) | app.js, styles.css | as the Quran tabs; the chosen pill fills with ink |
 | Back and breadcrumb | `crumbs(up, here)` inside `<nav class="crumbs" aria-label="Breadcrumb">`; `up` is the screens above, nearest last, each `{ label, href }` or `{ label, act }` | controls.js, styles.css (`.crumbs`) | Back dips when pressed; it steps back in the history when the screen above is the one you came from, so it never piles up steps; a TV remote's Back presses it when nothing is open on top; each Settings section has its own address (`#settings/display`) |
-| Dialog | `.qp-dlg` › `.qp-dlg-in`, `.fb`, `.ctf` | styles.css | rounded card, ink primary button on the right |
+| Sheet | `sheet(dialog, { history, panel })` → `{ open, close, grab }` | controls.js, styles.css (`.sheet`, `.sheet-grab`) | on a phone (≤ 48rem) it slides up from the bottom edge with a grab handle and slides back down when closed: its buttons, a tap on the dimmed page, Escape or a remote's Back, a pull down by the handle (a third of the way, or a flick), or the back gesture (one history step); tablets and TVs keep the rounded card, which fades in. Every window uses it |
+| Dialog | `.qp-dlg` › `.qp-dlg-in`, `.fb`, `.ctf`, each opened and closed through `sheet()` | styles.css | rounded card, ink primary button on the right |
 
 ## TV remote and keyboard
 

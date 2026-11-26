@@ -1482,3 +1482,19 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .crumbs [aria-current] { color: var(--ink); overflow-wrap: anywhere; }
 .topbar-title .crumbs { margin: 0 0 .1rem -.15rem; }
 @media (prefers-reduced-motion: reduce) { .crumb-back { transition: background-color var(--m-fast) var(--m-ease); } .crumb-back:active { scale: none; } }
+
+/* Sheet (controls.js sheet()): on a phone a window sits on the bottom edge, full width, top corners rounded, with a grab
+   handle to pull it down; it never covers the whole screen, so the page behind still shows. Tablets and TVs keep the card. */
+.sheet-grab { display: none; }
+@media (max-width: 48rem) {
+  dialog.sheet { width: 100%; max-width: none; max-height: 92dvh; margin: auto 0 0; border-bottom: 0; border-radius: 1rem 1rem 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .qp-dlg.sheet { padding-bottom: 0; }
+  .qp-dlg.sheet .qp-dlg-in { max-height: 92dvh; border-bottom: 0; border-radius: 1rem 1rem 0 0; padding-top: 0;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px)); }
+  .sheet-grab { display: flex; justify-content: center; align-items: center; min-height: 1.75rem; cursor: grab; touch-action: none; }
+  .sheet-grab span { width: 2.5rem; height: .3rem; border-radius: 99px; background: var(--line); }
+  .fb.sheet .sheet-grab { position: sticky; top: 0; z-index: 1; background: var(--paper); } /* the form scrolls under it */
+  .fb.sheet .fb-form { padding-top: .25rem; }
+  .ctf.sheet .ctf-in { padding-top: .25rem; }
+}
