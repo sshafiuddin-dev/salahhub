@@ -138,3 +138,20 @@ export const HISN = [
   [132, "Types of goodness and good etiquette for community life", '133']
 ];
 export const hisnUrl = (num) => `https://www.hisnmuslim.com/audio/ar/ar_7esn_AlMoslem_by_Doors_${num}.mp3`;
+
+// The categories on the Adhkar tab (approved from the "Adhkar categories" mockup, November 2026): every chapter above
+// sits in exactly one, sorted by its title. Each row is [key, pill label, heading, chapters]; scripts/selfcheck.mjs checks the cover.
+export const HISN_CATS = [
+  ["morning", "Morning & sleep", "Morning, evening & sleep", [1, 27, 28, 29, 30, 31]],
+  ["prayer", "Prayer", "Prayer & mosque", [8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 32, 33, 42]],
+  ["home", "Home & daily", "Home & daily life", [2, 3, 4, 5, 6, 7, 10, 11, 77, 78, 108, 109, 110, 111]],
+  ["food", "Food & fasting", "Food & fasting", [68, 69, 70, 71, 72, 73, 74, 75, 76]],
+  ["travel", "Travel", "Travel", [95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105]],
+  ["worry", "Worry & protection", "Worry, hardship & protection", [34, 35, 36, 37, 38, 39, 40, 41, 43, 45, 46, 82, 88, 92, 94, 122, 124, 125, 126, 128]],
+  ["forgive", "Forgiveness", "Forgiveness & remembrance", [44, 84, 85, 106, 107, 123, 129, 130, 131]],
+  ["illness", "Illness & death", "Illness, death & funerals", [49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]],
+  ["weather", "Weather", "Weather & nature", [61, 62, 63, 64, 65, 66, 67]],
+  ["family", "Family", "Family & marriage", [47, 48, 79, 80, 81]],
+  ["manners", "Manners", "Manners & social life", [83, 86, 87, 89, 90, 91, 93, 112, 113, 114, 132]],
+  ["hajj", "Hajj & Umrah", "Hajj, Umrah & sacrifice", [115, 116, 117, 118, 119, 120, 121, 127]]
+];

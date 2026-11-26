@@ -5,6 +5,7 @@ import { handle } from '../functions/api/iqama.js';
 import { handle as alertsHandle, pick as pickAlerts } from '../functions/api/alerts.js';
 import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { where as whereFrom, handle as whereHandle } from '../functions/api/where.js';
+import { HISN, HISN_CATS } from '../hisn.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
 import { MASJIDS, NEAR_MILES, NEAR_KM, nearestMasjid, wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf, bellState } from '../logic.js';
 
@@ -627,6 +628,14 @@ console.log('hijri at maghrib ok');
   assert.equal(countDay(2026, 11, 26, 324, 324), '2026-11-26', 'at the Fajr adhan the new day starts');
 }
 console.log('count day ok');
+// Adhkar categories: every chapter in exactly one, and no category empty
+{
+  const seen = HISN_CATS.flatMap(c => c[3]).sort((x, y) => x - y);
+  assert.deepEqual(seen, HISN.map(h => h[0]));
+  assert.ok(HISN_CATS.every(c => c[3].length > 0 && c[1] && c[2]));
+  assert.equal(new Set(HISN_CATS.map(c => c[0])).size, HISN_CATS.length);
+  console.log('adhkar categories ok');
+}
 { // After the Isha iqama the sheet shows tomorrow; the clock and countdown stay on real time
   const { renderTimes: rt } = await import('../clocks.js');
   const mk = (f) => [['fajr', f, 360], ['dhuhr', 712, 750], ['asr', 871, 885], ['maghrib', 1001, 1001], ['isha', 1085, 1200]].map(([key, adhan, iqama]) => ({ key, adhan, iqama }));
