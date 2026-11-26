@@ -29,7 +29,8 @@ assert.throws(() => fromSchedule(script.replace('"6:00 AM"', '"9:00 AM"'), '2026
   const get = async (u) => new Response(u.endsWith('page-abc.js') ? script : u.endsWith('other.js') ? 'nothing' : html);
   assert.equal((await read(get, Date.parse('2026-11-16T15:00:00Z'))).iqama.fajr, '06:00');
   assert.equal((await read(get, Date.parse('2026-11-16T03:00:00Z'))).iqama.fajr, '05:45', 'still the 15th in New York');
-  assert.equal((await read(async (u) => (u.endsWith('.js') ? new Response('', { status: 404 }) : new Response(html)), 1e12)).iqama.fajr, '05:45', 'script unreachable: the HTML');
+  await assert.rejects(read(async (u) => (u.endsWith('.js') ? new Response('', { status: 404 }) : new Response(html)), 1e12), /did not load/, 'script unreachable: no guess from the HTML');
+  assert.equal((await read(async (u) => new Response(u.endsWith('.js') ? 'nothing' : html), 1e12)).iqama.fajr, '05:45', 'scripts load but hold no schedule: the HTML');
 }
 // Self-update only at a quiet moment
 assert.equal(safeToReload({ audio: false, alert: false, idleMs: 90e3, minToEvent: 40 }), true);

@@ -56,12 +56,15 @@ export async function read(get, now = Date.now()) {
   const html = await res.text();
   const srcs = [...html.matchAll(/<script[^>]+\bsrc="([^"]+\.js)"/gi)].map(m => new URL(m[1], SOURCE).href);
   srcs.sort((a, b) => /\/page-/.test(b) - /\/page-/.test(a)); // the home page's own script first
+  let missed = 0;
   for (const src of srcs.slice(0, 8)) {
     let js;
-    try { const r = await get(src, opts); if (!r.ok) continue; js = await r.text(); } catch (e) { continue; }
+    try { const r = await get(src, opts); if (!r.ok) { missed++; continue; } js = await r.text(); } catch (e) { missed++; continue; }
     const found = fromSchedule(js, newYorkDay(now));
     if (found) return found;
   }
+  // the HTML's times can be a past schedule: trust it only when every script loaded and none had one, never after a failed fetch
+  if (missed) throw new Error(`${missed} iscj.org script(s) did not load`);
   return parse(html);
 }
 
