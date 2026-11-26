@@ -60,21 +60,60 @@ function showShot(blob, caption) {
 }
 const status = (text, bad = false) => { $('fb-status').textContent = text; $('fb-status').classList.toggle('is-bad', bad); };
 
+// The screenshot library copies the page afresh, and a fresh copy of a scrolled area (each tab, the Month table, the dua strip)
+// starts at its top, so the picture showed the top of the screen instead of where the person was. While the picture is taken,
+// each scrolled area is set back to its top and its content is shifted by the same amount, which looks the same on screen and
+// survives the copy. Sticky headings (Month, Quran) are measured and held where they were too. Returns a function that undoes it.
+const pxPair = (t) => { if (!t || t === 'none') return [0, 0]; const [x, y = '0px'] = t.split(' '); return /px$/.test(x) && /px$/.test(y) ? [parseFloat(x), parseFloat(y)] : null; };
+function holdScroll(node) {
+  const all = [node, ...node.querySelectorAll('*')];
+  const scrolled = all.filter(e => (e.scrollTop || e.scrollLeft) && (!e.checkVisibility || e.checkVisibility()));
+  if (!scrolled.length) return () => {};
+  const sticky = all.filter(e => getComputedStyle(e).position === 'sticky');
+  const boxes = (el) => [...el.children].flatMap(c => (getComputedStyle(c).display === 'contents' ? boxes(c) : [c]));
+  const plan = scrolled.map(s => ({ s, top: s.scrollTop, left: s.scrollLeft, moved: [...boxes(s), ...sticky.filter(k => s.contains(k))] }));
+  const was = new Map();
+  for (const { moved } of plan) for (const el of moved) if (!was.has(el)) was.set(el, { rect: el.getBoundingClientRect(), inline: el.style.translate });
+  const touched = [];
+  for (const { s, moved } of plan) {
+    s.scrollTop = 0; s.scrollLeft = 0;
+    for (const el of moved) {
+      const now = el.getBoundingClientRect(), then = was.get(el).rect, base = pxPair(getComputedStyle(el).translate);
+      const dx = then.left - now.left, dy = then.top - now.top;
+      if (!base || (!dx && !dy)) continue;
+      el.style.translate = `${base[0] + dx}px ${base[1] + dy}px`;
+      touched.push(el);
+    }
+  }
+  return () => {
+    for (const el of touched) el.style.translate = was.get(el).inline;
+    for (const { s, top, left } of plan) { s.scrollTop = top; s.scrollLeft = left; }
+  };
+}
+
 export function initFeedback({ details, snapTarget }) {
   const dlg = $('fb');
   let snapped = null; // the picture of the screen the person was on, taken as the form opened
 
   async function snap() {
     const node = snapTarget();
+    let release = () => {};
     try {
       const h = await loadLib();
+      release = holdScroll(node); // just before the copy, so the page is held for as short a time as possible
       const bg = getComputedStyle(document.documentElement).getPropertyValue('--paper').trim() || '#f3ede1';
-      const url = await h.toJpeg(node, { quality: 0.82, pixelRatio: 1, backgroundColor: bg, width: node.clientWidth, height: node.clientHeight });
+      // Only what is on screen is copied: the app keeps its other screens (Quran lists, Adhkar, Month) in the page,
+      // hidden, and copying all ~2,000 of their parts took several seconds before the form could open.
+      // (a display: contents wrapper, like the title's, counts as not visible itself, but its children are on screen;
+      // so do the options of a closed list, whose chosen one is what the list shows)
+      const shown = (n) => !(n instanceof Element) || !n.checkVisibility || n.checkVisibility()
+        || getComputedStyle(n).display === 'contents' || !!n.closest('select');
+      const url = await h.toJpeg(node, { quality: 0.82, pixelRatio: 1, backgroundColor: bg, width: node.clientWidth, height: node.clientHeight, filter: shown });
       return dataUrlToBlob(url);
     } catch (e) {
       console.warn('feedback: screenshot failed', e);
       return null;
-    }
+    } finally { release(); }
   }
   function fillDetails() {
     const d = details();
@@ -86,20 +125,34 @@ export function initFeedback({ details, snapTarget }) {
     }
     return d;
   }
-  async function open() {
+  // The form opens at once and the picture of the screen fills in when it is ready (lazily), so nobody waits for it.
+  // The picture can be taken after the form opens because the form sits outside the app and the full screen view,
+  // which are what gets pictured. Sending waits for a picture still being taken.
+  const noShot = $('fb-shot-none').textContent;
+  let capture = null, chose = false; // chose: the person removed the picture or attached their own while it was taken
+  function open() {
     if (dlg.open) return;
     status('');
-    $('fb-snap').disabled = true;
-    // snap first, so the picture shows the screen behind the form, not the form
-    snapped = await snap();
+    snapped = null; chose = false;
     fillDetails();
     $('fb-details').hidden = !$('fb-include').checked;
-    $('fb-snap').disabled = !snapped;
-    $('fb-snap').title = snapped ? '' : 'This screen could not be captured. Attach a picture instead.';
-    showShot(snapped, 'The screen you were on, as it will be sent.');
-    if (!snapped) status('The screen could not be captured. You can attach a picture instead.');
+    $('fb-snap').disabled = true; $('fb-snap').title = '';
+    showShot(null);
+    $('fb-shot-none').textContent = 'Taking a picture of the screen you were on…';
     dlg.showModal();
     $('fb-message').focus();
+    // start only once the form has been drawn, so the picture's work never holds the form back
+    const painted = new Promise((ok) => requestAnimationFrame(() => setTimeout(ok)));
+    const run = capture = painted.then(snap).then((blob) => {
+      if (capture !== run) return; // the form was opened again since; that newer picture counts
+      capture = null; snapped = blob;
+      $('fb-shot-none').textContent = noShot;
+      $('fb-snap').disabled = !blob;
+      $('fb-snap').title = blob ? '' : 'This screen could not be captured. Attach a picture instead.';
+      if (!dlg.open || chose) return;
+      showShot(blob, 'The screen you were on, as it will be sent.');
+      if (!blob) status('The screen could not be captured. You can attach a picture instead.');
+    });
   }
   function close() { if (dlg.open) dlg.close(); }
 
@@ -108,10 +161,11 @@ export function initFeedback({ details, snapTarget }) {
   dlg.addEventListener('click', (e) => { if (e.target === dlg) close(); }); // a tap on the dimmed backdrop
   $('fb-include').addEventListener('change', () => { $('fb-details').hidden = !$('fb-include').checked; });
   $('fb-snap').addEventListener('click', () => { if (snapped) { showShot(snapped, 'The screen you were on, as it will be sent.'); status(''); } });
-  $('fb-shot-remove').addEventListener('click', () => { showShot(null); $('fb-file').value = ''; });
+  $('fb-shot-remove').addEventListener('click', () => { chose = true; showShot(null); $('fb-file').value = ''; });
   $('fb-file').addEventListener('change', async () => {
     const f = $('fb-file').files[0];
     if (!f) return;
+    chose = true;
     status('Preparing the picture…');
     const url = URL.createObjectURL(f);
     try { showShot(await redraw(url), `Your picture, ${f.name}, as it will be sent.`); status(''); }
@@ -125,6 +179,7 @@ export function initFeedback({ details, snapTarget }) {
     if (!msg) { status('Write a few words first.', true); $('fb-message').focus(); return; }
     const contact = $('fb-contact').value.trim();
     if (contact && !$('fb-contact').checkValidity()) { status('That email address does not look right. Leave it empty if you do not want a reply.', true); $('fb-contact').focus(); return; }
+    if (capture) { $('fb-send').disabled = true; status('Adding the picture of the screen…'); await capture; status(''); $('fb-send').disabled = false; }
     const fd = new FormData($('fb-form'));
     fd.set('message', msg);
     if ($('fb-include').checked) fd.set('details', JSON.stringify(fillDetails()));
