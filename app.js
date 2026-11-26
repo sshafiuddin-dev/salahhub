@@ -7,10 +7,10 @@ import { animate, swap, fade, rows, fly } from './motion.js';
 import { bubble, stepper, searchBox } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
 import { initRemote } from './remote.js';
-import { initCounter, counterHtml, setGroup, groupIndex, paint as paintCount, countOf } from './counter.js';
+import { initCounter, counterHtml, setGroup, isDone as isDoneKey, paint as paintCount } from './counter.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
-import { HISN, hisnUrl } from './hisn.js';
+import { HISN, HISN_CATS, hisnUrl } from './hisn.js';
 import { initQuran } from './quran.js';
 import { initFeedback } from './feedback.js';
 
@@ -37,7 +37,7 @@ const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
   tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightStart: 'isha', nightLevel: 3, level: 0, seconds: true, wxSky: 'real', wxMove: true, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
-  defIqama: null, tableOpen: false, big: 'auto', adhkar: true, translit: true, arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
+  defIqama: null, tableOpen: false, big: 'auto', adhkar: true, adhkarCat: 'all', translit: true, arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -509,7 +509,8 @@ function route() {
 addEventListener('hashchange', route);
 initRemote({ busy: tourOpen }); // TV remote: the arrows move between controls (remote.js); the tour keeps them while it is open
 // Dhikr counts belong to the day from one Fajr adhan to the next (counter.js); none until today's times are worked out
-initCounter({ dayKey: () => (today && day ? countDay(today.y, today.m, today.d, clock(new Date(), place().zone).sec / 60, day.rows[0].adhan) : '') });
+initCounter({ dayKey: () => (today && day ? countDay(today.y, today.m, today.d, clock(new Date(), place().zone).sec / 60, day.rows[0].adhan) : ''),
+  onChange: (key) => { if (key) chapterDone(key.split(':')[0]); else HISN.forEach(([id]) => chapterDone(id)); } });
 // a tap anywhere else, a choice in it, or Escape closes the More menu. Outside taps are read on pointerdown: the clock is
 // drawn again every second and can swallow the click that would otherwise close it.
 const moreMenus = () => document.querySelectorAll('.more details, details.more, details.share');
@@ -632,14 +633,49 @@ $('dk-listen').addEventListener('click', () => {
   if (AUDIO[dk.key]) play(AUDIO[dk.key]);
 });
 
-// Adhkar tab: every Hisn al-Muslim chapter with its recording, filtered by what is typed in the search box
-$('adhkar-audio').innerHTML = HISN.map(([id, title, num]) => `<li data-id="${id}" data-t="${title.toLowerCase()} ${id}"><div class="au-row"><button class="au-toggle" type="button" aria-expanded="false" aria-controls="au-body-${id}"><span class="au-no">${id}</span><span class="au-title">${title}</span></button><button class="d-btn d-btn-sm d-btn-soft d-btn-primary au-play" type="button" data-src="${hisnUrl(num)}" data-label="Listen" aria-label="Listen to the whole chapter: ${title}">Listen</button></div><div class="au-body" id="au-body-${id}" hidden></div></li>`).join('');
+// Adhkar tab: every Hisn al-Muslim chapter with its recording, under its category (HISN_CATS, hisn.js). A pill shows
+// one category; what is typed in the search box looks through every one. The words count duas, not the book's chapters.
+let hisnText = null; // the Hisn al-Muslim text, once loadHisnText has read it
+const HISN_BY = new Map(HISN.map(h => [h[0], h]));
+if (!['all', ...HISN_CATS.map(c => c[0])].includes(settings.adhkarCat)) settings.adhkarCat = 'all';
+$('adhkar-audio').innerHTML = HISN_CATS.map(([key, , heading, chs]) => `<li class="au-cat" data-cat="${key}"><h3>${esc(heading)}<span class="au-cat-n" data-cat-n="${key}"></span></h3></li>`
+  + chs.map(id => { const [, title, num] = HISN_BY.get(id); return `<li data-id="${id}" data-cat="${key}" data-t="${title.toLowerCase()} ${id}"><div class="au-row"><button class="au-toggle" type="button" aria-expanded="false" aria-controls="au-body-${id}"><span class="au-no">${id}</span><span class="au-title">${title}<span class="au-done" data-done-for="${id}" hidden></span></span></button><button class="d-btn d-btn-sm d-btn-soft d-btn-primary au-play" type="button" data-src="${hisnUrl(num)}" data-label="Listen" aria-label="Listen to all the duas: ${title}">Listen</button></div><div class="au-body" id="au-body-${id}" hidden></div></li>`; }).join('')).join('');
+$('au-cats').innerHTML = [['all', 'All'], ...HISN_CATS.map(c => [c[0], c[1]])].map(([k, label]) => `<button class="d-btn d-btn-sm" type="button" role="tab" data-cat="${k}" aria-controls="adhkar-audio">${esc(label)}</button>`).join('');
+const duaCount = (id) => hisnText?.[id]?.items?.length || 0; // known once the text has loaded
+const duas = (n) => `${n} ${n === 1 ? 'dua' : 'duas'}`;
 function filterAdhkar() {
-  const q = $('au-search').value.trim().toLowerCase();
-  let shown = 0;
-  for (const li of $('adhkar-audio').children) { const on = !q || li.dataset.t.includes(q); li.hidden = !on; if (on) shown++; }
-  $('au-count').textContent = shown ? (q ? `${shown} of ${HISN.length} chapters` : `${HISN.length} chapters`) : 'No chapters match.';
+  const q = $('au-search').value.trim().toLowerCase(), cat = settings.adhkarCat;
+  for (const b of $('au-cats').children) b.setAttribute('aria-selected', String(b.dataset.cat === cat));
+  let n = 0, rows = 0;
+  const shownIn = new Set();
+  for (const li of $('adhkar-audio').children) {
+    if (li.classList.contains('au-cat')) continue;
+    const on = q ? li.dataset.t.includes(q) : cat === 'all' || li.dataset.cat === cat;
+    li.hidden = !on;
+    if (on) { rows++; n += duaCount(li.dataset.id); shownIn.add(li.dataset.cat); }
+  }
+  for (const h of $('adhkar-audio').querySelectorAll('.au-cat')) h.hidden = !shownIn.has(h.dataset.cat);
+  for (const c of HISN_CATS) { const el = $('adhkar-audio').querySelector(`[data-cat-n="${c[0]}"]`); el.textContent = hisnText ? duas(c[3].reduce((t, id) => t + duaCount(id), 0)) : ''; }
+  const c = HISN_CATS.find(x => x[0] === cat);
+  $('au-count').textContent = !rows ? 'No duas match.' : !hisnText ? '' : q ? `${duas(n)} match`
+    : c ? `${c[2]} · ${duas(n)}` : `All ${duas(n)}, in ${HISN_CATS.length} categories`;
 }
+// How many of a chapter's duas are done today, beside its title once any are
+function chapterDone(id) {
+  const el = $('adhkar-audio').querySelector(`[data-done-for="${id}"]`), items = hisnText?.[id]?.items;
+  if (!el || !items?.length) return;
+  const d = items.filter((it, i) => isDoneKey(`${id}:${i}`, it.n)).length;
+  el.hidden = !d;
+  el.textContent = d ? `${d} of ${duas(items.length)} done` : '';
+}
+$('au-cats').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cat]');
+  if (!b) return;
+  settings.adhkarCat = b.dataset.cat; save();
+  if ($('au-search').value) { $('au-search').value = ''; $('au-search').dispatchEvent(new Event('input')); }
+  filterAdhkar();
+  b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+});
 $('au-search').addEventListener('input', filterAdhkar);
 searchBox($('au-search')); // controls.js: behind a round magnifier, like the Quran tab's
 filterAdhkar();
@@ -649,7 +685,6 @@ filterAdhkar();
 const unpair = (t) => { const open = []; const drop = new Set(); [...t].forEach((c, i) => { if (c === '(') open.push(i); else if (c === ')') { if (open.length) open.pop(); else drop.add(i); } }); open.forEach(i => drop.add(i)); return [...t].filter((_, i) => !drop.has(i)).join(''); };
 const unwrap = (t) => { t = t.trim(); if (t[0] !== '(') return t; let depth = 0; for (let i = 0; i < t.length; i++) { if (t[i] === '(') depth++; else if (t[i] === ')' && --depth === 0) { const rest = t.slice(i + 1).trim(); return /^[.!?,;:]*$/.test(rest) ? t.slice(1, i).trim() + rest : rest ? `${t.slice(1, i).trim()} (${rest.replace(/[.\s]+$/, '')})` : t.slice(1, i).trim(); } } return t; }; // "(All praise is for Allah ...)" -> the text without its outer brackets
 const tidy = (t) => unwrap(unpair(t.replace(/([.!?])['’]?(?=[a-z][a-z'’-]*(?: [a-z]+){0,2}: )/gi, '$1\n').replace(/\(\(\s*/g, '').replace(/\s*\)\)/g, '').replace(/\bPBUH\b/g, 'peace be upon him')).replace(/([.!?:,])\(/g, '$1 (').replace(/\s{2,}/g, ' ').trim());
-let hisnText = null;
 async function loadHisnText() {
   if (hisnText) return hisnText;
   const r = await fetch('hisn-text.json');
@@ -658,16 +693,18 @@ async function loadHisnText() {
   for (const c of Object.values(hisnText)) for (const it of c.items || []) for (const k of ['ar', 'en', 'tr']) if (typeof it[k] === 'string') it[k] = tidy(it[k]);
   // the source writes the letter ʿayn as "AA" in its transliteration ("AAafwa"); show the proper mark ("ʿafwa")
   for (const c of Object.values(hisnText)) for (const it of c.items || []) if (typeof it.tr === 'string') it.tr = it.tr.replace(/AA/g, 'ʿ');
+  filterAdhkar(); // the counts are in duas, known now
+  HISN.forEach(([id]) => chapterDone(id));
   return hisnText;
 }
-// Each dua that repeats gets the counter (counter.js) beside its Play button; the chapter is its group, for Next dua
+// Every dua gets Full view (counter.js); one that repeats also gets the ring beside its Play button. The chapter is
+// the full view's group, for Previous dua and Next dua.
 const hisnItems = (items, ch, title) => {
-  setGroup(`ch${ch}`, items.map((it, i) => ({ key: `${ch}:${i}`, n: it.n || 0, ar: it.ar, tr: it.tr, en: it.en, meta: `${title} · Dua ${i + 1} of ${items.length} · Read ${it.n} times` })));
+  setGroup(`ch${ch}`, title, items.map((it, i) => ({ key: `${ch}:${i}`, n: it.n || 0, ar: it.ar, tr: it.tr, en: it.en })));
   return items.map((it, i) => `<article class="au-dua"><div class="au-meta"><span>Dua ${i + 1} of ${items.length}</span>${it.n ? `<span>Read ${it.n} ${it.n === 1 ? 'time' : 'times'}</span>` : ''}</div>`
   + `${it.ar ? `<p class="au-ar" lang="ar" dir="rtl">${esc(it.ar)}</p>` : ''}${it.tr ? `<p class="au-tr">${esc(it.tr)}</p>` : ''}${it.en ? `<p class="au-en">${esc(it.en)}</p>` : ''}`
-  + ((it.audio || it.n > 1) ? `<div class="au-acts">${it.audio ? `<button class="d-btn d-btn-sm d-btn-soft d-btn-primary au-play" type="button" data-src="${esc(it.audio)}" aria-label="Play dua ${i + 1}">Play</button>` : ''}`
-    + `${it.n > 1 ? counterHtml(`${ch}:${i}`, it.n, `ch${ch}`, groupIndex(`ch${ch}`, `${ch}:${i}`)) : ''}</div>` : '')
-  + '</article>').join('');
+  + `<div class="au-acts">${it.audio ? `<button class="d-btn d-btn-sm d-btn-soft d-btn-primary au-play" type="button" data-src="${esc(it.audio)}" aria-label="Play dua ${i + 1}">Play</button>` : ''}`
+  + `${counterHtml(`${ch}:${i}`, it.n || 0, `ch${ch}`, i)}</div></article>`).join('');
 };
 function openChapter(li, btn) {
   const body = li.querySelector('.au-body'), open = btn.getAttribute('aria-expanded') !== 'true';
@@ -677,9 +714,10 @@ function openChapter(li, btn) {
   body.innerHTML = '<p class="iq-note">Loading…</p>';
   loadHisnText().then(all => {
     const items = all[li.dataset.id]?.items || [];
-    body.innerHTML = items.length ? hisnItems(items, li.dataset.id, li.querySelector('.au-title')?.textContent.trim() || '') : '<p class="iq-note">There is no text for this chapter.</p>';
+    body.innerHTML = items.length ? hisnItems(items, li.dataset.id, HISN_BY.get(Number(li.dataset.id))?.[1] || '') : '<p class="iq-note">There are no duas here yet.</p>';
     body.dataset.done = '1';
-    items.forEach((it, i) => { if (it.n > 1) paintCount(`${li.dataset.id}:${i}`); });
+    items.forEach((it, i) => paintCount(`${li.dataset.id}:${i}`));
+    chapterDone(li.dataset.id);
   }).catch((e) => {
     console.warn('IqamaHub: adhkar text failed', e);
     body.innerHTML = '<p class="iq-note">The text is not available yet. The recording still plays.</p>';
@@ -1288,9 +1326,9 @@ function renderAdhkar(nowMin) {
   const pick = pickSet(nowMin, day.rows, day.sunrise, today.weekday), set = SETS[pick.key];
   if (pick.key !== dk.key) dk = { key: pick.key, i: pick.key === 'general' ? Math.floor(Date.UTC(today.y, today.m - 1, today.d) / 864e5) % set.items.length : 0 };
   dk.until = pick.until;
-  const it = dkItem(), ctKey = `${it.ch}:${it.i}`, c = it.n ? countOf(ctKey) : 0;
+  const it = dkItem(), ctKey = `${it.ch}:${it.i}`;
   const show = settings.adhkar && !!(it.ar || it.en); // hidden until the Hisn al-Muslim text has loaded
-  const sig = [dk.key, dk.i, dk.until, c, show, settings.translit, settings.arSize].join('|');
+  const sig = [dk.key, dk.i, dk.until, show, settings.translit, settings.arSize].join('|');
   if (sig === dkSig) return;
   dkSig = sig;
   $('adhkar').hidden = !show;
@@ -1305,10 +1343,8 @@ function renderAdhkar(nowMin) {
   $('dk-en').textContent = it.en;
   $('dk-src').textContent = it.src;
   // the counter (counter.js), shared with the same dua on the Adhkar screen; Today's set is its group, for Next dua
-  setGroup('today', set.items.map((x, j) => ({ key: `${x.ch}:${x.i}`, n: x.n, ar: x.ar, tr: x.tr, en: x.en, meta: `${set.title} · ${j + 1} of ${set.items.length} · Read ${x.n} times` })));
-  $('dk-ct').hidden = !it.n;
-  if (it.n && $('dk-ct').dataset.key !== ctKey) { $('dk-ct').innerHTML = counterHtml(ctKey, it.n, 'today', groupIndex('today', ctKey)); $('dk-ct').dataset.key = ctKey; }
-  if (!it.n) { $('dk-ct').innerHTML = ''; $('dk-ct').dataset.key = ''; }
+  setGroup('today', set.title, set.items.map(x => ({ key: `${x.ch}:${x.i}`, n: x.n, ar: x.ar, tr: x.tr, en: x.en })));
+  if ($('dk-ct').dataset.key !== `${ctKey}/${it.n}`) { $('dk-ct').innerHTML = counterHtml(ctKey, it.n, 'today', dk.i); $('dk-ct').dataset.key = `${ctKey}/${it.n}`; } // n is known once the text loads
   paintCount(ctKey);
   $('dk-tr-toggle').textContent = settings.translit ? 'Hide transliteration' : 'Show transliteration';
   $('dk-tr-toggle').hidden = !it.tr;

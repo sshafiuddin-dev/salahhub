@@ -90,13 +90,13 @@
                         <p class="dk-tr" id="dk-tr"></p>
                         <p class="dk-en" id="dk-en"></p>
                         <div class="dk-foot">
-                            <span class="ct-row" id="dk-ct" hidden></span>
+                            <span class="ct-row" id="dk-ct"></span>
                             <span class="dk-src" id="dk-src"></span>
                             <div class="d-join"><button class="d-btn d-btn-sm d-join-item" type="button" id="dk-prev">Previous</button><button class="d-btn d-btn-sm d-btn-primary d-join-item" type="button" id="dk-next">Next</button></div>
                         </div>
                         <div class="dk-links">
                             <button class="link-btn" type="button" id="dk-tr-toggle"></button>
-                            <button class="link-btn" type="button" id="dk-listen" hidden>Listen to the full chapter</button>
+                            <button class="link-btn" type="button" id="dk-listen" hidden>Listen to all the duas</button>
                             <button class="link-btn" type="button" id="dk-share">Share</button>
                         </div>
                     </section>
@@ -116,7 +116,8 @@
             
 
                         <main class="tab" id="tab-adhkar" aria-labelledby="tab-title" hidden>
-                <p class="iq-note">All 132 chapters of Hisn al-Muslim, in the book’s order. Open a chapter to read it. The recordings are in Arabic and need a connection.</p>
+                <p class="iq-note">All the duas of Hisn al-Muslim, sorted into 12 categories. Open one to read its duas. The recordings are in Arabic and need a connection.</p>
+                <div class="qp-tabs au-cats" id="au-cats" role="tablist" aria-label="Categories"></div>
                 <input class="d-input au-search" type="search" id="au-search" placeholder="Search adhkar" aria-label="Search adhkar" autocomplete="off">
                 <p class="iq-note" id="au-count" role="status"></p>
                 <ul class="au-list" id="adhkar-audio"></ul>
@@ -373,14 +374,15 @@
         </div>
     </div>
 
-    <dialog class="ctf" id="ctf" aria-labelledby="ctf-meta" aria-describedby="ctf-hint">
+    <dialog class="ctf" id="ctf" aria-labelledby="ctf-meta">
         <div class="ctf-in">
             <div class="ctf-top"><p class="ctf-meta" id="ctf-meta"></p><button class="ctf-x" type="button" id="ctf-close" aria-label="Close the full view"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button></div>
+            <div class="ctf-prog"><span class="ctf-bar" id="ctf-bar" aria-hidden="true"></span><span class="ctf-done" id="ctf-done"></span></div>
             <div class="ctf-main">
                 <div class="ctf-text"><p class="ctf-ar" lang="ar" dir="rtl" id="ctf-ar"></p><p class="ctf-tr" id="ctf-tr"></p><p class="ctf-en" id="ctf-en"></p></div>
-                <div class="ctf-count"><button class="ct ct-big" type="button" id="ctf-ring" data-ct="" data-n="1"></button><p class="ctf-hint" id="ctf-hint" aria-live="polite"></p></div>
+                <div class="ctf-count"><button class="ct ct-big" type="button" id="ctf-ring" data-ct="" data-n="1"></button><p class="ctf-hint"><span id="ctf-hint" aria-live="polite"></span> <button class="link-btn" type="button" id="ctf-again" hidden>Start again</button></p></div>
             </div>
-            <div class="ctf-acts"><button class="d-btn d-btn-outline" type="button" id="ctf-again">Start again</button><button class="d-btn d-btn-primary" type="button" id="ctf-next">Next dua</button></div>
+            <div class="ctf-acts"><button class="d-btn d-btn-outline" type="button" id="ctf-prev">Previous dua</button><button class="d-btn d-btn-primary" type="button" id="ctf-next">Next dua</button></div>
         </div>
     </dialog>
 

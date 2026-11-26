@@ -1374,6 +1374,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .ct-track { stroke: var(--line); }
 .ct-fill { stroke: var(--on); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: calc(100 - var(--p)); transition: stroke-dashoffset var(--m-normal) var(--m-ease); }
 .ct:not(.is-done) .ct-fill { stroke-linecap: butt; }
+.ct.is-zero .ct-fill { opacity: 0; } /* nothing counted: no sliver of green at the top */
 .ct-num { position: relative; font: 600 1.35rem/1 var(--display); font-variant-numeric: tabular-nums; }
 .ct-tick { position: absolute; width: 44%; height: 44%; fill: none; stroke: var(--on); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
 .ct.is-done .ct-num, .ct.is-done .ct-nums { opacity: 0; }
@@ -1382,19 +1383,28 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .ct:focus-visible { outline: 3px solid var(--clear); outline-offset: 3px; }
 .ct.is-done:not(.ct-big) { cursor: default; }
 .ct-again:not([hidden]) + .ct-left { color: var(--on); font-weight: 600; }
+.ct-read { display: inline-flex; align-items: center; gap: .35rem; min-height: 2.75rem; font-size: .9rem; font-weight: 600; color: var(--on); }
+.ct-read[hidden] { display: none; }
+.ct-read svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 /* On Today's card: the source on its own line, then Previous and Next with the counter at the right */
 .dk-foot:has(> #dk-ct:not([hidden])) .dk-src { flex-basis: 100%; }
 .dk-foot > .d-join { order: 1; }
 .dk-foot > .ct-row > * { order: 2; }
 .dk-foot .ct-gap { display: none; }
 .dk-foot .ct-left { margin-left: auto; }
-@media (prefers-reduced-motion: reduce) { .ct-fill { transition: none; } .ct:active { scale: none; } }
+@media (max-width: 30rem) { .dk-foot .ct-left { display: none; } .dk-foot .ct-row > .ct { margin-left: auto; } } /* a phone: the ring alone, so the row stays one line */
+@media (prefers-reduced-motion: reduce) { .ct-fill, .ctf-bar { transition: none; } .ct:active { scale: none; } }
 
 /* The full view: one dua and a big ring; two columns on a wide screen, as on the TV */
 .ctf { width: min(40rem, calc(100vw - 1.5rem)); max-width: none; max-height: calc(100dvh - 1.5rem); padding: 0; border: 1px solid var(--line); border-radius: 1rem;
   background: var(--paper); color: var(--ink); box-shadow: 0 .75rem 2.5rem rgba(0, 0, 0, .35); overflow: auto; overscroll-behavior: contain; }
 .ctf::backdrop { background: rgba(20, 16, 10, .45); }
-.ctf-in { display: grid; gap: 1rem; padding: 1.1rem clamp(1rem, 4vw, 1.75rem) 1.4rem; }
+/* The ring and the buttons always stay on screen; a long dua scrolls in its own space */
+.ctf[open] { display: flex; flex-direction: column; overflow: hidden; }
+.ctf-in { flex: 1; min-height: 0; grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.ctf-main { min-height: 0; grid-template-rows: minmax(0, 1fr) auto; }
+.ctf-text { min-height: 0; overflow-y: auto; overscroll-behavior: contain; align-content: start; }
+.ctf-in { display: grid; gap: .85rem; padding: 1.1rem clamp(1rem, 4vw, 1.75rem) 1.4rem; }
 .ctf-top { display: flex; align-items: flex-start; gap: 1rem; }
 .ctf-meta { flex: 1; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); line-height: 1.5; padding-top: .7rem; }
 .ctf-x { flex: none; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; background: var(--ink); color: var(--paper); cursor: pointer; }
@@ -1402,24 +1412,54 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .ctf-x:focus-visible { outline: 3px solid var(--clear); outline-offset: 3px; }
 .ctf-main { display: grid; gap: 1.25rem; }
 .ctf-text { display: grid; gap: .6rem; }
-.ctf-ar { font: 400 2.1rem/1.8 var(--ar); text-align: right; }
+.ctf-ar { font: 400 2rem/1.7 var(--ar); text-align: right; }
 .ctf-tr { font-style: italic; color: var(--muted); line-height: 1.55; }
 .ctf-en { line-height: 1.55; white-space: pre-line; }
 .ctf-count { display: grid; justify-items: center; gap: .75rem; }
-.ct.ct-big { width: min(14.75rem, 62vw); height: auto; aspect-ratio: 1; }
+.ct.ct-big { width: min(14.75rem, 62vw, 30dvh); height: auto; aspect-ratio: 1; }
 .ct-big .ct-track, .ct-big .ct-fill { stroke-width: 3; }
 .ct-nums { position: relative; display: grid; justify-items: center; gap: .2rem; }
 .ct-big .ct-num { font-size: clamp(3rem, 15vw, 4.75rem); font-weight: 500; }
 .ct-of { font-size: .95rem; color: var(--muted); }
+/* The big ring has three faces in one place: the count, "Tap when read" for a dua said once, and done */
+.ct-big > span { grid-area: 1 / 1; position: relative; }
+.ct-once, .ct-done { display: none; flex-direction: column; align-items: center; gap: .5rem; }
+.ct-big.is-once:not(.is-done) .ct-nums, .ct-big.is-done .ct-nums { display: none; }
+.ct-big.is-once:not(.is-done) .ct-once, .ct-big.is-done .ct-done { display: flex; }
+.ct-once { font-size: .95rem; font-weight: 500; }
+.ct-tick-faint { width: 2.5rem; height: 2.5rem; fill: none; stroke: var(--line); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.ct-done .ct-tick { position: static; width: 3.25rem; height: 3.25rem; opacity: 1; stroke-width: 2.4; }
+.ct-done-text { font: 500 1.15rem/1 var(--display); }
+.ct-big.is-done { cursor: default; }
+/* How much of the chapter (or Today's set) is done, as a thin bar */
+.ctf-prog { display: flex; align-items: center; gap: .75rem; }
+.ctf-bar { --p: 0; flex: 1; height: 4px; border-radius: 99px; background: linear-gradient(var(--on), var(--on)) 0 0 / calc(var(--p) * 1%) 100% no-repeat, var(--line);
+  transition: background-size var(--m-normal) var(--m-ease); }
+.ctf-done { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ctf-hint .link-btn { margin: 0 0 0 .15rem; min-height: 2rem; font-size: .95rem; }
+.ctf-acts .d-btn[aria-disabled="true"] { opacity: .45; cursor: default; }
+@media (max-width: 55.99rem), (orientation: portrait) { .ctf-text { text-align: center; } .ctf-ar { text-align: center; } }
 .ctf-hint { text-align: center; color: var(--muted); font-size: .95rem; min-height: 1.5em; }
 .ctf-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
 .ctf-acts .d-btn { min-height: 2.75rem; border-radius: 99px; padding: 0 1.4rem; }
 .ctf-acts .d-btn-primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 @media (min-width: 56rem) and (orientation: landscape) {
   .ctf { width: min(72rem, calc(100vw - 4rem)); }
-  .ctf-main { grid-template-columns: 1.25fr 1fr; align-items: center; gap: 2.5rem; }
+  .ctf-main { grid-template-columns: 1.25fr 1fr; grid-template-rows: minmax(0, 1fr); align-items: center; gap: 2.5rem; }
+  .ctf-text { max-height: 100%; align-content: safe center; }
   .ctf-ar { font-size: 2.5rem; }
   .ct.ct-big { width: min(23.75rem, 34vw); }
   .ct-big .ct-num { font-size: 5.5rem; }
   .ctf-acts { justify-content: flex-end; }
 }
+
+/* Adhkar categories (HISN_CATS): pills that show one category, and a heading over each in the full list */
+.au-cats { flex: none; min-height: 3.4rem; margin-bottom: .25rem; } /* min-height: a scroll-container grid item would otherwise be squeezed to a sliver */
+.au-cat { list-style: none; }
+.au-cat h3 { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: 1.25rem 0 0; padding-bottom: .35rem;
+  border-bottom: 2px solid var(--ink); font: 500 1.2rem/1.2 var(--display); }
+.au-cat:first-child h3 { margin-top: .25rem; }
+.au-cat-n { font: 400 .8rem/1 var(--body); color: var(--muted); white-space: nowrap; }
+.au-done { display: block; margin-top: .15rem; font-size: .8rem; font-weight: 400; color: var(--muted); }
+.au-done[hidden] { display: none; }
+
