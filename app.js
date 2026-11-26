@@ -223,26 +223,42 @@ const near = () => !!nearMasjid();
 // the loaded timetable belongs to the masjid that applies here (it may be another one's after a move)
 const masjidTimes = () => near() && masjid.id === nearMasjid().id;
 const masjidName = () => nearMasjid()?.name || 'the masjid';
-// Messages show as a toast above the tab bar and fade after a few seconds
+// Messages show as a toast above the tab bar and fade after a few seconds, or at once when tapped (or on Back / Escape)
 let toastTimer = 0;
+// Motion leaves its last frame on the element as inline styles (opacity: 1, scale: 1), which would beat the stylesheet
+// and keep a hidden toast on screen. So any running settle is stopped and those styles are cleared whenever it hides.
+const clearToastMotion = (el) => {
+  el.getAnimations?.().forEach(a => a.cancel());
+  el.style.removeProperty('opacity'); el.style.removeProperty('scale');
+};
+const hideToast = () => {
+  const el = $('status');
+  clearTimeout(toastTimer);
+  clearToastMotion(el);
+  el.classList.remove('show');
+};
+$('status').addEventListener('click', (e) => { if (!e.target.closest('.toast-act')) hideToast(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('status').classList.contains('show')) hideToast(); });
 // A short message at the bottom. action = { label, fn } adds one button to it (as Undo after closing the Quran player),
 // and keeps the message up for 8 seconds instead of 5. ok = true starts it with a tick, for a message that confirms something worked.
 // A new message that replaces one still showing gives a quick settle, so it reads as new.
 const say = (text, action, ok = false) => {
   const el = $('status'), showing = el.classList.contains('show');
+  if (!text) return hideToast();
+  clearToastMotion(el);
   el.textContent = text;
   if (text && ok) el.insertAdjacentHTML('afterbegin', '<svg class="toast-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>');
   if (action) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'toast-act'; b.textContent = action.label;
-    b.addEventListener('click', () => { el.classList.remove('show'); action.fn(); });
+    b.addEventListener('click', () => { hideToast(); action.fn(); });
     el.append(' ', b);
   }
-  el.classList.toggle('show', !!text);
+  el.classList.add('show');
   el.classList.toggle('has-act', !!action);
-  if (text && showing) swap(el);
+  if (showing) { const a = swap(el); if (a?.finished) Promise.resolve(a.finished).then(() => clearToastMotion(el), () => {}); }
   clearTimeout(toastTimer);
-  if (text) toastTimer = setTimeout(() => el.classList.remove('show'), action ? 8000 : 5000);
+  toastTimer = setTimeout(hideToast, action ? 8000 : 5000);
 };
 
 // A short record under Settings, Adhan and alerts, so a missed alert can be explained: the last alert and what became of its message and sound,

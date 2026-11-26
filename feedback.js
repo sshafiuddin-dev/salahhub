@@ -69,7 +69,13 @@ export function initFeedback({ details, snapTarget }) {
     try {
       const h = await loadLib();
       const bg = getComputedStyle(document.documentElement).getPropertyValue('--paper').trim() || '#f3ede1';
-      const url = await h.toJpeg(node, { quality: 0.82, pixelRatio: 1, backgroundColor: bg, width: node.clientWidth, height: node.clientHeight });
+      // Only what is on screen is copied: the app keeps its other screens (Quran lists, Adhkar, Month) in the page,
+      // hidden, and copying all ~2,000 of their parts took several seconds before the form could open.
+      // (a display: contents wrapper, like the title's, counts as not visible itself, but its children are on screen;
+      // so do the options of a closed list, whose chosen one is what the list shows)
+      const shown = (n) => !(n instanceof Element) || !n.checkVisibility || n.checkVisibility()
+        || getComputedStyle(n).display === 'contents' || !!n.closest('select');
+      const url = await h.toJpeg(node, { quality: 0.82, pixelRatio: 1, backgroundColor: bg, width: node.clientWidth, height: node.clientHeight, filter: shown });
       return dataUrlToBlob(url);
     } catch (e) {
       console.warn('feedback: screenshot failed', e);
