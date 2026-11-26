@@ -565,3 +565,8 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .app .topbar-actions .tb-btn[data-short]:active, .display .dx-actions .tb-btn[data-short]:active { scale: none; } }
 @media (max-width: 40rem) { .display .dx-actions { margin-inline-start: auto; } } /* phones: the tiles keep to the right when they wrap under the date */
 .tb-btn[data-short] > .dn-pill { margin-block: -.125rem; } /* the switch is taller than an icon: its word lines up with the other tiles' words */
+/* Over the realistic sky the buttons' muted ink is too faint: icons and words in full ink, with the paper halo the top bar has */
+:root[data-skymode="real"] .topbar-actions .tb-btn[data-short].d-btn, :root[data-skymode="real"] .display .dx-actions .tb-btn[data-short].d-btn,
+:root[data-skymode="real"] .act-tile { color: var(--ink); }
+:root[data-skymode="real"] .sh-ic { stroke: var(--ink); }
+:root[data-skymode="real"] .topbar-actions .tb-btn[aria-pressed="true"], :root[data-skymode="real"] .display .dx-actions .tb-btn[aria-pressed="true"] { color: var(--clear); }

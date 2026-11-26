@@ -56,14 +56,14 @@ function spawnDrop(d, init) {
   d.y = init ? rnd() * BAND : -d.len - rnd() * BAND * .3; return d;
 }
 function rain(dt) {
-  const target = Math.round((scene.rain || 0) * 650 * AREA);
+  const target = Math.round((scene.rain || 0) * (glassOn ? 850 : 650) * AREA); // through the glass a little denser, so it reads behind the drops
   if (drops.length > target) drops.length = target;
   for (let i = 0; drops.length < target && i < 80; i++) drops.push(spawnDrop({}, true));
   const vr = scene.wind * .4;
   for (const d of drops) { d.y += d.v * dt; d.x += vr * d.v * dt; if (d.y - d.len > BAND) spawnDrop(d, false); }
 }
 function drawRain(f, k, col, glass) {
-  const vr = scene.wind * .4, g = glass ? .55 : 1; // seen through wet glass the rain outside is softer: fainter, wider streaks
+  const vr = scene.wind * .4, g = glass ? .85 : 1; // seen through wet glass the rain outside is softer: a little fainter, wider streaks
   for (const [z0, z1, a, w] of [[0, .35, .16, .6], [.35, .7, .28, 1], [.7, 1.01, .45, 1.6]]) {
     ctx.strokeStyle = rgba(col, Math.min(1, a * (1 + f * 1.4) * k * g)); ctx.lineWidth = w * (glass ? 2 : 1); ctx.beginPath();
     for (const d of drops) { if (d.z < z0 || d.z >= z1) continue; ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - vr * d.len, d.y - d.len); }
@@ -167,19 +167,19 @@ function glassReset() {
   const dpr = cv.width / W; glassC.width = cv.width; glassC.height = cv.height; gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   GS = clamp(Math.min(W, H) / 480, .8, 2); gStatic = []; gDrops = [];
   const a = wet();
-  for (let i = 0, n = a * 900 * AREA; i < n; i++) addStatic(rnd() * W, rnd() * BAND, (.6 + rnd() * rnd() * 2.6) * GS);
-  for (let i = 0, n = Math.round(6 + a * 20); i < n; i++) gDrops.push(newDrop(rnd() * BAND));
+  for (let i = 0, n = a * 1500 * AREA; i < n; i++) addStatic(rnd() * W, rnd() * BAND, (.7 + rnd() * rnd() * 3) * GS);
+  for (let i = 0, n = Math.round(12 + a * 40); i < n; i++) gDrops.push(newDrop(rnd() * BAND));
 }
 function glassMove(dt) {
-  const a = wet(), maxS = a * 1400 * AREA;
-  let add = a * 280 * dt * AREA;
-  while (add > 0 && gStatic.length < maxS) { if (rnd() < add) addStatic(rnd() * W, rnd() * BAND, (.6 + rnd() * rnd() * 2.6) * GS); add--; }
-  if (gDrops.length < 8 + a * 28 && rnd() < a * 8 * dt) gDrops.push(newDrop(rnd() * BAND * .9));
+  const a = wet(), maxS = a * 2400 * AREA;
+  let add = a * 650 * dt * AREA; // new beads land all the time
+  while (add > 0 && gStatic.length < maxS) { if (rnd() < add) addStatic(rnd() * W, rnd() * BAND, (.7 + rnd() * rnd() * 3) * GS); add--; }
+  if (gDrops.length < 16 + a * 50 && rnd() < a * 22 * dt) gDrops.push(newDrop(rnd() * BAND * .9));
   gctx.globalCompositeOperation = 'destination-out';
   for (let i = gDrops.length - 1; i >= 0; i--) {
     const d = gDrops[i]; if (!d) continue;
-    if (!d.slide) { d.r += a * dt * .25 * GS * rnd(); if (d.r > 5.5 * GS && rnd() < dt * .5) { d.slide = true; d.vy = 15; } continue; }
-    d.vy = Math.min(d.vy + 130 * dt, 60 + d.r * 14 / GS); if (rnd() < dt * .7) d.vy *= .15; // drops stick and let go as they run
+    if (!d.slide) { d.r += a * dt * 1.2 * GS * rnd(); if (d.r > 4.5 * GS && rnd() < dt * 1.5) { d.slide = true; d.vy = 25; } continue; }
+    d.vy = Math.min(d.vy + 180 * dt, 80 + d.r * 18 / GS); if (rnd() < dt * .35) d.vy *= .4; // drops stick now and then, and let go
     const dy = d.vy * dt; d.y += dy; d.x += Math.sin(d.y * .045 + d.seed) * .35;
     gctx.beginPath(); gctx.arc(d.x, d.y, d.r * .95, 0, TAU); gctx.fill(); // the path it wipes clear
     d.trail += dy;
