@@ -129,6 +129,9 @@ function sheetTable(d) {
 }
 // After the Isha iqama the sheet shows tomorrow: d.ahead = { rows, sunrise } is tomorrow's day. The big clock and the
 // countdown stay on real time; the table, top line and foot read as the early hours before tomorrow's Fajr.
+// A swipe on Today's table shows tomorrow's for a while (app.js peek): d.peek = { rows } is tomorrow's day. Only the table
+// changes, with "Tomorrow" in its corner; nothing on it is the next prayer or gone by yet
+const peekView = (d) => ({ ...d, isAhead: true, rows: d.peek.rows, next: { key: null, kind: 'adhan', at: 9999 } });
 const aheadView = (d) => ({ ...d, isAhead: true, rows: d.ahead.rows, sunrise: d.ahead.sunrise, now: d.now - 1440, next: { ...d.next, at: d.next.at - 1440 } });
 // The next event as a headline: "Asr · العصر" with what is coming ("adhan in") beside it, readable from across a room.
 function nextHead(d) {
@@ -168,7 +171,7 @@ function board(real) {
   const body = k?.kind === 'dua'
     ? `<div class="sh-dua" data-dua><p class="sh-dua-h"><span>${k.title}</span><span>${k.pos} · tap for the next</span></p>`
       + `<p class="sh-dua-ar" lang="ar" dir="rtl">${esc(k.item.ar)}</p><p class="sh-dua-en">${esc(k.item.en)}</p></div>`
-    : ('fold' in d ? foldBtn(d.fold) : '') + sheetTable(d);
+    : ('fold' in d ? foldBtn(d.fold) : '') + sheetTable(d.peek && !d.isAhead ? peekView(d) : d);
   const w = d.warn;
   const warn = w ? `<p class="sh-warn"${d.wxLink ? ' data-go="weather"' : ''}><b>${esc(w.event)}</b><span>${esc(w.until)}${w.more ? ` · ${w.more} more` : ''}</span>${d.wxLink ? '<em class="sh-warn-go">Details ›</em>' : ''}<small>${esc(w.sender)}</small></p>` : '';
   return `<div class="sh${k?.kind === 'dua' ? ' sh-has-dua' : ''}${w ? ' sh-w' : ''}">${warn}<div class="sh-mid">`

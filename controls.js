@@ -173,3 +173,32 @@ export function sheet(dlg, { history: steps = true, panel = dlg } = {}) {
   panel.addEventListener('pointercancel', end);
   return { open, close: () => close(), grab };
 }
+
+// A sideways swipe with one finger (touch only): fn(1) for a swipe to the left (the next one), fn(-1) to the right.
+// Not when it starts on a control, inside a row that scrolls sideways, in an open window, or at the screen's edges
+// (the system's own back gesture lives there); ok(target) can refuse it too. Up-and-down scrolling is left alone.
+const scrollsX = (el) => { for (; el && el !== document.body; el = el.parentElement) { if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true; } return false; };
+export function onSwipe(el, fn, ok = () => true) {
+  let x0 = null, y0 = 0, t0 = 0, from = null;
+  el.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    x0 = e.touches.length === 1 && t.clientX > 24 && t.clientX < innerWidth - 24 ? t.clientX : null;
+    y0 = t.clientY; t0 = e.timeStamp; from = e.target;
+    // the end also goes to where the touch began, even once that is gone from the page (Today's board is redrawn every
+    // second, and then it never reaches el): listen there too; whichever hears it first handles it
+    from.addEventListener('touchend', end, { passive: true, once: true });
+    from.addEventListener('touchcancel', () => { x0 = null; }, { passive: true, once: true });
+  }, { passive: true });
+  el.addEventListener('touchend', end, { passive: true });
+  function end(e) {
+    if (x0 == null) return;
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    x0 = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < 1.5 * Math.abs(dy) || e.timeStamp - t0 > 800) return;
+    if (from.closest('input, select, textarea, button.stp-btn, .qp-tabs, .seg, dialog, [data-noswipe]') || document.querySelector('dialog[open]') || scrollsX(from) || !ok(from)) return;
+    fn(dx < 0 ? 1 : -1);
+  }
+  el.addEventListener('touchcancel', () => { x0 = null; }, { passive: true });
+}
+// The view a swipe brought in slides in from that side (a fade with Reduce motion, nothing in E-ink: animate decides)
+export const slideIn = (el, dir) => animate(el, { translate: [`${dir * 40}px 0`, '0 0'], opacity: [0, 1] }, { duration: T.dur.normal, ease: T.ease });

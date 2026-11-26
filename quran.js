@@ -6,7 +6,7 @@ import {
   cleanStore, hafsId, legacyTrack, retryWait, shouldRetry, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
 } from './quran-logic.js';
 import * as mo from './motion.js';
-import { bubble, searchBox, crumbs, sheet as makeSheet } from './controls.js';
+import { bubble, searchBox, crumbs, sheet as makeSheet, onSwipe, slideIn } from './controls.js';
 import { initOffline } from './quran-offline.js';
 import { tileArt, starArt, paintedArt, paintingOf, arNames, isMakki, SURAH_AR } from './quran-art.js';
 import { esc } from './logic.js';
@@ -927,6 +927,13 @@ export function initQuran({ say, stopOthers }) {
 
   // On a narrow screen only one of the two panes shows at a time
   const setPane = (p) => { tabEl.dataset.pane = p; };
+  // Phones: a sideways swipe on the library moves to the next or previous tab (Reciters, Surahs, Favorites, Playlists, Downloads)
+  onSwipe(listEl, (dir) => {
+    const tabs = [...tabEl.querySelectorAll('.qp-tabs [data-view]')], i = tabs.findIndex(b => b.getAttribute('aria-selected') === 'true'), next = tabs[i + dir];
+    if (i < 0 || !next) return; // searching (no tab is on), or already at the end
+    next.click();
+    slideIn(listEl, dir);
+  }, () => matchMedia('(max-width: 48rem)').matches && tabEl.dataset.pane === 'list');
   function openDetail(d, fromHistory = false) {
     if (!fromHistory) pushStep({ qp: 'detail', d });
     detail = d;
