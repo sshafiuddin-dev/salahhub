@@ -108,7 +108,9 @@ function realSetup() {
 function realDraw(now) {
   const { gl, cv, U } = real, p = scene;
   if (!gl || !p) return;
-  const w = Math.min(960, Math.round(innerWidth * .5)), h = Math.round(w * innerHeight / innerWidth);
+  // rain on glass: the sky outside a wet window is soft, so it is drawn small and stretched (cheaper too)
+  const glass = !!(p.glass && (p.rain > 0 || p.hail > 0) && fx?.fxMounted());
+  const w = glass ? Math.max(48, Math.round(innerWidth * .14)) : Math.min(960, Math.round(innerWidth * .5)), h = Math.round(w * innerHeight / innerWidth);
   if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; gl.viewport(0, 0, w, h); }
   if (real.start === null) real.start = now;
   const T = real.still ? 40 : (now - real.start) / 1000;
@@ -128,7 +130,7 @@ function realDraw(now) {
   f1('RAIN', layer ? 0 : p.rain); f1('SNOW', layer ? 0 : p.snow); f1('FOG', p.fog); f1('FLASH', flash); f1('MOON', p.moon); f1('WIND', p.wind); f1('DIM', dark ? 1 : 0);
   gl.uniform2f(U('SUN'), p.sun ? p.sun[0] : -1, p.sun ? p.sun[1] : -1);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
-  if (layer) fx.fxFrame(now, p, real.still, dark);
+  if (layer) fx.fxFrame(now, p, real.still, dark, glass ? cv : null); // drops on the glass show the sky upside down, so they read this canvas
 }
 function realLoop(now) {
   real.raf = requestAnimationFrame(realLoop);

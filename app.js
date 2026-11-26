@@ -108,6 +108,7 @@ if (settings.dispV === 2) { settings.wxSky = settings.wxPic === false ? 'off' : 
 for (const k of ['wxBack', 'wxBackV', 'wxPic']) delete settings[k];
 if (!['real', 'print', 'off'].includes(settings.wxSky)) settings.wxSky = DEFAULTS.wxSky;
 settings.wxMove = settings.wxMove !== false;
+settings.wxGlass = settings.wxGlass === true; // rain on glass: off (open sky) unless chosen
 settings.seconds = settings.seconds !== false;
 if (!['isha', 'maghrib'].includes(settings.nightStart)) settings.nightStart = settings.autoDim === 'maghrib' ? 'maghrib' : 'isha';
 settings.translit = settings.translit !== false;
@@ -431,7 +432,7 @@ function tick() {
   wxBand();
   const skyOk = settings.look === 'paper' && (onWeather() ? dim < 3 || (skyStyle() === 'real' && sky.night)
     : dim < 2 || (skyStyle() === 'real' && (dim === 3 || !sky.night)));
-  updateSky(sky, skyBack(dim), skyOk && root.dataset.black !== '1', root.dataset.theme === 'dark'); // nothing is drawn under the black cover
+  updateSky({ ...sky, glass: settings.wxGlass }, skyBack(dim), skyOk && root.dataset.black !== '1', root.dataset.theme === 'dark'); // nothing is drawn under the black cover
 
   // Alerts: only for moments crossed while the page is open
   if (placeKnown() && lastSec != null && c.sec > lastSec) for (const a of alertsBetween(alertRows(), settings.alerts, lastSec, c.sec)) fire(a);
@@ -1613,6 +1614,7 @@ $('dk-tr-toggle').addEventListener('click', () => { settings.translit = !setting
 $('dk-share').addEventListener('click', () => { const it = dkItem(); share(SETS[dk.key].title, [it.ar, it.tr, it.en, it.src].filter(Boolean).join('\n')); });
 $('set-adhkar').checked = settings.adhkar;
 $('set-wxsky').value = settings.wxSky; $('set-wxmove').checked = settings.wxMove; $('set-wxmove').disabled = settings.wxSky === 'off';
+$('set-wxglass').checked = settings.wxGlass; $('set-wxglass').disabled = settings.wxSky !== 'real'; // rain on glass is part of the realistic sky
 $('set-seconds').checked = settings.seconds;
 $('bg-group').hidden = settings.look !== 'paper';
 $('set-translit').checked = settings.translit;
@@ -1620,8 +1622,9 @@ const AR_SIZES = ['s', 'm', 'l'], AR_NAMES = ['Small', 'Medium', 'Large'];
 $('set-arsize').value = AR_SIZES.indexOf(settings.arSize);
 $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[AR_SIZES.indexOf(settings.arSize)]);
 $('set-adhkar').addEventListener('change', () => { settings.adhkar = $('set-adhkar').checked; save(); tick(); });
-$('set-wxsky').addEventListener('change', () => { settings.wxSky = $('set-wxsky').value; $('set-wxmove').disabled = settings.wxSky === 'off'; save(); applyLook(); tick(); });
+$('set-wxsky').addEventListener('change', () => { settings.wxSky = $('set-wxsky').value; $('set-wxmove').disabled = settings.wxSky === 'off'; $('set-wxglass').disabled = settings.wxSky !== 'real'; save(); applyLook(); tick(); });
 $('set-wxmove').addEventListener('change', () => { settings.wxMove = $('set-wxmove').checked; save(); applyLook(); tick(); });
+$('set-wxglass').addEventListener('change', () => { settings.wxGlass = $('set-wxglass').checked; save(); tick(); });
 $('set-seconds').addEventListener('change', () => { settings.seconds = $('set-seconds').checked; save(); tick(); });
 $('set-translit').addEventListener('change', () => { settings.translit = $('set-translit').checked; save(); tick(); });
 $('set-dxcard').value = settings.dxCard;
