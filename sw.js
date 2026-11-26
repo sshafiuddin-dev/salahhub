@@ -1,6 +1,6 @@
 // Offline support for IqamaHub. Network first, so a new deploy or new iqama times show at once;
 // the cached copy is used only when the network fails.
-const CACHE = 'iqama-v106';
+const CACHE = 'iqama-v107';
 const SHELL = ['./', 'boot.js', 'fonts.css', 'fonts/newsreader-latin-opsz-normal.woff2', 'fonts/newsreader-latin-opsz-italic.woff2', 'fonts/ibm-plex-sans-latin-400-normal.woff2', 'fonts/ibm-plex-sans-latin-500-normal.woff2', 'fonts/ibm-plex-sans-latin-600-normal.woff2', 'fonts/amiri-arabic-400-normal.woff2', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'skyfx.js', 'wxsound.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'quran-art.js', 'art/kaaba.webp', 'art/nabawi.webp', 'motion.js', 'controls.js', 'remote.js', 'tour.js', 'feedback.js', 'counter.js', 'vendor/motion.min.js', 'lib/PrayTimes.js', 'lib/CalculationMethods.js', 'iqama.json', 'hisn-text.json', 'manifest.webmanifest', 'icon-192.png', 'icons/favicon.svg', 'favicon-32.png', 'apple-touch-icon.png',
   // the guide's pages (Cloudflare serves them without .html), so Help opens offline; its screenshots are cached as they are viewed
   'guide/', 'guide/guide.css', 'guide/guide.js', ...['setup', 'location', 'today', 'iqama', 'alerts', 'display', 'quran', 'adhkar', 'weather', 'help'].map(p => `guide/${p}`)];
@@ -48,6 +48,8 @@ self.addEventListener('fetch', (e) => {
     return e.respondWith(caches.open(QURAN).then(c => c.match(key)).then(hit => (hit ? ranged(hit, req) : Response.redirect(key, 302))));
   }
   if (url.origin !== location.origin) return;
+  // live answers are never kept: offline, an old copy would pass for new (last week's warnings, a false "Last synced")
+  if (url.pathname.startsWith('/api/')) return;
   if (url.pathname.endsWith('.mp3')) { // an adhan recording: from the cache when kept, otherwise from the network (and keep it)
     const key = url.origin + url.pathname;
     return e.respondWith(caches.open(AUDIO).then(c => c.match(key)).then(hit => {
