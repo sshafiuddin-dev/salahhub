@@ -162,7 +162,11 @@ function progress(real) {
 // Phones held upright: the timetable folds away under the next prayer; this button opens it (app.js keeps the choice)
 const FOLD_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
 // The board's larger number swaps between the clock and the countdown (app.js keeps the choice; d.big is the one shown)
-const swapBtn = (big) => `<button class="sh-swap" type="button" data-swap>${big === 'count' ? 'Bigger clock' : 'Bigger countdown'}</button>`;
+// Under the timetable, the swap and the month are tiles like the screen's other buttons: an icon over its words
+const IC_CLOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>';
+const IC_COUNT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12M6 21h12M7 3v2a5 5 0 0 0 10 0V3M7 21v-2a5 5 0 0 1 10 0v2"/></svg>';
+const IC_MONTH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v16H4zM4 10h16M8 3v4M16 3v4"/></svg>';
+const swapBtn = (big) => `<button class="sh-swap act-tile" type="button" data-swap>${big === 'count' ? IC_CLOCK : IC_COUNT}<span>${big === 'count' ? 'Bigger clock' : 'Bigger countdown'}</span></button>`;
 const foldBtn = (open) => `<button class="sh-fold" type="button" data-fold aria-expanded="${open ? 'true' : 'false'}"><span>${open ? 'Hide prayer times' : 'All prayer times'}</span>${FOLD_ICON}</button>`;
 function board(real) {
   const d = real.ahead && real.next.at >= 1440 ? aheadView(real) : real;
@@ -179,7 +183,7 @@ function board(real) {
     + `<div class="sh-next">${nextHead(d)}<p class="sh-n${soon(d)}">${units(untilNext(d))}</p>${progress(real)}${nextLine(d)}${wxAt(d.wxAt)}`
     + `</div></div>`
     + body
-    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.big || d.month ? `<span class="sh-acts">${d.big ? swapBtn(d.big) : ''}${d.month ? `<a class="sh-month" href="#month" data-go="month">${esc(d.month)} <span aria-hidden="true">›</span></a>` : ''}</span>` : ''}</p></div>`;
+    + `<p class="sh-foot"><span>Sunrise ${fmt(d.sunrise)}${jum}</span>${d.fresh ? `<span class="sh-fresh${d.fresh.late ? ' late' : ''}">${esc(d.fresh.text)}</span>` : ''}${d.big || d.month ? `<span class="sh-acts">${d.big ? swapBtn(d.big) : ''}${d.month ? `<a class="sh-month act-tile" href="#month" data-go="month" aria-label="${esc(d.month)} timetable">${IC_MONTH}<span>${esc(d.month)}</span></a>` : ''}</span>` : ''}</p></div>`;
 }
 
 function timeline(d) {

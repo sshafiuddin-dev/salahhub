@@ -524,3 +524,38 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
   .tabbar .more-menu { left: auto; right: 0; translate: none; align-items: stretch; }
   .app .tabbar .d-menu .more-menu a { flex-direction: row; justify-content: flex-start; gap: .6rem; height: auto; white-space: nowrap; }
 }
+
+/* Action tiles: on every screen size the screen's own buttons (weather Sound, Brightness, Screen on, Full screen, and
+   in full screen Screen on, Brightness and Exit) are the phone's tiles, an icon over a short word. The full name stays
+   for screen readers. On tablets and TVs they sit at the right end of the bottom bar, after the tabs. */
+@media (min-width: 48.01rem) {
+  .app .topbar-actions .tb-btn[data-short] {
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+    width: 4.6rem; height: 3.3rem; min-height: 2.75rem; padding: .35rem 0;
+    border: 1px solid color-mix(in srgb, var(--ink) 35%, var(--surface)); border-radius: .75rem; background: none; color: var(--ink); text-decoration: none;
+  }
+  .app .topbar-actions .tb-btn[data-short] > svg { display: block; width: 1.3rem; height: 1.3rem; }
+  .app .topbar-actions .tb-btn[data-short] > span:not(.dn-pill) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .app .topbar-actions .tb-btn[data-short]::after { content: attr(data-short); font: 600 .75rem/1 var(--body); white-space: nowrap; letter-spacing: .02em; }
+  .app .topbar-actions { gap: .45rem; }
+  @media (max-width: 62rem) { .app .topbar-actions .tb-btn[data-short] { width: 4.2rem; } .app .topbar-actions .tb-btn[data-short]::after { font-size: .7rem; letter-spacing: 0; } }
+}
+.display .dx-actions { gap: .45rem; }
+.display .dx-actions .tb-btn[data-short] {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem;
+  width: 4.6rem; height: 3.3rem; min-height: 2.75rem; padding: .35rem 0;
+  border: 1px solid color-mix(in srgb, var(--ink) 35%, var(--surface)); border-radius: .75rem; background: none; color: var(--ink);
+}
+.display .dx-actions .tb-btn[data-short] > svg { display: block; width: 1.3rem; height: 1.3rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.display .dx-actions .tb-btn[data-short] > span:not(.dn-pill) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.display .dx-actions .tb-btn[data-short]::after { content: attr(data-short); font: 600 .75rem/1 var(--body); white-space: nowrap; letter-spacing: .02em; }
+/* Full screen (and Exit) is the one dark tile; Screen on, while the screen is kept on, is pressed like on a phone */
+.app .topbar-actions #fullscreen, .display .dx-actions #dx-exit { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.app .topbar-actions .tb-btn[aria-pressed="true"], .display .dx-actions .tb-btn[aria-pressed="true"] { background: var(--clear); border-color: var(--clear); color: var(--paper); }
+@media (hover: hover) {
+  .app .topbar-actions .tb-btn[data-short]:hover, .display .dx-actions .tb-btn[data-short]:hover { border-color: var(--ink); }
+}
+.app .topbar-actions .tb-btn[data-short]:active, .display .dx-actions .tb-btn[data-short]:active { scale: .95; }
+@media (prefers-reduced-motion: reduce) { .app .topbar-actions .tb-btn[data-short]:active, .display .dx-actions .tb-btn[data-short]:active { scale: none; } }
+@media (max-width: 40rem) { .display .dx-actions { margin-inline-start: auto; } } /* phones: the tiles keep to the right when they wrap under the date */
+.tb-btn[data-short] > .dn-pill { margin-block: -.125rem; } /* the switch is taller than an icon: its word lines up with the other tiles' words */
