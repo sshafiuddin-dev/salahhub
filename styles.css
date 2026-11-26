@@ -564,12 +564,12 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .sh-foot .sh-swap { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 /* The swap and the month as tiles: the same border, corners and words-under-icon as the screen's buttons (look.css) */
 .act-tile { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem; min-width: 4.6rem; height: 3.3rem; padding: .35rem .7rem;
-  border: 1px solid color-mix(in srgb, var(--ink) 35%, var(--surface)); border-radius: .75rem; background: none; color: var(--ink);
-  font: normal 600 .75rem/1 var(--body); letter-spacing: .02em; white-space: nowrap; text-decoration: none; transition: scale var(--m-fast) var(--m-ease), border-color var(--m-fast); }
+  border: 0; border-radius: .75rem; background: none; color: var(--muted);
+  font: normal 500 .75rem/1 var(--body); letter-spacing: .02em; white-space: nowrap; text-decoration: none; transition: scale var(--m-fast) var(--m-ease), border-color var(--m-fast); }
 .act-tile svg { display: block; width: 1.3rem; height: 1.3rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .act-tile:active { scale: .95; }
 .act-tile:focus-visible { outline: 3px solid var(--clear); outline-offset: 3px; }
-@media (hover: hover) { .act-tile:hover { border-color: var(--ink); } }
+@media (hover: hover) { .act-tile:hover { color: var(--ink); } }
 @media (prefers-reduced-motion: reduce) { .act-tile:active { scale: none; } }
 .sh-fold { display: none; }
 /* Brightness at night: Black (no light). A black cover over everything (app.js shows it after 30 s with no touch); the
@@ -811,7 +811,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .tb-btn { width: 2.75rem; height: 2.75rem; padding: 0; }
   .tb-btn svg { width: 1.3rem; height: 1.3rem; }
   .tb-btn[data-short] { width: 4.6rem; height: auto; min-height: 2.75rem; flex-direction: column; gap: .15rem; padding: .35rem 0; }
-  .tb-btn[data-short]::after { content: attr(data-short); font: 600 .75rem/1 var(--body); white-space: nowrap; letter-spacing: .02em; } /* the icon's name, in words, under it */
+  .tb-btn[data-short]::after { content: attr(data-short); font: 500 .75rem/1 var(--body); white-space: nowrap; letter-spacing: .02em; } /* the icon's name, in words, under it */
   /* four named buttons (with weather Sound) still leave room for the screen's title */
   .topbar-actions:has(#wx-snd:not([hidden])) { gap: .2rem; }
   .topbar-actions:has(#wx-snd:not([hidden])) .tb-btn[data-short] { width: 4rem; }
@@ -1355,17 +1355,17 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .iq-loc { display: inline-flex; align-items: center; gap: .5rem; min-width: 0; }
 .iq-loc .iq-place { min-width: 0; }
 .share { position: relative; flex: none; }
-/* Share: a see-through tile like the screen's other buttons, at the right end of the date and place line; the plane points
+/* Share: the plane alone, no box (like the tabs), at the right end of the date and place line; the plane points
    at the top-right corner, with a short dashed trail, and flies out through it when tapped (motion.js fly) */
 .iq-loc { flex: 1 1 auto; }
 .share { margin-inline-start: auto; }
-.share summary { list-style: none; display: grid; place-items: center; width: 2.9rem; height: 2.9rem; margin-block: -.75rem; border: 1px solid color-mix(in srgb, var(--ink) 35%, var(--surface)); border-radius: .75rem; background: none; overflow: hidden; cursor: pointer;
+.share summary { list-style: none; display: grid; place-items: center; width: 2.9rem; height: 2.9rem; margin-block: -.75rem; border: 0; border-radius: .75rem; background: none; overflow: visible; cursor: pointer;
   transition: scale var(--m-fast) var(--m-ease), border-color var(--m-fast); }
 .share summary::-webkit-details-marker { display: none; }
 .share summary:active { scale: .95; }
 .share summary:focus-visible { outline: 3px solid var(--clear); outline-offset: 3px; }
-@media (hover: hover) { .share summary:hover { border-color: var(--ink); } }
-.sh-ic { display: block; width: 1.4rem; height: 1.4rem; overflow: visible; fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (hover: hover) { .share summary:hover .sh-ic { stroke: var(--ink); } }
+.sh-ic { display: block; width: 1.5rem; height: 1.5rem; overflow: visible; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .sh-trail { stroke-dasharray: 1.3 1.9; opacity: .7; }
 .share-pills { position: absolute; z-index: 20; top: calc(100% + .9rem); right: 0; display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; } /* opens from the right, under its tile */
 .share-pills button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .5rem 1.15rem; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); color: var(--ink);
