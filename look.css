@@ -345,7 +345,6 @@ body { font-feature-settings: "kern", "liga"; }
   .ck-sky-top { stop-color: var(--sky-base); }
   .ck-ground { fill: var(--line); }
   #month tr.today, .wx-hours li.has-prayer { background: var(--surface); }
-  .dk-count { background-color: var(--line); }
   .qp-row.is-open, .qp-row.is-drag, .qp-pick { background: var(--surface); }
   @media (hover: hover) { .qp-row:hover, .qp-ic:hover { background: var(--surface); } }
   .qp-ic[data-q="repeat"][aria-pressed="true"], .qp-ic[data-q="shuffle"][aria-pressed="true"] { background: var(--line); }
