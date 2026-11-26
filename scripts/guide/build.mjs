@@ -16,7 +16,7 @@ const out = join(here, '../../guide');
 export const CHAPTERS = [
   { slug: 'setup', title: 'Set up your device', blurb: 'Android, Fire or iPad: add the app, keep the screen on, allow sound.' },
   { slug: 'location', title: 'Your location and times', blurb: 'ISCJ times or your own city, calculation method, Hijri date.' },
-  { slug: 'today', title: 'Reading the Today screen', blurb: 'The clock, the five prayers, iqama, the countdown and the dua.' },
+  { slug: 'today', title: 'Reading the Home screen', blurb: 'The clock, the five prayers, iqama, the countdown and the dua.' },
   { slug: 'iqama', title: 'Iqama times', blurb: 'Follow ISCJ, set a fixed time, or minutes after the adhan.' },
   { slug: 'alerts', title: 'Adhan and alerts', blurb: 'Adhan at prayer time, reminders before adhan and iqama.' },
   { slug: 'display', title: 'Display and night mode', blurb: 'Clock styles, looks, brightness, dimming after Isha.' },

@@ -499,3 +499,28 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 :root[data-palette="eink"] .qa-bg, :root[data-palette="contrast"] .qa-bg { fill: var(--ink); }
 :root[data-palette="eink"] .qa-fg, :root[data-palette="contrast"] .qa-fg { fill: var(--paper); }
 :root[data-palette="eink"] .qa-line, :root[data-palette="eink"] .qa-edge, :root[data-palette="contrast"] .qa-line, :root[data-palette="contrast"] .qa-edge { stroke: var(--paper); }
+
+/* Tab bars: an icon over a centred word on every screen. app.js fitBar keeps as many tabs as fit, in order (Home, Adhkar,
+   Quran, Weather, Settings, Month, Feedback, Help), and puts the rest under More, which shows only when it holds something */
+.tabbar [data-slot][hidden], .dockbar [data-slot][hidden], .tabbar .more[hidden], .dockbar .more[hidden] { display: none !important; }
+.more-menu, .dockbar .more-menu, .tabbar .more-menu { flex-direction: column; align-items: stretch; } /* read top to bottom, in the bar's order */
+.more-menu a { justify-content: flex-start; }
+.app .more-menu a svg { display: block; width: 1.2rem; height: 1.2rem; }
+/* phones */
+.dockbar > a, .dockbar > details.more { flex: 1 1 0; min-width: 4.5rem; }
+.dockbar > a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem; min-height: 3.5rem; }
+.dockbar > a svg { display: block; width: 1.4rem; height: 1.4rem; }
+.dockbar .more summary { flex-direction: column; gap: .2rem; }
+.dockbar .more summary .mm-btn { width: 1.75rem; height: 1.4rem; border-radius: .7rem; }
+.dockbar .more-menu { left: auto; right: 0; translate: none; }
+/* tablets and TVs: the same, on the bottom line beside the screen's buttons */
+@media (min-width: 48.01rem) {
+  .app .tabbar .d-menu a, .app .tabbar .d-menu .more summary { flex-direction: column; justify-content: center; gap: .2rem; height: 3.6rem; }
+  .app .tabbar .d-menu a svg { display: block; width: 1.3rem; height: 1.3rem; }
+  .app .tabbar .d-menu .more summary .mm-btn { width: 1.75rem; height: 1.3rem; border-radius: .65rem; }
+  .app > .tabbar { min-height: 3.6rem; }
+  .topbar-actions { height: 3.6rem; }
+  .app #help { display: none; } /* Help is a tab now (or under More) */
+  .tabbar .more-menu { left: auto; right: 0; translate: none; align-items: stretch; }
+  .app .tabbar .d-menu .more-menu a { flex-direction: row; justify-content: flex-start; gap: .6rem; height: auto; white-space: nowrap; }
+}

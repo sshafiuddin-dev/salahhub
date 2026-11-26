@@ -1,4 +1,4 @@
-// The first-run tour: a few short steps, each pointing at one thing on the real Today screen.
+// The first-run tour: a few short steps, each pointing at one thing on the real Home screen.
 // app.js starts it once, after a new visitor answers "where are you?", and again from "Take the tour again".
 // The board is redrawn every second and moves a few pixels for burn-in care, so each step finds its element again and
 // re-measures it every half second. Steps whose element is not on screen (no Help button on a phone, no bells in other
@@ -21,8 +21,8 @@ const STEPS = [
     text: 'Tap to step through Bright, Soft, Dim and Darkest. At night the screen dims by itself; choose how dark under Settings, Display.' },
   { at: ['#fullscreen'], title: 'Full screen and Keep screen on',
     text: 'Full screen shows only the times. Keep screen on stops this device going to sleep, for a screen on the wall.' },
-  { at: ['#help', '.dockbar a[href="#settings"]', '.tabbar a[href="#settings"]'], title: 'Help and Settings',
-    text: 'The guide explains every screen. Settings holds your location, iqama times, alerts and display.' },
+  { at: ['.tabbar [data-slot="help"]:not([hidden]) a', '.tabbar [data-slot="settings"]:not([hidden]) a', '.tabbar .more:not([hidden]) summary', '.dockbar .more:not([hidden]) summary'], title: 'Help and Settings',
+    text: 'The guide explains every screen. Settings holds your location, iqama times, alerts and display. When the bar is too narrow for every tab, they are under More.' },
 ];
 
 const shown = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };

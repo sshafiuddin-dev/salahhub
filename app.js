@@ -460,8 +460,7 @@ const monthTitle = () => (today ? new Intl.DateTimeFormat('en-US', { month: 'lon
 
 // Tabs: one screen each, chosen by the address (#weather), so the back button moves between them
 const TAB_IDS = ['today', 'weather', 'adhkar', 'quran', 'month', 'settings'];
-const MORE_TABS = ['adhkar', 'quran', 'month'];
-const TITLES = { today: 'Today', weather: 'Weather', adhkar: 'Adhkar audio', quran: 'Quran', settings: 'Settings' };
+const TITLES = { today: 'Home', weather: 'Weather', adhkar: 'Adhkar audio', quran: 'Quran', settings: 'Settings' };
 let sideStep = false;
 let tab = 'today', sub = 'location', shownSub = sub, shownHub = false, lastAddr = '', cameFrom = ''; // cameFrom: the screen before this one (its address)
 let feedback = null; // the feedback form, once set up
@@ -487,6 +486,45 @@ function fillHub() {
   for (const [k, v] of Object.entries(vals)) $(`hub-${k}`).textContent = v;
 }
 const HELP_SUB = { location: 'location', iqama: 'iqama', alerts: 'alerts', display: 'display', about: '' };
+// The tab bars (the bottom bar on phones, the bottom line on tablets and TVs) hold Home, Adhkar, Quran, Weather, Settings,
+// Month, Feedback and Help in that order: as many as fit, and the rest under More, which only shows when something is in it.
+// Measured, so it follows the screen, a turn, the font and the width of the buttons beside the line (tablets and TVs)
+function fitBar(nav) {
+  if (!nav.offsetParent) return; // the bar not in use at this size
+  const items = [...nav.querySelectorAll('[data-slot]')].filter(el => !el.closest('.more-menu'));
+  const more = nav.querySelector('.more');
+  const room = () => {
+    if (nav.classList.contains('dockbar')) return nav.clientWidth - nav.scrollWidth; // each tab keeps its minimum width
+    const row = nav.querySelector('.d-menu').getBoundingClientRect(), acts = document.querySelector('.topbar-actions')?.getBoundingClientRect();
+    return (acts && acts.width ? acts.left - 16 : nav.getBoundingClientRect().right) - row.right;
+  };
+  items.forEach(el => { el.hidden = false; });
+  more.hidden = true;
+  if (room() < 0) {
+    more.hidden = false;
+    for (let n = items.length - 1; n > 0 && room() < 0; n--) items[n].hidden = true;
+  }
+  const out = new Set(items.filter(el => el.hidden).map(el => el.dataset.slot));
+  nav.querySelectorAll('.more-menu [data-slot]').forEach(a => { a.hidden = !out.has(a.dataset.slot); });
+  markMore();
+}
+// More lights up while the screen in view is one it holds
+function markMore() {
+  document.querySelectorAll('.tabbar, .dockbar').forEach(nav => {
+    const m = nav.querySelector('.more'), inside = !!nav.querySelector(`.more-menu [data-slot="${tab}"]:not([hidden])`);
+    m.classList.toggle('is-on', inside);
+    m.querySelector('summary').classList.toggle(nav.classList.contains('tabbar') ? 'd-menu-active' : 'd-dock-active', inside);
+  });
+}
+const fitBars = () => document.querySelectorAll('.tabbar, .dockbar').forEach(fitBar);
+{
+  let queued = 0;
+  const later = () => { cancelAnimationFrame(queued); queued = requestAnimationFrame(fitBars); };
+  const watch = new ResizeObserver(later);
+  document.querySelectorAll('.tabbar, .dockbar, .topbar-actions').forEach(el => watch.observe(el));
+  document.fonts?.ready.then(later);
+  later();
+}
 function route() {
   const a = parseAddress(location.hash);
   let h = a.tab;
@@ -509,24 +547,18 @@ function route() {
   document.querySelectorAll('.tabbar a:not(.brand-link), .dockbar a').forEach(a => { // the mark links to Today too, but is not a tab
     const on = a.getAttribute('href') === `#${tab}`;
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
-    a.classList.toggle('d-menu-active', on && !!a.closest('.tabbar'));
-    a.classList.toggle('d-dock-active', on && !!a.closest('.dockbar'));
+    const bar = on && !a.closest('.more-menu'); // the copies inside More are marked by More itself
+    a.classList.toggle('d-menu-active', bar && !!a.closest('.tabbar'));
+    a.classList.toggle('d-dock-active', bar && !!a.closest('.dockbar'));
   });
-  // More holds Adhkar, Quran and Month: it lights up while one of them is open, and closes once a choice is made
-  document.querySelectorAll('.more').forEach(m => {
-    const inside = MORE_TABS.includes(tab);
-    m.classList.toggle('is-on', inside);
-    m.querySelector('summary').classList.toggle('d-menu-active', inside && !!m.closest('.tabbar'));
-    m.querySelector('summary').classList.toggle('d-dock-active', inside && !!m.closest('.dockbar'));
-    const d = m.matches('details') ? m : m.querySelector('details');
-    if (d) d.open = false;
-  });
+  markMore();
+  document.querySelectorAll('.more').forEach(m => { const d = m.matches('details') ? m : m.querySelector('details'); if (d) d.open = false; }); // a choice was made
   // a section of Settings on a phone sits under the list of sections: its own title, with Back and the way here
   const inSub = tab === 'settings' && !hub && matchMedia(PHONE_Q).matches;
   $('tab-title').textContent = tab === 'month' ? monthTitle() : inSub ? SUB_NAMES[sub] : TITLES[tab];
   $('tab-title').classList.toggle('is-long', $('tab-title').textContent.length > 12); // a phone sets a long title smaller, beside the buttons
   // Back and the way here, above the title, on a screen that sits under another one: Month under Today, a section under Settings
-  const way = $('crumbs'), up = tab === 'month' ? [{ label: 'Today', href: '#today' }] : inSub ? [{ label: 'Settings', href: '#settings' }] : null;
+  const way = $('crumbs'), up = tab === 'month' ? [{ label: 'Home', href: '#today' }] : inSub ? [{ label: 'Settings', href: '#settings' }] : null;
   way.hidden = !up;
   root.dataset.way = up ? 'on' : 'off'; // a phone gives the way here a row of its own, above the title
   way.innerHTML = up ? crumbs(up, tab === 'month' ? monthName() : SUB_NAMES[sub]) : '';
@@ -1749,7 +1781,7 @@ async function loadIqama(fresh) {
 async function sync(fresh, newDay) {
   lastSync = Date.now();
   const wantIqama = fresh || newDay || lastSync - lastIqama > IQAMA_EVERY;
-  // the Today tab's duas are entries of Hisn al-Muslim, read from the Adhkar tab's file; asked again until it has loaded once
+  // the Home screen's duas are entries of Hisn al-Muslim, read from the Adhkar tab's file; asked again until it has loaded once
   if (!SETS.adhan.items[0].ar) loadHisnText().then(fillSets).then(() => { dkSig = ''; tick(); }).catch((e) => console.warn('IqamaHub: adhkar text failed', e));
   const [live] = await Promise.all([wantIqama ? loadIqama(fresh) : null, loadWeather()]);
   if (wantIqama && live) lastIqama = lastSync;
