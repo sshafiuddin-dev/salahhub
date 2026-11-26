@@ -1,4 +1,4 @@
-import { animate } from './motion.js';
+import { animate, spring, done, fade, sheetIn, T } from './motion.js';
 
 // Small pieces shared by app.js and quran.js for the form controls drawn in look.css (switches, ticks, radios, sliders).
 
@@ -113,4 +113,60 @@ export function crumbs(up, here) {
   const near = up[up.length - 1];
   return link(near, 'crumb-back', CRUMB_LEFT, `Back to ${near.label}`)
     + `<ol>${up.map(s => `<li>${link(s, 'crumb-up', CRUMB_ESC(s.label))}</li>`).join('')}<li aria-current="page">${CRUMB_ESC(here)}</li></ol>`;
+}
+
+// Sheet (DESIGN.md › Components): a window (a <dialog>) that slides up from the bottom of a phone, with a grab handle on
+// top; on tablets and TVs it stays a rounded card in the middle. It closes with a slide back down (a fade with Reduce
+// motion, at once in E-ink) whether that is from its own buttons, a tap on the dimmed page, Escape or a TV remote's Back,
+// a pull down by the handle (touch and pen), or the phone's back gesture: opening it adds one history step (history:
+// false where the page keeps its own steps, as the Quran dialog does). `panel` is the part that shows, when the dialog
+// itself is see-through. Returns { open, close, grab }; the dialog's own close event fires as before.
+const PHONE = '(max-width: 48rem)';
+export function sheet(dlg, { history: steps = true, panel = dlg } = {}) {
+  dlg.classList.add('sheet');
+  const grab = document.createElement('div');
+  grab.className = 'sheet-grab'; grab.setAttribute('aria-hidden', 'true'); grab.innerHTML = '<span></span>';
+  panel.prepend(grab);
+  const phone = () => matchMedia(PHONE).matches;
+  const id = dlg.id || 'sheet';
+  let popping = false, leaving = false;
+  const reset = () => { panel.style.translate = ''; panel.style.opacity = ''; };
+  function open() {
+    if (dlg.open) return;
+    reset();
+    dlg.showModal();
+    if (steps) history.pushState({ ...(history.state || {}), sheet: id }, '');
+    if (phone()) sheetIn(panel); else fade(panel);
+  }
+  async function close(from = 0) {
+    if (!dlg.open || leaving) return;
+    leaving = true;
+    if (phone()) await done(animate(panel, { opacity: [1, 0], translate: [`0 ${from}px`, '0 100%'] }, { duration: T.dur.fast, ease: T.ease }));
+    dlg.close(); reset(); leaving = false;
+  }
+  dlg.addEventListener('close', () => { if (steps && !popping && history.state?.sheet === id) history.back(); }); // its history step goes too
+  if (steps) addEventListener('popstate', () => { if (dlg.open && history.state?.sheet !== id) { popping = true; dlg.close(); reset(); popping = false; } });
+  dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(); }); // Escape, or a TV remote's Back
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) close(); }); // a tap on the dimmed page behind it
+  // Pull it down by the handle row: past a third of the way, or a quick flick, and it closes; otherwise it settles back
+  let y0 = null, t0 = 0, dy = 0;
+  panel.addEventListener('pointerdown', (e) => {
+    if (!phone() || !dlg.open || e.button > 0) return;
+    const onGrab = !!e.target.closest('.sheet-grab'), nearTop = e.clientY - panel.getBoundingClientRect().top < 40;
+    if (!onGrab && (e.pointerType === 'mouse' || !nearTop || e.target.closest('button, a, input, select, textarea, summary, label'))) return;
+    y0 = e.clientY; t0 = e.timeStamp; dy = 0;
+    try { panel.setPointerCapture(e.pointerId); } catch (err) { /* not capturable: the move events still arrive while over it */ }
+  });
+  panel.addEventListener('pointermove', (e) => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); panel.style.translate = `0 ${dy}px`; });
+  const end = (e) => {
+    if (y0 == null) return;
+    const fast = dy / Math.max(1, e.timeStamp - t0) > .6, far = dy > Math.min(160, panel.offsetHeight / 3);
+    y0 = null;
+    if (dy > 8 && (far || fast)) return close(dy);
+    panel.style.translate = '';
+    if (dy) animate(panel, { translate: [`0 ${dy}px`, '0 0'] }, spring('snappy'));
+  };
+  panel.addEventListener('pointerup', end);
+  panel.addEventListener('pointercancel', end);
+  return { open, close: () => close(), grab };
 }

@@ -3,6 +3,7 @@
 // initFeedback({ details, snapTarget }) — details() returns a flat { label: value } object, shown before sending;
 // snapTarget() returns the element showing the screen the person was on (the app, or the full screen view).
 // The screenshot library (vendor/html-to-image.min.js) loads only when a screen is snapped.
+import { sheet } from './controls.js';
 
 const $ = (id) => document.getElementById(id);
 const MAX_SIDE = 1600, MAX_BYTES = 2.8 * 1024 * 1024;
@@ -92,7 +93,7 @@ function holdScroll(node) {
 }
 
 export function initFeedback({ details, snapTarget }) {
-  const dlg = $('fb');
+  const dlg = $('fb'), fbSheet = sheet(dlg); // a sheet on a phone, a card on a wider screen (controls.js)
   let snapped = null; // the picture of the screen the person was on, taken as the form opened
 
   async function snap() {
@@ -139,7 +140,7 @@ export function initFeedback({ details, snapTarget }) {
     $('fb-snap').disabled = true; $('fb-snap').title = '';
     showShot(null);
     $('fb-shot-none').textContent = 'Taking a picture of the screen you were on…';
-    dlg.showModal();
+    fbSheet.open();
     $('fb-message').focus();
     // start only once the form has been drawn, so the picture's work never holds the form back
     const painted = new Promise((ok) => requestAnimationFrame(() => setTimeout(ok)));
@@ -154,11 +155,10 @@ export function initFeedback({ details, snapTarget }) {
       if (!blob) status('The screen could not be captured. You can attach a picture instead.');
     });
   }
-  function close() { if (dlg.open) dlg.close(); }
+  function close() { fbSheet.close(); }
 
   document.querySelectorAll('.fb-open').forEach(b => b.addEventListener('click', open));
   $('fb-cancel').addEventListener('click', close);
-  dlg.addEventListener('click', (e) => { if (e.target === dlg) close(); }); // a tap on the dimmed backdrop
   $('fb-include').addEventListener('change', () => { $('fb-details').hidden = !$('fb-include').checked; });
   $('fb-snap').addEventListener('click', () => { if (snapped) { showShot(snapped, 'The screen you were on, as it will be sent.'); status(''); } });
   $('fb-shot-remove').addEventListener('click', () => { chose = true; showShot(null); $('fb-file').value = ''; });

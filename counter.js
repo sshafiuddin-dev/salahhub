@@ -4,7 +4,8 @@
 // the dua on its own with a big ring, stepping through its chapter with Previous dua and Next dua. A dua said once
 // has a ring that one tap ticks as read. Both places share one count per dua (the key is "chapter:entry" of
 // Hisn al-Muslim), kept on this device until the next Fajr adhan (countDay, logic.js).
-import { pop, fade } from './motion.js';
+import { pop } from './motion.js';
+import { sheet } from './controls.js';
 
 const $ = (id) => document.getElementById(id);
 const STORE = 'iqama-counts';
@@ -133,10 +134,11 @@ function step(by) {
   showFull(full.group, i);
   $('ctf').querySelector('.ctf-text').scrollTop = 0;
 }
+let fullSheet = null; // the Full view's sheet, set up in initCounter
 function openFull(group, index) {
   const dlg = $('ctf');
   showFull(group, index);
-  if (!dlg.open) { dlg.showModal(); fade(dlg.firstElementChild); }
+  if (!dlg.open) fullSheet.open();
   $('ctf-ring').focus();
 }
 
@@ -152,7 +154,8 @@ export function initCounter({ dayKey, onChange }) {
     const o = e.target.closest('[data-ct-open]');
     if (o) openFull(o.dataset.group, Number(o.dataset.index) || 0);
   });
-  $('ctf-close').addEventListener('click', () => $('ctf').close());
+  fullSheet = sheet($('ctf')); // a sheet on a phone (controls.js)
+  $('ctf-close').addEventListener('click', () => fullSheet.close());
   $('ctf-again').addEventListener('click', () => { again(full.key); $('ctf-ring').focus(); });
   $('ctf-prev').addEventListener('click', () => step(-1));
   $('ctf-next').addEventListener('click', () => step(1));

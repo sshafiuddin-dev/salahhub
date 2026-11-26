@@ -6,7 +6,7 @@ import {
   cleanStore, hafsId, legacyTrack, retryWait, shouldRetry, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
 } from './quran-logic.js';
 import * as mo from './motion.js';
-import { bubble, searchBox, crumbs } from './controls.js';
+import { bubble, searchBox, crumbs, sheet as makeSheet } from './controls.js';
 import { initOffline } from './quran-offline.js';
 import { tileArt, starArt, paintedArt, paintingOf, arNames, isMakki, SURAH_AR } from './quran-art.js';
 import { esc } from './logic.js';
@@ -673,13 +673,14 @@ export function initQuran({ say, stopOthers }) {
   const listById = (id) => store.lists.find(l => l.id === id);
   const count = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
 
+  const dlgSheet = makeSheet(dlg, { history: false, panel: dlgIn }); // a sheet on a phone; the steps back are kept below (pushStep)
   function showDlg(html, focusSel) {
     dlgIn.innerHTML = html;
-    if (!dlg.open) { dlg.showModal(); pushStep({ qp: 'dlg', d: detail }); mo.sheetIn(dlgIn); }
+    dlgIn.prepend(dlgSheet.grab);
+    if (!dlg.open) { dlgSheet.open(); pushStep({ qp: 'dlg', d: detail }); }
     (focusSel && dlgIn.querySelector(focusSel) || dlgIn.querySelector('button')).focus();
   }
-  const closeDlg = () => { if (dlg.open) dlg.close(); };
-  dlg.addEventListener('click', (e) => { if (e.target === dlg) closeDlg(); }); // a tap on the dimmed backdrop
+  const closeDlg = () => dlgSheet.close(); // slides down on a phone; a tap on the dimmed page, Escape and a pull down close it too (controls.js sheet)
   let dlgPopping = false;
   dlg.addEventListener('close', () => { if (!dlgPopping && hState().qp === 'dlg') history.back(); }); // closed by a button or Escape: its history step goes too
   function openAdd(track, name) {
