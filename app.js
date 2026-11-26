@@ -1,10 +1,10 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { parseAddress, addressOf, MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt, countDay } from './logic.js';
+import { parseAddress, addressOf, SETTINGS_SUBS, MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt, countDay } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes, AR, AR_JUM } from './clocks.js';
 import { animate, swap, fade, rows, fly } from './motion.js';
-import { bubble, stepper, searchBox, crumbs, sheet } from './controls.js';
+import { bubble, stepper, searchBox, crumbs, sheet, onSwipe, slideIn } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
 import { initRemote } from './remote.js';
 import { initCounter, counterHtml, setGroup, isDone as isDoneKey, paint as paintCount } from './counter.js';
@@ -316,6 +316,7 @@ function showHijri() {
 }
 
 let today = null, day = null, tomorrow = null, lastSec = null, weather = null;
+let peekUntil = 0, peekTimer = 0; // Today's table showing tomorrow, until this time (a swipe, see peek)
 let wxLoading = true; // the first weather has not come in yet: the Weather tab shows grey placeholders, not "not available"
 // After the Isha iqama (or an hour after the Isha adhan when no iqama is set) the timetables show tomorrow's day
 let ahead = false;
@@ -405,7 +406,8 @@ function tick() {
   const at = wxAt(ev, rows);
   const big = bigNow();
   for (const id of BIG_HOSTS) $(id).dataset.big = big;
-  const html = renderClock(settings.clock, { noSec: !settings.seconds, bells: bellsNow(), big, fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
+  const peekDay = !ahead && peekUntil > Date.now() ? { rows: fridayRows(tomorrow.rows, tomorrow.weekday, shownJumuah()) } : null;
+  const html = renderClock(settings.clock, { peek: peekDay, noSec: !settings.seconds, bells: bellsNow(), big, fold: !!settings.tableOpen, sec: c.sec, left, ahead: aheadDay, month: monthName(), now: nowMin, rows, sunrise: day.sunrise, next: ev, jumuah: shownJumuah(), date: today.full, tomorrowFajr: tomorrow.rows[0], wxAt: at, wxNow: wxNow(), wxLink: true, warn: warnLine(), fresh: freshNote() });
   redraw($('clock'), html);
   paintMark(progressOf(nowMin, prevEventAt(rows, ev, day.sunrise), ev.at), ev, left, rows);
   nowMinute = nowMin;
@@ -460,6 +462,7 @@ const monthTitle = () => (today ? new Intl.DateTimeFormat('en-US', { month: 'lon
 const TAB_IDS = ['today', 'weather', 'adhkar', 'quran', 'month', 'settings'];
 const MORE_TABS = ['adhkar', 'quran', 'month'];
 const TITLES = { today: 'Today', weather: 'Weather', adhkar: 'Adhkar audio', quran: 'Quran', settings: 'Settings' };
+let sideStep = false;
 let tab = 'today', sub = 'location', shownSub = sub, shownHub = false, lastAddr = '', cameFrom = ''; // cameFrom: the screen before this one (its address)
 let feedback = null; // the feedback form, once set up
 function go(t, s) {
@@ -528,7 +531,8 @@ function route() {
   root.dataset.way = up ? 'on' : 'off'; // a phone gives the way here a row of its own, above the title
   way.innerHTML = up ? crumbs(up, tab === 'month' ? monthName() : SUB_NAMES[sub]) : '';
   const was = lastAddr, addr = hub ? 'settings' : addressOf(tab, tab === 'settings' ? sub : null);
-  if (addr !== lastAddr) { cameFrom = lastAddr; lastAddr = addr; } // route() also runs to redraw the same screen
+  if (addr !== lastAddr) { if (!sideStep) cameFrom = lastAddr; lastAddr = addr; } // route() also runs to redraw the same screen
+  sideStep = false; // a swipe to the next section keeps where Back goes
   const helpAt = `guide/${tab === 'settings' ? (hub ? '' : HELP_SUB[sub]) : HELP_TAB[tab]}`;
   for (const a of [$('help'), ...document.querySelectorAll('[data-help]')]) a.href = helpAt; // the top Help button, and Help in the phone's More menu
   document.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-selected', b.dataset.sub === sub));
@@ -579,6 +583,14 @@ document.addEventListener('click', (e) => moreMenus().forEach(d => {
 }));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') moreMenus().forEach(d => { if (d.open) { d.open = false; d.querySelector('summary').focus(); } }); });
 document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => go('settings', b.dataset.sub))); // each section has its own address
+// Phones: a sideways swipe in a Settings section opens the next or previous one, in place (Back still goes to the list)
+onSwipe($('tab-settings'), (dir) => {
+  const next = SETTINGS_SUBS[SETTINGS_SUBS.indexOf(sub) + dir];
+  if (!next) return;
+  sideStep = true;
+  location.replace(`#settings/${next}`);
+  requestAnimationFrame(() => slideIn($(`sub-${next}`), dir));
+}, () => matchMedia(PHONE_Q).matches && parseAddress(location.hash).sub != null);
 
 // Sharing: the system share sheet where there is one, otherwise the clipboard
 const appUrl = location.href.split(/[?#]/)[0];
@@ -748,6 +760,13 @@ $('au-cats').addEventListener('click', (e) => {
   b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 });
 $('au-search').addEventListener('input', filterAdhkar);
+// Phones: a sideways swipe on the list moves to the next or previous category
+onSwipe($('tab-adhkar'), (dir) => {
+  const cats = [...$('au-cats').children], next = cats[cats.findIndex(b => b.getAttribute('aria-selected') === 'true') + dir];
+  if (!next) return;
+  next.click();
+  slideIn($('adhkar-audio'), dir);
+}, () => matchMedia(PHONE_Q).matches);
 searchBox($('au-search')); // controls.js: behind a round magnifier, like the Quran tab's
 filterAdhkar();
 // The text is copied from hisnmuslim.com into hisn-text.json by scripts/fetch-hisn.mjs, so it loads from this site
@@ -1415,7 +1434,7 @@ function prsSync() {
 }
 function openPrayer(k) {
   if (!ALERT_KEYS.includes(k)) return;
-  prsKey = k; prsAhead = ahead;
+  prsKey = k; prsAhead = ahead || peekUntil > Date.now();
   const box = $('prs-in');
   box.innerHTML = prsBody(k);
   box.prepend(prsSheet.grab);
@@ -1476,10 +1495,22 @@ $('prs').addEventListener('close', () => {
   setTimeout(run, 400);
 });
 // Read from the pointer (pointerdown and pointerup on the same prayer: the cell is redrawn between them), and from OK or Enter on the bell (detail 0)
-let prArmed = null;
+let prArmed = null, prAt = [0, 0];
 const prOf = (e) => { const el = e.target.closest('[data-bell], [data-pr]'); return el ? el.dataset.bell || el.dataset.pr : null; };
-$('clock').addEventListener('pointerdown', (e) => { prArmed = e.button > 0 ? null : prOf(e); });
-$('clock').addEventListener('pointerup', (e) => { const k = prOf(e); if (k && k === prArmed) openPrayer(k); prArmed = null; });
+$('clock').addEventListener('pointerdown', (e) => { prArmed = e.button > 0 ? null : prOf(e); prAt = [e.clientX, e.clientY]; });
+$('clock').addEventListener('pointerup', (e) => { const k = prOf(e), still = Math.hypot(e.clientX - prAt[0], e.clientY - prAt[1]) < 12; if (k && k === prArmed && still) openPrayer(k); prArmed = null; }); // a finger that moved was a swipe or a scroll
+// A swipe to the left on Today's table shows tomorrow's, with "Tomorrow" in its corner; a swipe to the right, or 30 seconds,
+// brings today back. Not after Isha, when the table is tomorrow's already
+function peek(on) {
+  const was = peekUntil !== 0;
+  clearTimeout(peekTimer);
+  peekUntil = on ? Date.now() + 30e3 : 0;
+  if (on) peekTimer = setTimeout(() => peek(false), 30e3);
+  if (was === on) return; // another swipe to the left only starts the 30 seconds again
+  tick();
+  slideIn($('clock').querySelector('.sh-tt'), on ? 1 : -1);
+}
+onSwipe($('clock'), (dir) => peek(dir > 0), (t) => !ahead && !!t.closest('.sh-tt'));
 $('clock').addEventListener('pointercancel', () => { prArmed = null; });
 $('clock').addEventListener('click', (e) => { const b = e.detail === 0 && e.target.closest('[data-bell]'); if (b) openPrayer(b.dataset.bell); });
 

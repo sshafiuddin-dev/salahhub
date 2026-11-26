@@ -520,6 +520,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .topbar .crumbs { grid-column: 1 / -1; grid-row: 1; }
   [data-way="on"] .topbar h1, [data-way="on"] .topbar-actions { grid-row: 2; }
   .topbar h1.is-long { font-size: 1.45rem; line-height: 1.1; }
+  .sh .sh-tt thead th .sh-tmrw { font-size: .62rem; letter-spacing: 0; } /* fits the corner beside Fajr */
 }
 @media (max-width: 48rem) and (orientation: portrait) {
   .sh { --u: min(.8svh, 1.25svw); height: auto; }
