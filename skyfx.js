@@ -214,6 +214,37 @@ function drawGlass(src, darkLook, k) {
 
 // sky.js, once a frame. still: one frame, nothing moves (Movement off, or the device asks for less motion).
 // darkLook: the page is in its dark look, so the night's colours. src: the sky's canvas when it rains on the glass.
+// Heat haze: a faint pattern of light and shade, made once, rises slowly through the lower sky and each thin line of
+// it wavers sideways, so the air over the ground seems to ripple; a warm tint goes with it. Still screens (reduce
+// motion, E-ink) get the tint alone.
+let hazeC = null;
+function hazeMake() {
+  const c = hazeC || (hazeC = document.createElement('canvas')); c.width = Math.ceil(W) + 16; c.height = 96;
+  const g = c.getContext('2d');
+  for (let i = 0, n = Math.round(c.width / 9); i < n; i++) {
+    const x = rnd() * c.width, y = rnd() * 96, r = 5 + rnd() * 16, light = rnd() < .55;
+    for (const oy of [y, y - 96, y + 96]) { // repeats top to bottom, so the rising pattern never shows a seam
+      const gr = g.createRadialGradient(x, oy, 0, x, oy, r);
+      gr.addColorStop(0, light ? 'rgba(255,250,240,.16)' : 'rgba(120,110,100,.10)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(x - r, oy - r, r * 2, r * 2);
+    }
+  }
+}
+function drawHeat(heat, still, k) {
+  const top = BAND * .45, h = BAND - top;
+  const g = ctx.createLinearGradient(0, top, 0, BAND);
+  g.addColorStop(0, 'rgba(255,214,160,0)'); g.addColorStop(1, `rgba(255,196,130,${(.16 * heat * k).toFixed(3)})`);
+  ctx.fillStyle = g; ctx.fillRect(0, top, W, h);
+  if (still) return;
+  if (!hazeC || hazeC.width !== Math.ceil(W) + 16) hazeMake();
+  const rise = T * 14;
+  for (let y = top; y < BAND; y += 3) {
+    const d = (y - top) / h, dx = (Math.sin(y * .11 + T * 2.8) + .5 * Math.sin(y * .31 - T * 4.3)) * 3.5 * heat * d;
+    ctx.globalAlpha = Math.min(1, heat * 1.3) * k * d;
+    ctx.drawImage(hazeC, 0, ((y + rise) % 96 + 96) % 96, hazeC.width, 1, dx - 8, y, hazeC.width, 3);
+  }
+  ctx.globalAlpha = 1;
+}
 export function fxFrame(now, p, still, darkLook, src) {
   if (!cv || !p || !fit()) return;
   scene = p;
@@ -227,6 +258,7 @@ export function fxFrame(now, p, still, darkLook, src) {
   const flicker = fxFlash() / .45, dim = Number(root.dataset.dim) || 0, k = dim >= 3 ? .35 : dim === 2 ? .6 : 1;
   const col = darkLook ? RAIN_NIGHT : mix(RAIN_NIGHT, RAIN_DAY, clamp(p.day, 0, 1));
   ctx.clearRect(0, 0, W, H);
+  if (p.heat > 0 && !darkLook) drawHeat(p.heat, still, k);
   drawBolt(flicker, k, !darkLook);
   if (drops.length) drawRain(flicker, k, col, glassOn);
   if (hail.length) drawHail(flicker, k);
