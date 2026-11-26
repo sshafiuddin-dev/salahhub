@@ -241,6 +241,8 @@ assert.deepEqual(pickAlerts([nwsF('Wind Advisory', 'Moderate', null, { descripti
   assert.equal(sky({ kind: 'rain', cloud: 30 }).cover, .85, 'rain means a mostly covered sky whatever the cloud figure says');
   assert.equal(sky({ kind: 'clear', cloud: 0 }).cover, 0);
   assert.equal(sky({ kind: 'snow', sky: { snow: 3 } }).snow, 1);
+  assert.equal(sky({ kind: 'storm', sky: { hail: true } }).hail, .7, 'a thunderstorm with hail (WMO 96, 99) brings hail');
+  assert.equal(sky({ kind: 'rain', sky: { hail: true } }).hail, 0, 'hail only comes with a thunderstorm');
   assert.equal(sky({ kind: 'fog' }).fog, .8); assert.equal(sky({ kind: 'clear', vis: 600 }).fog, .5);
   assert.equal(sky({ kind: 'clear', dir: 270, sky: { wind: 40 } }).wind, 1, 'a west wind (from 270°) blows the rain to the right, full lean at 40 km/h');
   assert.equal(sky({ kind: 'clear', dir: 90, sky: { wind: 20 } }).wind, -.5);
