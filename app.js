@@ -2,9 +2,9 @@ import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
 import { parseAddress, addressOf, MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt, countDay } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
-import { CLOCKS, renderClock, renderTimes } from './clocks.js';
+import { CLOCKS, renderClock, renderTimes, AR, AR_JUM } from './clocks.js';
 import { animate, swap, fade, rows, fly } from './motion.js';
-import { bubble, stepper, searchBox, crumbs } from './controls.js';
+import { bubble, stepper, searchBox, crumbs, sheet } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
 import { initRemote } from './remote.js';
 import { initCounter, counterHtml, setGroup, isDone as isDoneKey, paint as paintCount } from './counter.js';
@@ -585,6 +585,21 @@ $('share-menu').addEventListener('toggle', () => {
   $('share-dua').hidden = $('adhkar').hidden;
   rows(menu.querySelectorAll('.share-pills button:not([hidden])'));
   fly(menu.querySelector('.sh-plane'));
+});
+// On phones the Share button opens a sheet with the same four choices as rows; wider screens keep the pills
+const shsSheet = sheet($('shs'));
+$('shs').querySelector('.prs-in').prepend(shsSheet.grab);
+$('share-menu').querySelector('summary').addEventListener('click', (e) => {
+  if (!matchMedia('(max-width: 48rem)').matches) return;
+  e.preventDefault();
+  $('shs').querySelector('[data-share="share-dua"]').hidden = $('adhkar').hidden;
+  shsSheet.open();
+  $('shs').querySelector('[data-share]').focus({ preventScroll: true });
+});
+$('shs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-share]');
+  if (b) $(b.dataset.share).click(); // first, while the tap still counts as one: the system share sheet needs it
+  if (b || e.target.closest('[data-close]')) shsSheet.close();
 });
 
 // Sound: one shared player for the adhan, alert sounds and previews.
@@ -1326,10 +1341,121 @@ function openAlertCard(k) {
   go('settings', 'alerts');
   if (location.hash.slice(1) === 'settings' && !card?.matches(':focus-within')) show();
 }
-let bellArmed = null;
-$('clock').addEventListener('pointerdown', (e) => { bellArmed = e.target.closest('[data-bell]')?.dataset.bell || null; });
-$('clock').addEventListener('pointerup', (e) => { const k = e.target.closest('[data-bell]')?.dataset.bell; if (k && k === bellArmed) openAlertCard(k); bellArmed = null; });
-$('clock').addEventListener('click', (e) => { const b = e.detail === 0 && e.target.closest('[data-bell]'); if (b) openAlertCard(b.dataset.bell); });
+
+// One prayer's sheet: a tap on its bell or anywhere in its column on Today (OK on the bell with a TV remote).
+// Its adhan and iqama times (khutbahs for Jumu'ah), the weather then, its alerts and its adhan offset; the sounds and
+// the khutbah times stay under Settings, Adhan and alerts ("More alert settings"). A sheet on phones, a card elsewhere.
+const prsSheet = sheet($('prs'));
+let prsKey = null, prsAhead = false;
+const PRS_PARTS = { adhan: 'At adhan', before: 'Before adhan', iqama: 'Before iqama' };
+const wxWords = (w) => (w ? `${Math.round(w.temp)}°${settings.units}${w.words ? `, ${w.words}` : ''}${w.pop != null ? ` (${Math.round(w.pop)}% chance)` : ''}` : '');
+function prsTimes(k) {
+  const rows = prsAhead ? tomorrow.rows : day.rows, r = rows.find(x => x.key === (k === 'jumuah' ? 'dhuhr' : k));
+  if (!r) return '';
+  const cell = (label, v) => `<div><dt>${label}</dt><dd>${v}</dd></div>`;
+  const iq = r.iqama == null ? 'not set' : r.iqama === r.adhan && !r.def ? 'on time' : `${fmt(r.iqama)}${r.def ? ' (default)' : ''}`;
+  const list = k === 'jumuah' ? shownJumuah() : [];
+  const times = k === 'jumuah'
+    ? cell(list.length > 1 ? 'Khutbahs' : 'Khutbah', list.length ? list.map(fmt).join('<br>') : 'not set')
+    : cell('Adhan', fmt(r.adhan)) + cell('Iqama', iq);
+  const w = wxFor(r.adhan + (prsAhead ? 1440 : 0));
+  return `<dl class="prs-times">${times}</dl>${w ? `<p class="prs-wx">Weather at ${k === 'jumuah' ? 'Dhuhr' : 'adhan'}: ${wxWords(w)}</p>` : ''}`;
+}
+function prsBody(k) {
+  const a = settings.alerts[k], name = k === 'jumuah' ? 'Jumu’ah' : NAMES[k];
+  const step = (part, label) => `<div class="al-row prs-row" data-part="${part}"><input class="tick" type="checkbox" id="prs-${part}-on" data-f="${part}-on"${a[part].on ? ' checked' : ''}>`
+    + `<label for="prs-${part}-on">${label}</label>`
+    + (part === 'adhan' ? `<small class="prs-snd">${soundName(a.adhan.type)}</small>` : `<span class="al-min"><input class="d-input d-input-sm" type="number" data-f="${part}-min" min="1" max="60" step="1" inputmode="numeric" value="${a[part].min}" aria-label="${name}, ${label.toLowerCase()}, minutes"><small>min</small></span>`)
+    + '</div>';
+  const steps = k === 'jumuah' ? step('before', 'Before khutbah') : Object.entries(PRS_PARTS).map(([p, l]) => step(p, l)).join('');
+  const tune = k === 'jumuah' ? '' : `<div class="prs-sec" role="group" aria-labelledby="prs-tune-h"><h3 class="iq-label" id="prs-tune-h">Adhan time</h3>`
+    + `<div class="al-row prs-row"><label for="prs-tune">Earlier or later</label><input class="d-input d-input-sm" type="number" id="prs-tune" data-f="tune" min="-30" max="30" step="1" inputmode="numeric" value="${settings.tune[k]}" aria-label="${name} adhan, minutes earlier or later"><small>min</small></div>`
+    + '<p class="prs-note">Moves this prayer’s adhan on this screen, if your masjid calls it at a different time.</p></div>';
+  return `<header class="prs-head"><h2 id="prs-title">${name} <span class="prs-ar" lang="ar">${k === 'jumuah' ? AR_JUM : AR[k]}</span></h2>${prsAhead ? '<p class="prs-day">Tomorrow</p>' : ''}</header>`
+    + `<div id="prs-when">${prsTimes(k)}</div>`
+    + `<div class="prs-sec" role="group" aria-labelledby="prs-al-h"><div class="prs-al"><h3 class="iq-label" id="prs-al-h">Alerts</h3><input class="d-toggle d-toggle-success" type="checkbox" role="switch" id="prs-on" data-f="on" aria-label="${name} alerts"${a.on ? ' checked' : ''}></div>${steps}</div>`
+    + tune
+    + `<div class="prs-foot"><button class="d-btn d-btn-sm d-btn-ghost" type="button" data-more>More alert settings</button><button class="d-btn d-btn-sm" type="button" data-close>Done</button></div>`;
+}
+function prsSync() {
+  const k = prsKey, a = settings.alerts[k], box = $('prs-in');
+  box.querySelectorAll('[data-part] input').forEach(el => {
+    const part = el.closest('[data-part]').dataset.part;
+    el.disabled = !a.on || (el.type !== 'checkbox' && !a[part].on);
+  });
+  box.querySelectorAll('[data-part] .stp-btn').forEach(b => { b.disabled = b.parentElement.querySelector('input').disabled; });
+  box.classList.toggle('is-off', !a.on);
+}
+function openPrayer(k) {
+  if (!ALERT_KEYS.includes(k)) return;
+  prsKey = k; prsAhead = ahead;
+  const box = $('prs-in');
+  box.innerHTML = prsBody(k);
+  box.prepend(prsSheet.grab);
+  box.querySelectorAll('input[type="number"]').forEach(stepper);
+  prsSync();
+  prsSheet.open();
+  $('prs-on').focus({ preventScroll: true });
+}
+$('prs-in').addEventListener('change', (e) => {
+  const f = e.target.dataset.f, k = prsKey;
+  if (!f || !k) return;
+  if (f === 'tune') {
+    const v = Math.round(+e.target.value);
+    settings.tune = cleanTune({ ...settings.tune, [k]: Number.isFinite(v) ? Math.max(-30, Math.min(30, v)) : 0 });
+    e.target.value = settings.tune[k];
+    const other = $('tune-form').querySelector(`[data-k="${k}"]`);
+    if (other) other.value = settings.tune[k];
+    recalc();
+    $('prs-when').innerHTML = prsTimes(k);
+    return;
+  }
+  const a = JSON.parse(JSON.stringify(settings.alerts[k])), [part, what] = f.split('-');
+  if (f === 'on') a.on = e.target.checked;
+  else if (what === 'on') a[part].on = e.target.checked;
+  else {
+    const n = Math.round(+e.target.value);
+    if (n >= 1 && n <= 60) a[part].min = n;
+    else { say('Alert minutes must be between 1 and 60.'); e.target.value = a[part].min; }
+  }
+  settings.alerts[k] = cleanAlert(k, a);
+  save();
+  buildAlerts(); // Settings, Adhan and alerts shows the same
+  prsSync();
+  tick(); // the bell on the board
+  try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (err) {}
+});
+$('prs-in').addEventListener('click', (e) => {
+  if (e.target.closest('[data-close]')) return prsSheet.close();
+  if (!e.target.closest('[data-more]')) return;
+  // the sheet's history step goes back first, then Settings opens on top of Today
+  const k = prsKey;
+  prsNext = () => openAlertCard(k);
+  prsSheet.close();
+});
+// Once the sheet and its history step have gone (popstate, or a moment when there was none): Settings for "More alert
+// settings", otherwise back to the bell it came from (the board is redrawn every second, so the old button is gone)
+let prsNext = null;
+$('prs').addEventListener('close', () => {
+  const k = prsKey, next = prsNext;
+  prsNext = null;
+  let ran = false;
+  const run = () => {
+    if (ran) return;
+    ran = true; removeEventListener('popstate', run);
+    requestAnimationFrame(() => (next ? next() : $('clock').querySelector(`[data-bell="${k}"]`)?.focus({ preventScroll: true })));
+  };
+  addEventListener('popstate', run);
+  setTimeout(run, 400);
+});
+// Read from the pointer (pointerdown and pointerup on the same prayer: the cell is redrawn between them), and from OK or Enter on the bell (detail 0)
+let prArmed = null;
+const prOf = (e) => { const el = e.target.closest('[data-bell], [data-pr]'); return el ? el.dataset.bell || el.dataset.pr : null; };
+$('clock').addEventListener('pointerdown', (e) => { prArmed = e.button > 0 ? null : prOf(e); });
+$('clock').addEventListener('pointerup', (e) => { const k = prOf(e); if (k && k === prArmed) openPrayer(k); prArmed = null; });
+$('clock').addEventListener('pointercancel', () => { prArmed = null; });
+$('clock').addEventListener('click', (e) => { const b = e.detail === 0 && e.target.closest('[data-bell]'); if (b) openPrayer(b.dataset.bell); });
+
 // The fold button on phones (see clocks.js): read from the pointer like the weather link, and from Enter or Space (detail 0)
 let foldArmed = false;
 const applyFold = () => { $('clock').dataset.fold = settings.tableOpen ? 'open' : 'closed'; };

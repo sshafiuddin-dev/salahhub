@@ -422,6 +422,14 @@
             </div>
         </form>
     </dialog>
+    <!-- One prayer: its times, the weather then, its alerts and adhan offset (app.js prayerSheet). A sheet on phones, a card elsewhere -->
+    <dialog class="fb prs" id="prs" aria-labelledby="prs-title"><div class="prs-in" id="prs-in"></div></dialog>
+    <!-- Share on phones: the same four choices as the pills, as rows in a sheet -->
+    <dialog class="fb shs" id="shs" aria-labelledby="shs-title"><div class="prs-in">
+        <h2 id="shs-title">Share</h2>
+        <div class="shs-list"><button type="button" data-share="share-day">Today’s times</button><button type="button" data-share="share-month">This month</button><button type="button" data-share="share-dua">Today’s dua</button><button type="button" data-share="share-app">The app</button></div>
+        <button class="d-btn d-btn-ghost prs-done" type="button" data-close>Close</button>
+    </div></dialog>
 
     <script src="vendor/motion.min.js" defer></script>
     <script type="module" src="app.js"></script>
