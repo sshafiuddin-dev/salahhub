@@ -11,6 +11,7 @@ const mix = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b
 const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
 const RAIN_DAY = [215, 225, 235], RAIN_NIGHT = [165, 180, 205];
 const root = document.documentElement;
+const AMT = () => scene?.amount ?? 1; // Settings › Display › Amount: Less .4 to Lots 2.2 times what really falls
 
 let cv = null, ctx = null, W = 0, H = 0, BAND = 0, AREA = 1, scene = null, last = 0, T = 0;
 let drops = [], flakes = [], hail = [];
@@ -56,7 +57,7 @@ function spawnDrop(d, init) {
   d.y = init ? rnd() * BAND : -d.len - rnd() * BAND * .3; return d;
 }
 function rain(dt) {
-  const target = Math.round((scene.rain || 0) * (glassOn ? 850 : 650) * AREA); // through the glass a little denser, so it reads behind the drops
+  const target = Math.round((scene.rain || 0) * AMT() * (glassOn ? 850 : 650) * AREA); // through the glass a little denser, so it reads behind the drops
   if (drops.length > target) drops.length = target;
   for (let i = 0; drops.length < target && i < 80; i++) drops.push(spawnDrop({}, true));
   const vr = scene.wind * .4;
@@ -77,7 +78,7 @@ function spawnFlake(f, init) {
   f.amp = 6 + f.z * 18; f.fq = .6 + rnd() * .9; f.ph = rnd() * TAU; f.x = rnd() * W; f.y = init ? rnd() * BAND : -10 - rnd() * BAND * .2; return f;
 }
 function snow(dt) {
-  const target = Math.round((scene.snow || 0) * 700 * AREA);
+  const target = Math.round((scene.snow || 0) * AMT() * 700 * AREA);
   if (flakes.length > target) flakes.length = target;
   for (let i = 0; flakes.length < target && i < 80; i++) flakes.push(spawnFlake({}, true));
   const w = scene.wind, boost = 1 + Math.abs(w) * 1.2;
@@ -100,7 +101,7 @@ function spawnHail(h, init) {
   h.y = init ? rnd() * BAND : -rnd() * BAND * .3; return h;
 }
 function hailMove(dt) {
-  const target = Math.round((scene.hail || 0) * 300 * AREA);
+  const target = Math.round((scene.hail || 0) * AMT() * 300 * AREA);
   if (hail.length > target) hail.length = target;
   for (let i = 0; hail.length < target && i < 40; i++) hail.push(spawnHail({}, true));
   for (const h of hail) { h.y += h.v * dt; h.x += scene.wind * .3 * h.v * dt; if (h.y - h.l > BAND) spawnHail(h, false); }
@@ -144,11 +145,13 @@ function drawBolt(f, k, light) {
   }
 }
 
-// ---- rain on glass (Settings › Display › Rain on glass, only while it rains) ----
-// The sky behind is drawn soft by sky.js. On the pane: many small droplets that build up, and bigger drops that act
-// as little lenses (the sky upside down inside them); a heavy one slides down, swallows what is in its way, leaves a
-// trail of tiny drops, and joins the drops it meets.
-let glassC = null, gctx = null, dropSpr = null, gStatic = [], gDrops = [], glassOn = false, GS = 1;
+// ---- through a window (Settings › Display › Through a window) ----
+// The sky behind is drawn soft by sky.js when anything is on the glass. Each weather leaves its own mark on the pane:
+// rain: many small droplets that build up, and bigger drops that act as little lenses (the sky upside down inside
+// them); a heavy one slides down, swallows what is in its way, leaves a trail of tiny drops, and joins the drops it meets.
+// Snow: flakes land, stick a while and melt into droplets. Hail: pellets strike, bounce off and leave a drop.
+// Fog: the pane mists over and tiny beads condense. A dry day: clean glass, and what was on it slowly dries away.
+let glassC = null, gctx = null, dropSpr = null, crystSpr = null, gStatic = [], gDrops = [], gSnow = [], gHits = [], glassOn = false, GS = 1, prune = 0;
 function dropSprite() {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const x = c.getContext('2d'); x.beginPath(); x.arc(32, 32, 31, 0, TAU);
@@ -159,22 +162,57 @@ function dropSprite() {
   x.fillStyle = 'rgba(255,255,255,.35)'; x.beginPath(); x.ellipse(43, 47, 4, 2, -.6, 0, TAU); x.fill();
   return c;
 }
-const wet = () => clamp((scene.rain || 0) + (scene.hail || 0) * .5, 0, 1);
+// a snow crystal stuck to the glass: six arms with small side branches, soft at the edges
+function crystalSprite() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.translate(32, 32);
+  const g = x.createRadialGradient(0, 0, 0, 0, 0, 30); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.beginPath(); x.arc(0, 0, 30, 0, TAU); x.fill();
+  x.strokeStyle = 'rgba(255,255,255,.95)'; x.lineCap = 'round';
+  for (let i = 0; i < 6; i++) {
+    x.save(); x.rotate(i * TAU / 6); x.lineWidth = 3; x.beginPath(); x.moveTo(0, 0); x.lineTo(0, -26);
+    x.lineWidth = 2; for (const [y, l] of [[-11, 7], [-19, 5]]) { x.moveTo(0, y); x.lineTo(-l, y - l); x.moveTo(0, y); x.lineTo(l, y - l); }
+    x.stroke(); x.restore();
+  }
+  return c;
+}
+const wet = () => clamp(((scene.rain || 0) + (scene.hail || 0) * .5) * AMT(), 0, 2.2); // what makes running drops
+const fogW = () => clamp(scene.fog || 0, 0, 1);
 function addStatic(x, y, r) { gStatic.push({ x, y, r }); gctx.drawImage(dropSpr, x - r, y - r, r * 2, r * 2); }
+const bead = () => (.7 + rnd() * rnd() * 3) * GS;
 function newDrop(y) { return { x: rnd() * W, y, r: (2.5 + rnd() * rnd() * 7) * GS, vy: 0, slide: false, seed: rnd() * 99, trail: 0 }; }
 function glassReset() {
-  if (!glassC) { glassC = document.createElement('canvas'); gctx = glassC.getContext('2d'); dropSpr = dropSprite(); }
+  if (!glassC) { glassC = document.createElement('canvas'); gctx = glassC.getContext('2d'); dropSpr = dropSprite(); crystSpr = crystalSprite(); }
   const dpr = cv.width / W; glassC.width = cv.width; glassC.height = cv.height; gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  GS = clamp(Math.min(W, H) / 480, .8, 2); gStatic = []; gDrops = [];
-  const a = wet();
-  for (let i = 0, n = a * 1500 * AREA; i < n; i++) addStatic(rnd() * W, rnd() * BAND, (.7 + rnd() * rnd() * 3) * GS);
-  for (let i = 0, n = Math.round(12 + a * 40); i < n; i++) gDrops.push(newDrop(rnd() * BAND));
+  GS = clamp(Math.min(W, H) / 480, .8, 2); gStatic = []; gDrops = []; gSnow = []; gHits = [];
+  const a = wet(), fg = fogW(), sn = (scene.snow || 0) * AMT();
+  for (let i = 0, n = (a * 1500 + fg * 700) * AREA; i < n; i++) addStatic(rnd() * W, rnd() * BAND, fg && !a ? bead() * .55 : bead());
+  if (a > 0) for (let i = 0, n = Math.round(12 + a * 40); i < n; i++) gDrops.push(newDrop(rnd() * BAND));
+  for (let i = 0, n = sn * 120 * AREA; i < n; i++) gSnow.push(newFlake(rnd()));
 }
+function newFlake(age = 0) { const life = 8 + rnd() * 14; return { x: rnd() * W, y: rnd() * BAND, r: (3 + rnd() * rnd() * 7) * GS, rot: rnd() * TAU, t: age * life * .6, life }; }
 function glassMove(dt) {
-  const a = wet(), maxS = a * 2400 * AREA;
-  let add = a * 650 * dt * AREA; // new beads land all the time
-  while (add > 0 && gStatic.length < maxS) { if (rnd() < add) addStatic(rnd() * W, rnd() * BAND, (.7 + rnd() * rnd() * 3) * GS); add--; }
-  if (gDrops.length < 16 + a * 50 && rnd() < a * 22 * dt) gDrops.push(newDrop(rnd() * BAND * .9));
+  const a = wet(), fg = fogW(), sn = (scene.snow || 0) * AMT(), hl = (scene.hail || 0) * AMT();
+  const maxS = Math.min(4200, (a * 2400 + fg * 900 + sn * 500) * AREA);
+  let add = (a * 650 + fg * 40) * dt * AREA; // new beads land (or condense) all the time
+  while (add > 0 && gStatic.length < maxS) { if (rnd() < add) addStatic(rnd() * W, rnd() * BAND, fg && !a ? bead() * .55 : bead()); add--; }
+  // a dry spell: what is on the glass slowly dries away
+  if (a < .02 && fg < .02 && sn < .02 && gStatic.length) {
+    gctx.globalCompositeOperation = 'destination-out'; gctx.fillStyle = `rgba(0,0,0,${Math.min(1, dt * .04)})`; gctx.fillRect(0, 0, W, H);
+    gctx.globalCompositeOperation = 'source-over'; if (rnd() < dt * .04 * 3) gStatic.length = Math.floor(gStatic.length * .9);
+  }
+  // snow: crystals land, stay a while, then melt into a droplet
+  if (gSnow.length < sn * 260 * AREA && rnd() < sn * 16 * dt * AREA) gSnow.push(newFlake());
+  for (let i = gSnow.length - 1; i >= 0; i--) { const f = gSnow[i]; f.t += dt; if (f.t > f.life) { addStatic(f.x, f.y + f.r * .3, f.r * .38); gSnow.splice(i, 1); } }
+  // hail: a pellet strikes, bounces off the glass and leaves a small drop where it hit
+  if (hl > 0) for (let n = hl * 12 * dt * AREA; n > 0; n--) if (rnd() < n) gHits.push({ x: rnd() * W, y: rnd() * BAND, x0: 0, y0: 0, vx: (rnd() - .5) * 60, vy: -70 - rnd() * 60, t: 0, r: (1.4 + rnd() * 1.6) * GS, hit: false });
+  for (let i = gHits.length - 1; i >= 0; i--) {
+    const h = gHits[i]; h.t += dt;
+    if (!h.hit) { h.hit = true; addStatic(h.x, h.y, h.r * .8); h.x0 = h.x; h.y0 = h.y; }
+    h.x += h.vx * dt; h.y += h.vy * dt; h.vy += 520 * dt;
+    if (h.t > .45) gHits.splice(i, 1);
+  }
+  if (a > .02 && gDrops.length < 16 + a * 50 && rnd() < a * 22 * dt) gDrops.push(newDrop(rnd() * BAND * .9));
   gctx.globalCompositeOperation = 'destination-out';
   for (let i = gDrops.length - 1; i >= 0; i--) {
     const d = gDrops[i]; if (!d) continue;
@@ -195,20 +233,34 @@ function glassMove(dt) {
     if (d.y - d.r > BAND) gDrops.splice(gDrops.indexOf(d), 1);
   }
   gctx.globalCompositeOperation = 'source-over';
-  const sl = gDrops.filter(d => d.slide);
-  if (sl.length) gStatic = gStatic.filter(s => !sl.some(d => Math.abs(s.x - d.x) < d.r && Math.abs(s.y - d.y) < d.r));
+  // the count of beads, which caps new ones: the running drops' wiped paths are taken off twice a second
+  prune += dt;
+  if (prune > .5) { prune = 0; const sl = gDrops.filter(d => d.slide); if (sl.length) gStatic = gStatic.filter(s => !sl.some(d => Math.abs(s.x - d.x) < d.r && Math.abs(s.y - d.y) < d.r * 6)); }
 }
 function drawGlass(src, darkLook, k) {
-  ctx.fillStyle = darkLook ? 'rgba(40,46,58,.12)' : 'rgba(225,230,236,.12)'; ctx.fillRect(0, 0, W, BAND); // a little mist on the pane
+  const fg = fogW();
+  // a little mist on the pane, more in fog, heavier towards the bottom where it gathers
+  const g = ctx.createLinearGradient(0, 0, 0, BAND), c = darkLook ? '40,46,58' : '225,230,236';
+  g.addColorStop(0, `rgba(${c},${.12 + fg * .22})`); g.addColorStop(1, `rgba(${c},${.12 + fg * .4})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, BAND);
+  // clean glass still shows it is there: one faint slanting sheen
+  const sh = ctx.createLinearGradient(W * .15, 0, W * .55, BAND); sh.addColorStop(0, 'rgba(255,255,255,0)'); sh.addColorStop(.5, `rgba(255,255,255,${darkLook ? .03 : .07})`); sh.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sh; ctx.fillRect(0, 0, W, BAND);
   ctx.globalAlpha = k; ctx.drawImage(glassC, 0, 0, W, H);
-  const s = src.width / W, sw = src.width, sh = src.height;
+  const s = src.width / W, sw = src.width, sh2 = src.height;
   for (const d of gDrops) {
     const rx = d.r * (d.slide ? .82 : .95), ry = d.r * (d.slide ? 1.12 : 1), R = d.r * 7;
-    const ss = Math.min(2 * R * s, sw, sh), sx = clamp((d.x - R) * s, 0, sw - ss), sy = clamp((d.y - R) * s, 0, sh - ss);
+    const ss = Math.min(2 * R * s, sw, sh2), sx = clamp((d.x - R) * s, 0, sw - ss), sy = clamp((d.y - R) * s, 0, sh2 - ss);
     ctx.save(); ctx.beginPath(); ctx.ellipse(d.x, d.y, rx, ry, 0, 0, TAU); ctx.clip(); ctx.translate(d.x, d.y); ctx.scale(-1, -1);
     ctx.drawImage(src, sx, sy, ss, ss, -rx, -ry, rx * 2, ry * 2); ctx.restore();
     ctx.drawImage(dropSpr, d.x - rx, d.y - ry, rx * 2, ry * 2);
   }
+  const night = darkLook ? .6 : 1;
+  for (const f of gSnow) { // a crystal grows in as it lands, then melts: it shrinks and clears before it turns to water
+    const u = f.t / f.life, a = Math.min(1, f.t / .35) * (u > .7 ? 1 - (u - .7) / .3 : 1), r = f.r * (u > .7 ? 1 - (u - .7) * 1.4 : 1);
+    ctx.globalAlpha = a * .9 * k * night; ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot); ctx.drawImage(crystSpr, -r, -r, r * 2, r * 2); ctx.restore();
+  }
+  for (const h of gHits) { ctx.globalAlpha = (1 - h.t / .45) * k * night; ctx.drawImage(flakeSpr, h.x - h.r * 1.6, h.y - h.r * 1.6, h.r * 3.2, h.r * 3.2); }
   ctx.globalAlpha = 1;
 }
 

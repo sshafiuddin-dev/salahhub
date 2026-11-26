@@ -108,7 +108,9 @@ if (settings.dispV === 2) { settings.wxSky = settings.wxPic === false ? 'off' : 
 for (const k of ['wxBack', 'wxBackV', 'wxPic']) delete settings[k];
 if (!['real', 'print', 'off'].includes(settings.wxSky)) settings.wxSky = DEFAULTS.wxSky;
 settings.wxMove = settings.wxMove !== false;
-settings.wxGlass = settings.wxGlass === true; // rain on glass: off (open sky) unless chosen
+settings.wxGlass = settings.wxGlass === true; // Through a window (was Rain on glass): off (open sky) unless chosen
+const WX_AMOUNTS = [.4, .7, 1, 1.5, 2.2], WX_AMOUNT_NAMES = ['Less', 'Some', 'As it is', 'More', 'Lots']; // Settings › Display › Amount
+settings.wxAmount = [0, 1, 2, 3, 4].includes(settings.wxAmount) ? settings.wxAmount : 2; // Amount of rain, snow and hail: As it is
 settings.wxSound = settings.wxSound === true; // weather sound: off unless chosen
 settings.wxPause = settings.wxPause === true;
 settings.wxVol = Number.isFinite(+settings.wxVol) ? Math.max(0, Math.min(1, +settings.wxVol)) : DEFAULTS.wxVol;
@@ -435,7 +437,7 @@ function tick() {
   wxBand();
   const skyOk = settings.look === 'paper' && (onWeather() ? dim < 3 || (skyStyle() === 'real' && sky.night)
     : dim < 2 || (skyStyle() === 'real' && (dim === 3 || !sky.night)));
-  updateSky({ ...sky, glass: settings.wxGlass }, skyBack(dim), skyOk && root.dataset.black !== '1', root.dataset.theme === 'dark'); // nothing is drawn under the black cover
+  updateSky({ ...sky, glass: settings.wxGlass, amount: WX_AMOUNTS[settings.wxAmount] }, skyBack(dim), skyOk && root.dataset.black !== '1', root.dataset.theme === 'dark'); // nothing is drawn under the black cover
   wxScene = { ...sky, glass: settings.wxGlass }; wxFeed(); // the weather sound follows the same weather, whatever is drawn
 
   // Alerts: only for moments crossed while the page is open
@@ -1641,7 +1643,8 @@ $('dk-tr-toggle').addEventListener('click', () => { settings.translit = !setting
 $('dk-share').addEventListener('click', () => { const it = dkItem(); share(SETS[dk.key].title, [it.ar, it.tr, it.en, it.src].filter(Boolean).join('\n')); });
 $('set-adhkar').checked = settings.adhkar;
 $('set-wxsky').value = settings.wxSky; $('set-wxmove').checked = settings.wxMove; $('set-wxmove').disabled = settings.wxSky === 'off';
-$('set-wxglass').checked = settings.wxGlass; $('set-wxglass').disabled = settings.wxSky !== 'real'; // rain on glass is part of the realistic sky
+$('set-wxglass').checked = settings.wxGlass; $('set-wxglass').disabled = settings.wxSky !== 'real'; // the window is part of the realistic sky
+$('set-wxamount').value = settings.wxAmount; $('set-wxamount').setAttribute('aria-valuetext', WX_AMOUNT_NAMES[settings.wxAmount]); $('set-wxamount').disabled = settings.wxSky === 'off';
 $('set-seconds').checked = settings.seconds;
 $('bg-group').hidden = settings.look !== 'paper';
 $('set-translit').checked = settings.translit;
@@ -1649,7 +1652,8 @@ const AR_SIZES = ['s', 'm', 'l'], AR_NAMES = ['Small', 'Medium', 'Large'];
 $('set-arsize').value = AR_SIZES.indexOf(settings.arSize);
 $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[AR_SIZES.indexOf(settings.arSize)]);
 $('set-adhkar').addEventListener('change', () => { settings.adhkar = $('set-adhkar').checked; save(); tick(); });
-$('set-wxsky').addEventListener('change', () => { settings.wxSky = $('set-wxsky').value; $('set-wxmove').disabled = settings.wxSky === 'off'; $('set-wxglass').disabled = settings.wxSky !== 'real'; save(); applyLook(); tick(); });
+$('set-wxsky').addEventListener('change', () => { settings.wxSky = $('set-wxsky').value; $('set-wxmove').disabled = settings.wxSky === 'off'; $('set-wxglass').disabled = settings.wxSky !== 'real'; $('set-wxamount').disabled = settings.wxSky === 'off'; save(); applyLook(); tick(); });
+$('set-wxamount').addEventListener('input', () => { const i = +$('set-wxamount').value; settings.wxAmount = i; $('set-wxamount').setAttribute('aria-valuetext', WX_AMOUNT_NAMES[i]); save(); tick(); });
 $('set-wxmove').addEventListener('change', () => { settings.wxMove = $('set-wxmove').checked; save(); applyLook(); tick(); });
 $('set-wxglass').addEventListener('change', () => { settings.wxGlass = $('set-wxglass').checked; save(); tick(); });
 const volText = (v) => `${Math.round(v * 100)}%`;
@@ -1679,6 +1683,7 @@ $('set-dxlayout').addEventListener('change', () => { settings.dxLayout = $('set-
 $('set-arsize').addEventListener('input', () => { const i = +$('set-arsize').value; settings.arSize = AR_SIZES[i]; $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[i]); save(); tick(); });
 bubble($('set-dim'), 'rng-dim');
 bubble($('set-arsize'), 'rng-ar');
+bubble($('set-wxamount'), 'rng-amt');
 bubble($('set-wxvol'), 'rng-vol');
 
 // Keep screen on (Screen Wake Lock); also held while full screen is open. The browser drops it when the app is hidden.

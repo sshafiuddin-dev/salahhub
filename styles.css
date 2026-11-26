@@ -274,7 +274,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 /* Sliders (controls.js, bubble()): a rounded track that fills with the accent up to a round thumb, which grows a little
    under a finger, with the value in a small label above the thumb while it is moved */
 .rng { --tk: 1.6rem; position: relative; display: block; width: 100%; }
-.rng-dim { max-width: 22rem; } .rng-ar { max-width: 16rem; }
+.rng-dim { max-width: 22rem; } .rng-ar { max-width: 16rem; } .rng-amt { max-width: 22rem; }
 .rng > input[type="range"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 2.75rem; min-height: 2.75rem; margin: 0; padding: 0;
   background: transparent; overflow: visible; border-radius: 0; cursor: pointer; }
 .rng > input[type="range"]::-webkit-slider-runnable-track { height: .5rem; border-radius: 99px;
@@ -318,6 +318,7 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .swatch:focus-visible, .ck-picker .d-btn:focus-visible { outline: 3px solid var(--clear); outline-offset: 3px; }
 #set-arsize { width: min(100%, 16rem); }
 .range-ends { display: flex; justify-content: space-between; width: min(100%, 16rem); font-size: .8rem; color: var(--muted); }
+.rng-amt-ends { width: min(100%, 22rem); }
 .al-switch { display: inline-flex; align-items: center; gap: .65rem; font-weight: 600; cursor: pointer; }
 .wx-units .d-btn { min-width: 3rem; }
 
