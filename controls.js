@@ -100,3 +100,17 @@ export function searchBox(input) {
   fold(!!input.value);
   return { fold, box, button };
 }
+
+// Back and breadcrumb (DESIGN.md › Components): a round Back button, then the way here, as "Today / November".
+// `up` lists the screens above this one, the nearest last, each { label, href } (an address in the app) or { label, act }
+// (a data-act the page's own click handler knows); `here` names this screen. Back goes to the nearest screen above.
+const CRUMB_ESC = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const CRUMB_LEFT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+export function crumbs(up, here) {
+  const link = (s, cls, inner, label) => s.href
+    ? `<a class="${cls}" href="${CRUMB_ESC(s.href)}"${label ? ` aria-label="${CRUMB_ESC(label)}"` : ''}>${inner}</a>`
+    : `<button class="${cls}" type="button" data-act="${CRUMB_ESC(s.act)}"${label ? ` aria-label="${CRUMB_ESC(label)}"` : ''}>${inner}</button>`;
+  const near = up[up.length - 1];
+  return link(near, 'crumb-back', CRUMB_LEFT, `Back to ${near.label}`)
+    + `<ol>${up.map(s => `<li>${link(s, 'crumb-up', CRUMB_ESC(s.label))}</li>`).join('')}<li aria-current="page">${CRUMB_ESC(here)}</li></ol>`;
+}

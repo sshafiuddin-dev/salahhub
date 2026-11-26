@@ -1,10 +1,10 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt, countDay } from './logic.js';
+import { parseAddress, addressOf, MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt, countDay } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { animate, swap, fade, rows, fly } from './motion.js';
-import { bubble, stepper, searchBox } from './controls.js';
+import { bubble, stepper, searchBox, crumbs } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
 import { initRemote } from './remote.js';
 import { initCounter, counterHtml, setGroup, isDone as isDoneKey, paint as paintCount } from './counter.js';
@@ -460,21 +460,24 @@ const monthTitle = () => (today ? new Intl.DateTimeFormat('en-US', { month: 'lon
 const TAB_IDS = ['today', 'weather', 'adhkar', 'quran', 'month', 'settings'];
 const MORE_TABS = ['adhkar', 'quran', 'month'];
 const TITLES = { today: 'Today', weather: 'Weather', adhkar: 'Adhkar audio', quran: 'Quran', settings: 'Settings' };
-let tab = 'today', sub = 'location', shownSub = sub;
+let tab = 'today', sub = 'location', shownSub = sub, lastAddr = '', cameFrom = ''; // cameFrom: the screen before this one (its address)
 let feedback = null; // the feedback form, once set up
 function go(t, s) {
   if (s) sub = s;
-  if (location.hash.slice(1) === t) route(); else location.hash = t;
+  const to = addressOf(t, t === 'settings' ? sub : null);
+  if (location.hash.slice(1) === to) route(); else location.hash = to;
 }
 // The Help button opens the guide's chapter for the screen in view (guide/, built by scripts/guide/build.mjs)
 const HELP_TAB = { today: 'today', weather: 'weather', adhkar: 'adhkar', quran: 'quran', month: 'adhkar' };
 const HELP_SUB = { location: 'location', iqama: 'iqama', alerts: 'alerts', display: 'display', about: '' };
 function route() {
-  let h = location.hash.slice(1);
-  if (h === 'alerts') { h = 'settings'; sub = 'alerts'; } // the old address for the alerts screen
+  const a = parseAddress(location.hash);
+  let h = a.tab;
+  if (a.sub) sub = a.sub;
   if (h === 'tour') { history.replaceState(null, '', '#today'); h = 'today'; setTimeout(runTour, 400); } // the guide links here
   if (h === 'feedback') { history.replaceState(null, '', `#${tab}`); h = tab; setTimeout(() => feedback?.open(), 0); } // the guide links here
   tab = TAB_IDS.includes(h) ? h : 'today';
+  if (tab === 'settings' && !a.sub) history.replaceState(history.state, '', `#settings/${sub}`); // plain #settings (the tab bar's link) records which section shows, so Back returns to it
   if (!placeKnown() && (tab === 'month' || tab === 'weather')) tab = 'today'; // both need a place: Today asks for one
   const moved = root.dataset.tab !== tab || (tab === 'settings' && sub !== shownSub);
   if (root.dataset.tab !== tab) setTimeout(() => { applyLook(); tick(); }, 0); // the Weather tab has its own sky rules
@@ -499,6 +502,13 @@ function route() {
     if (d) d.open = false;
   });
   $('tab-title').textContent = tab === 'month' ? monthTitle() : TITLES[tab];
+  // Back and the way here, above the title, on a screen that sits under another one: Month under Today
+  const way = $('crumbs'), up = tab === 'month' ? [{ label: 'Today', href: '#today' }] : null;
+  way.hidden = !up;
+  root.dataset.way = up ? 'on' : 'off'; // a phone gives the way here a row of its own, above the title
+  way.innerHTML = up ? crumbs(up, monthName()) : '';
+  const addr = addressOf(tab, tab === 'settings' ? sub : null);
+  if (addr !== lastAddr) { cameFrom = lastAddr; lastAddr = addr; } // route() also runs to redraw the same screen
   const helpAt = `guide/${tab === 'settings' ? HELP_SUB[sub] : HELP_TAB[tab]}`;
   for (const a of [$('help'), ...document.querySelectorAll('[data-help]')]) a.href = helpAt; // the top Help button, and Help in the phone's More menu
   document.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-selected', b.dataset.sub === sub));
@@ -507,6 +517,25 @@ function route() {
   if (tab === 'month' && today) { renderMonth(); requestAnimationFrame(() => document.querySelector('#month tr.today')?.scrollIntoView({ block: 'center' })); } // open at today, not the 1st
 }
 addEventListener('hashchange', route);
+// Back, or a screen in the way here: when that is the screen just before this one, step back in the history (as the
+// phone's back gesture would), so Back and the gesture never pile up steps; otherwise go to it.
+$('crumbs').addEventListener('click', (e) => {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a) return;
+  e.preventDefault();
+  const to = a.getAttribute('href').slice(1);
+  if (to === cameFrom) history.back(); else location.hash = to;
+  if (e.detail === 0) setTimeout(() => document.querySelector(`.tabbar a[href="#${to}"], .dockbar a[href="#${to}"]`)?.focus({ preventScroll: true }), 0); // OK on a remote: the focus lands on the screen's own tab
+});
+// A TV remote's Back (Escape) on a screen with a Back button, when nothing is open on top of it, presses that Back button.
+// Read before anything else hears the key (capture), so a menu or window that Escape closes first is still seen as open.
+addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || e.defaultPrevented || tourOpen()) return;
+  if (document.querySelector('dialog[open], #qp-now:not([hidden]), details[open]')) return;
+  if (e.target.closest?.('input, textarea, select, .sx')) return; // Escape there clears the field
+  const back = [...document.querySelectorAll('.crumb-back')].find(b => b.offsetParent !== null && !b.closest('[hidden]'));
+  if (back) { e.preventDefault(); back.click(); }
+}, true);
 initRemote({ busy: tourOpen }); // TV remote: the arrows move between controls (remote.js); the tour keeps them while it is open
 // Dhikr counts belong to the day from one Fajr adhan to the next (counter.js); none until today's times are worked out
 initCounter({ dayKey: () => (today && day ? countDay(today.y, today.m, today.d, clock(new Date(), place().zone).sec / 60, day.rows[0].adhan) : ''),
@@ -522,7 +551,7 @@ document.addEventListener('click', (e) => moreMenus().forEach(d => {
   if (e.detail === 0 && d.contains(e.target) && e.target.closest('.more-menu a, .share-pills button')) d.querySelector('summary').focus(); // OK on a remote: the focus goes back to More, not lost
 }));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') moreMenus().forEach(d => { if (d.open) { d.open = false; d.querySelector('summary').focus(); } }); });
-document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => { sub = b.dataset.sub; route(); }));
+document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => go('settings', b.dataset.sub))); // each section has its own address
 
 // Sharing: the system share sheet where there is one, otherwise the clipboard
 const appUrl = location.href.split(/[?#]/)[0];
