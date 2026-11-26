@@ -375,3 +375,10 @@ export function skyParams(w, t, hijriDay) {
   return { kind, cover: +cover.toFixed(3), dark, rain, snow, fog, storm: kind === 'storm', wind, day, dawn, sun,
     night: now >= maghrib || now < sunrise, moon: +(((hijriDay || 15) - .5) / 29.53).toFixed(3) };
 }
+
+// The day a dhikr count belongs to (the Adhkar counter): it runs from one Fajr adhan to the next, so counting after
+// midnight but before Fajr still belongs to the evening before. y, m, d: the local date; minutes since local midnight.
+export function countDay(y, m, d, nowMin, fajrMin) {
+  const t = Date.UTC(y, m - 1, d) - (nowMin < fajrMin ? 864e5 : 0);
+  return new Date(t).toISOString().slice(0, 10);
+}

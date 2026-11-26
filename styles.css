@@ -625,15 +625,6 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .sh-dua-en { white-space: pre-line; }
 .dk-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; margin-top: .3rem; }
 .dk-src { flex: 1 1 8rem; }
-.dk-count {
-  --size: 5.25rem; --thickness: 6px; flex: none; border: 0; cursor: pointer; justify-items: center; gap: .1rem; font: inherit;
-  color: var(--clear); background-color: color-mix(in srgb, var(--line) 55%, var(--paper)); transition: transform .12s var(--ease);
-}
-.dk-count:not(:disabled):active { transform: scale(.95); }
-.dk-count strong, .dk-count span { color: var(--ink); }
-.dk-count strong { font: 700 1.4rem/1 var(--display); font-variant-numeric: tabular-nums; }
-.dk-count span { font-size: .75rem; }
-.dk-count:focus-visible { outline: 3px solid var(--clear); outline-offset: 3px; }
 .dk-links { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: .9rem; }
 .dk-links .link-btn { margin: 0; }
 
@@ -806,7 +797,6 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .dk-ar { font-size: 1.55rem; }
   .dk[data-size="s"] .dk-ar { font-size: 1.3rem; }
   .dk[data-size="l"] .dk-ar { font-size: 1.95rem; }
-  .dk-count { --size: 4.5rem; }
 }
 
 /* Tablets and wider: no side rail. The tabs and the screen's actions share one line of text along the bottom, like the
@@ -1369,3 +1359,67 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .tour-skip { min-height: 44px; margin: 0; color: var(--muted); }
 .tour-nav { display: flex; gap: .5rem; }
 .tour-nav .d-btn { min-height: 44px; min-width: 4.5rem; }
+
+/* The dhikr counter (counter.js): a ring that fills green (--on) with each tap and closes with a tick at the count.
+   The same .ct button is the small ring beside a dua and the big one in the full view. */
+.au-acts { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; margin-top: .6rem; }
+.ct-row { display: contents; }
+.ct-gap { flex: 1 1 0; }
+.au-acts .link-btn, .dk-foot .link-btn { margin: 0; font-size: .9rem; }
+.ct-left { font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ct { --p: 0; position: relative; flex: none; display: grid; place-items: center; width: 3.75rem; height: 3.75rem; padding: 0;
+  border: 0; border-radius: 50%; background: none; color: var(--ink); font: inherit; cursor: pointer; touch-action: manipulation; }
+.ct-svg { position: absolute; inset: 0; width: 100%; height: 100%; rotate: -90deg; overflow: visible; }
+.ct-track, .ct-fill { fill: none; stroke-width: 4; }
+.ct-track { stroke: var(--line); }
+.ct-fill { stroke: var(--on); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: calc(100 - var(--p)); transition: stroke-dashoffset var(--m-normal) var(--m-ease); }
+.ct:not(.is-done) .ct-fill { stroke-linecap: butt; }
+.ct-num { position: relative; font: 600 1.35rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.ct-tick { position: absolute; width: 44%; height: 44%; fill: none; stroke: var(--on); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.ct.is-done .ct-num, .ct.is-done .ct-nums { opacity: 0; }
+.ct.is-done .ct-tick { opacity: 1; }
+.ct:active { scale: .94; } .ct { transition: scale var(--m-fast) var(--m-ease); }
+.ct:focus-visible { outline: 3px solid var(--clear); outline-offset: 3px; }
+.ct.is-done:not(.ct-big) { cursor: default; }
+.ct-again:not([hidden]) + .ct-left { color: var(--on); font-weight: 600; }
+/* On Today's card: the source on its own line, then Previous and Next with the counter at the right */
+.dk-foot:has(> #dk-ct:not([hidden])) .dk-src { flex-basis: 100%; }
+.dk-foot > .d-join { order: 1; }
+.dk-foot > .ct-row > * { order: 2; }
+.dk-foot .ct-gap { display: none; }
+.dk-foot .ct-left { margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { .ct-fill { transition: none; } .ct:active { scale: none; } }
+
+/* The full view: one dua and a big ring; two columns on a wide screen, as on the TV */
+.ctf { width: min(40rem, calc(100vw - 1.5rem)); max-width: none; max-height: calc(100dvh - 1.5rem); padding: 0; border: 1px solid var(--line); border-radius: 1rem;
+  background: var(--paper); color: var(--ink); box-shadow: 0 .75rem 2.5rem rgba(0, 0, 0, .35); overflow: auto; overscroll-behavior: contain; }
+.ctf::backdrop { background: rgba(20, 16, 10, .45); }
+.ctf-in { display: grid; gap: 1rem; padding: 1.1rem clamp(1rem, 4vw, 1.75rem) 1.4rem; }
+.ctf-top { display: flex; align-items: flex-start; gap: 1rem; }
+.ctf-meta { flex: 1; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); line-height: 1.5; padding-top: .7rem; }
+.ctf-x { flex: none; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; background: var(--ink); color: var(--paper); cursor: pointer; }
+.ctf-x svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.ctf-x:focus-visible { outline: 3px solid var(--clear); outline-offset: 3px; }
+.ctf-main { display: grid; gap: 1.25rem; }
+.ctf-text { display: grid; gap: .6rem; }
+.ctf-ar { font: 400 2.1rem/1.8 var(--ar); text-align: right; }
+.ctf-tr { font-style: italic; color: var(--muted); line-height: 1.55; }
+.ctf-en { line-height: 1.55; white-space: pre-line; }
+.ctf-count { display: grid; justify-items: center; gap: .75rem; }
+.ct.ct-big { width: min(14.75rem, 62vw); height: auto; aspect-ratio: 1; }
+.ct-big .ct-track, .ct-big .ct-fill { stroke-width: 3; }
+.ct-nums { position: relative; display: grid; justify-items: center; gap: .2rem; }
+.ct-big .ct-num { font-size: clamp(3rem, 15vw, 4.75rem); font-weight: 500; }
+.ct-of { font-size: .95rem; color: var(--muted); }
+.ctf-hint { text-align: center; color: var(--muted); font-size: .95rem; min-height: 1.5em; }
+.ctf-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
+.ctf-acts .d-btn { min-height: 2.75rem; border-radius: 99px; padding: 0 1.4rem; }
+.ctf-acts .d-btn-primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+@media (min-width: 56rem) and (orientation: landscape) {
+  .ctf { width: min(72rem, calc(100vw - 4rem)); }
+  .ctf-main { grid-template-columns: 1.25fr 1fr; align-items: center; gap: 2.5rem; }
+  .ctf-ar { font-size: 2.5rem; }
+  .ct.ct-big { width: min(23.75rem, 34vw); }
+  .ct-big .ct-num { font-size: 5.5rem; }
+  .ctf-acts { justify-content: flex-end; }
+}

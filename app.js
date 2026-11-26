@@ -1,12 +1,13 @@
 import PrayTimes from './lib/PrayTimes.js';
 import { CalculationMethods } from './lib/CalculationMethods.js';
-import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt } from './logic.js';
+import { MASJIDS, NEAR_MILES, nearestMasjid, bellState, pastKeys, cleanKhutbahTimes, khutbahsBefore, wallMs, safeToReload, PRAYERS, NAMES, DIM_NAMES, isNight, dimLevel, hijriNow, cleanTune, parseHM, iqamaAt, fmt, nextEvent, fridayRows, km, alertsBetween, cleanStep, cardWindow, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, progressOf, prevEventAt, countDay } from './logic.js';
 import { updateSky, mountSky, redrawSky } from './sky.js';
 import { CLOCKS, renderClock, renderTimes } from './clocks.js';
 import { animate, swap, fade, rows, fly } from './motion.js';
 import { bubble, stepper, searchBox } from './controls.js';
 import { startTour, tourOpen } from './tour.js';
 import { initRemote } from './remote.js';
+import { initCounter, counterHtml, setGroup, groupIndex, paint as paintCount, countOf } from './counter.js';
 import { fetchWeather, fetchAlerts, weatherHtml } from './weather.js';
 import { SETS, AUDIO, pickSet, fillSets } from './adhkar.js';
 import { HISN, hisnUrl } from './hisn.js';
@@ -507,6 +508,8 @@ function route() {
 }
 addEventListener('hashchange', route);
 initRemote({ busy: tourOpen }); // TV remote: the arrows move between controls (remote.js); the tour keeps them while it is open
+// Dhikr counts belong to the day from one Fajr adhan to the next (counter.js); none until today's times are worked out
+initCounter({ dayKey: () => (today && day ? countDay(today.y, today.m, today.d, clock(new Date(), place().zone).sec / 60, day.rows[0].adhan) : '') });
 // a tap anywhere else, a choice in it, or Escape closes the More menu. Outside taps are read on pointerdown: the clock is
 // drawn again every second and can swallow the click that would otherwise close it.
 const moreMenus = () => document.querySelectorAll('.more details, details.more, details.share');
@@ -657,9 +660,15 @@ async function loadHisnText() {
   for (const c of Object.values(hisnText)) for (const it of c.items || []) if (typeof it.tr === 'string') it.tr = it.tr.replace(/AA/g, 'ʿ');
   return hisnText;
 }
-const hisnItems = (items) => items.map((it, i) => `<article class="au-dua"><div class="au-meta"><span>Dua ${i + 1} of ${items.length}</span>${it.n ? `<span>Read ${it.n} ${it.n === 1 ? 'time' : 'times'}</span>` : ''}</div>`
+// Each dua that repeats gets the counter (counter.js) beside its Play button; the chapter is its group, for Next dua
+const hisnItems = (items, ch, title) => {
+  setGroup(`ch${ch}`, items.map((it, i) => ({ key: `${ch}:${i}`, n: it.n || 0, ar: it.ar, tr: it.tr, en: it.en, meta: `${title} · Dua ${i + 1} of ${items.length} · Read ${it.n} times` })));
+  return items.map((it, i) => `<article class="au-dua"><div class="au-meta"><span>Dua ${i + 1} of ${items.length}</span>${it.n ? `<span>Read ${it.n} ${it.n === 1 ? 'time' : 'times'}</span>` : ''}</div>`
   + `${it.ar ? `<p class="au-ar" lang="ar" dir="rtl">${esc(it.ar)}</p>` : ''}${it.tr ? `<p class="au-tr">${esc(it.tr)}</p>` : ''}${it.en ? `<p class="au-en">${esc(it.en)}</p>` : ''}`
-  + `${it.audio ? `<button class="d-btn d-btn-sm d-btn-soft d-btn-primary au-play" type="button" data-src="${esc(it.audio)}" aria-label="Play dua ${i + 1}">Play</button>` : ''}</article>`).join('');
+  + ((it.audio || it.n > 1) ? `<div class="au-acts">${it.audio ? `<button class="d-btn d-btn-sm d-btn-soft d-btn-primary au-play" type="button" data-src="${esc(it.audio)}" aria-label="Play dua ${i + 1}">Play</button>` : ''}`
+    + `${it.n > 1 ? counterHtml(`${ch}:${i}`, it.n, `ch${ch}`, groupIndex(`ch${ch}`, `${ch}:${i}`)) : ''}</div>` : '')
+  + '</article>').join('');
+};
 function openChapter(li, btn) {
   const body = li.querySelector('.au-body'), open = btn.getAttribute('aria-expanded') !== 'true';
   btn.setAttribute('aria-expanded', String(open));
@@ -668,8 +677,9 @@ function openChapter(li, btn) {
   body.innerHTML = '<p class="iq-note">Loading…</p>';
   loadHisnText().then(all => {
     const items = all[li.dataset.id]?.items || [];
-    body.innerHTML = items.length ? hisnItems(items) : '<p class="iq-note">There is no text for this chapter.</p>';
+    body.innerHTML = items.length ? hisnItems(items, li.dataset.id, li.querySelector('.au-title')?.textContent.trim() || '') : '<p class="iq-note">There is no text for this chapter.</p>';
     body.dataset.done = '1';
+    items.forEach((it, i) => { if (it.n > 1) paintCount(`${li.dataset.id}:${i}`); });
   }).catch((e) => {
     console.warn('IqamaHub: adhkar text failed', e);
     body.innerHTML = '<p class="iq-note">The text is not available yet. The recording still plays.</p>';
@@ -1273,19 +1283,12 @@ document.querySelectorAll('[data-unit]').forEach(b => b.addEventListener('click'
 
 // Duas and adhkar: the set follows the time of day; counts reset each day and stay on this device
 let dk = { key: null, i: 0, until: null }, dkSig = '';
-let dkStore = {};
-try { dkStore = JSON.parse(localStorage.getItem('iqama-adhkar') || '{}') || {}; } catch (e) {}
-function dkCounts() {
-  const date = `${today.y}-${today.m}-${today.d}`;
-  if (dkStore.date !== date || !dkStore.c || typeof dkStore.c !== 'object') dkStore = { date, c: {} };
-  return dkStore.c;
-}
 const dkItem = () => SETS[dk.key].items[dk.i];
 function renderAdhkar(nowMin) {
   const pick = pickSet(nowMin, day.rows, day.sunrise, today.weekday), set = SETS[pick.key];
   if (pick.key !== dk.key) dk = { key: pick.key, i: pick.key === 'general' ? Math.floor(Date.UTC(today.y, today.m - 1, today.d) / 864e5) % set.items.length : 0 };
   dk.until = pick.until;
-  const it = dkItem(), c = dkCounts()[`${dk.key}.${dk.i}`] || 0, done = it.n > 0 && c >= it.n;
+  const it = dkItem(), ctKey = `${it.ch}:${it.i}`, c = it.n ? countOf(ctKey) : 0;
   const show = settings.adhkar && !!(it.ar || it.en); // hidden until the Hisn al-Muslim text has loaded
   const sig = [dk.key, dk.i, dk.until, c, show, settings.translit, settings.arSize].join('|');
   if (sig === dkSig) return;
@@ -1301,12 +1304,12 @@ function renderAdhkar(nowMin) {
   $('dk-tr').hidden = !settings.translit || !it.tr;
   $('dk-en').textContent = it.en;
   $('dk-src').textContent = it.src;
-  $('dk-count').hidden = !it.n;
-  $('dk-count').classList.toggle('done', done);
-  $('dk-count').style.setProperty('--value', it.n ? Math.round(100 * Math.min(c, it.n) / it.n) : 0);
-  $('dk-count-big').textContent = done ? 'Done' : String(c);
-  $('dk-count-small').textContent = `of ${it.n}`;
-  $('dk-count').setAttribute('aria-label', done ? `Done, ${it.n} of ${it.n}` : `Count, ${c} of ${it.n}`);
+  // the counter (counter.js), shared with the same dua on the Adhkar screen; Today's set is its group, for Next dua
+  setGroup('today', set.items.map((x, j) => ({ key: `${x.ch}:${x.i}`, n: x.n, ar: x.ar, tr: x.tr, en: x.en, meta: `${set.title} · ${j + 1} of ${set.items.length} · Read ${x.n} times` })));
+  $('dk-ct').hidden = !it.n;
+  if (it.n && $('dk-ct').dataset.key !== ctKey) { $('dk-ct').innerHTML = counterHtml(ctKey, it.n, 'today', groupIndex('today', ctKey)); $('dk-ct').dataset.key = ctKey; }
+  if (!it.n) { $('dk-ct').innerHTML = ''; $('dk-ct').dataset.key = ''; }
+  paintCount(ctKey);
   $('dk-tr-toggle').textContent = settings.translit ? 'Hide transliteration' : 'Show transliteration';
   $('dk-tr-toggle').hidden = !it.tr;
   $('dk-listen').hidden = !AUDIO[dk.key];
@@ -1325,14 +1328,6 @@ const stepAdhkar = (by) => { const n = SETS[dk.key].items.length; dk.i = (dk.i +
 $('dk-prev').addEventListener('click', () => stepAdhkar(-1));
 $('dk-next').addEventListener('click', () => stepAdhkar(1));
 $('dx-next').addEventListener('click', () => { dxPeek = Date.now() + 60e3; stepAdhkar(1); });
-$('dk-count').addEventListener('click', () => {
-  const it = dkItem(), counts = dkCounts(), k = `${dk.key}.${dk.i}`, c = counts[k] || 0;
-  if (c >= it.n) return;
-  counts[k] = c + 1;
-  try { localStorage.setItem('iqama-adhkar', JSON.stringify(dkStore)); } catch (e) {}
-  try { navigator.vibrate?.(c + 1 === it.n ? [30, 60, 30] : 12); } catch (e) {}
-  renderAdhkar(clock(new Date(), place().zone).sec / 60);
-});
 $('dk-tr-toggle').addEventListener('click', () => { settings.translit = !settings.translit; $('set-translit').checked = settings.translit; save(); tick(); });
 $('dk-share').addEventListener('click', () => { const it = dkItem(); share(SETS[dk.key].title, [it.ar, it.tr, it.en, it.src].filter(Boolean).join('\n')); });
 $('set-adhkar').checked = settings.adhkar;
@@ -1556,7 +1551,7 @@ if (!navigator.onLine) showNet('off');
 // Self-update, for a tablet that is never reloaded by hand. Every 30 minutes (and when the connection returns) the page asks the server
 // whether any of its files changed since it loaded; if so, it reloads itself at a quiet moment: no sound playing, no alert,
 // nobody touching it for a minute, no adhan or iqama within 2 minutes. The full screen view is restored after the reload.
-const WATCHED = ['./', 'boot.js', 'tour.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'motion.js', 'controls.js', 'remote.js', 'feedback.js'];
+const WATCHED = ['./', 'boot.js', 'tour.js', 'fonts.css', 'daisy.css', 'styles.css', 'look.css', 'app.js', 'logic.js', 'sky.js', 'clocks.js', 'weather.js', 'adhkar.js', 'hisn.js', 'quran.js', 'quran-logic.js', 'quran-offline.js', 'motion.js', 'controls.js', 'remote.js', 'feedback.js', 'counter.js'];
 let loadedVersion = '', updateWaiting = false, lastTouch = Date.now();
 for (const t of ['pointerdown', 'keydown', 'touchstart']) addEventListener(t, () => { lastTouch = Date.now(); }, { passive: true });
 // A wall tablet comes back to Today by itself: after 2 minutes untouched, off any other screen (but not while audio plays,

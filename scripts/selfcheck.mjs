@@ -616,6 +616,17 @@ console.log('hijri and offsets ok');
   assert.equal(hijriNow(2026, 2, 17, 0, false, 1061, 1060), '29 Shaban 1447', 'off: midnight');
 }
 console.log('hijri at maghrib ok');
+
+// A dhikr count belongs to the day from one Fajr to the next
+{
+  const { countDay } = await import('../logic.js');
+  assert.equal(countDay(2026, 11, 26, 600, 324), '2026-11-26', 'after Fajr: today');
+  assert.equal(countDay(2026, 11, 27, 120, 325), '2026-11-26', 'after midnight, before Fajr: still the day before');
+  assert.equal(countDay(2026, 3, 1, 100, 330), '2026-02-28', 'across a month');
+  assert.equal(countDay(2027, 1, 1, 200, 400), '2026-12-31', 'across a year');
+  assert.equal(countDay(2026, 11, 26, 324, 324), '2026-11-26', 'at the Fajr adhan the new day starts');
+}
+console.log('count day ok');
 { // After the Isha iqama the sheet shows tomorrow; the clock and countdown stay on real time
   const { renderTimes: rt } = await import('../clocks.js');
   const mk = (f) => [['fajr', f, 360], ['dhuhr', 712, 750], ['asr', 871, 885], ['maghrib', 1001, 1001], ['isha', 1085, 1200]].map(([key, adhan, iqama]) => ({ key, adhan, iqama }));

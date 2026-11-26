@@ -117,7 +117,8 @@ Use these; do not build a second version of any of them.
 | Download | `.qp-dl` (`data-state`, `--p`) | styles.css, quran.js | ring fills smoothly; the tick draws in once saved |
 | Progress ring | `.qp-ring` (`pathLength="100"`) | styles.css, quran.js | fills as the surah plays |
 | Listen / Play | `.au-play` (`.is-on` while playing) | styles.css | ▶ turns into ■ |
-| Dialog | `.qp-dlg` › `.qp-dlg-in`, `.fb` | styles.css | rounded card, ink primary button on the right |
+| Dhikr counter | `counterHtml(key, n, group, index)`; the full view is `#ctf` (`.ctf`, `.ct.ct-big`) | counter.js, styles.css (`.ct`) | ring fills `--on` with each tap (`pathLength="100"`); at the count the number gives way to a tick that pops; key is `chapter:entry`, kept until the next Fajr |
+| Dialog | `.qp-dlg` › `.qp-dlg-in`, `.fb`, `.ctf` | styles.css | rounded card, ink primary button on the right |
 
 ## TV remote and keyboard
 

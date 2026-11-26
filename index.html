@@ -90,7 +90,7 @@
                         <p class="dk-tr" id="dk-tr"></p>
                         <p class="dk-en" id="dk-en"></p>
                         <div class="dk-foot">
-                            <button class="dk-count d-radial-progress" type="button" id="dk-count" style="--value:0"><strong id="dk-count-big"></strong><span id="dk-count-small"></span></button>
+                            <span class="ct-row" id="dk-ct" hidden></span>
                             <span class="dk-src" id="dk-src"></span>
                             <div class="d-join"><button class="d-btn d-btn-sm d-join-item" type="button" id="dk-prev">Previous</button><button class="d-btn d-btn-sm d-btn-primary d-join-item" type="button" id="dk-next">Next</button></div>
                         </div>
@@ -372,6 +372,17 @@
             <button class="d-btn d-btn-sm d-btn-outline" type="button" id="dx-next">Next <span id="dx-pos"></span></button>
         </div>
     </div>
+
+    <dialog class="ctf" id="ctf" aria-labelledby="ctf-meta" aria-describedby="ctf-hint">
+        <div class="ctf-in">
+            <div class="ctf-top"><p class="ctf-meta" id="ctf-meta"></p><button class="ctf-x" type="button" id="ctf-close" aria-label="Close the full view"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button></div>
+            <div class="ctf-main">
+                <div class="ctf-text"><p class="ctf-ar" lang="ar" dir="rtl" id="ctf-ar"></p><p class="ctf-tr" id="ctf-tr"></p><p class="ctf-en" id="ctf-en"></p></div>
+                <div class="ctf-count"><button class="ct ct-big" type="button" id="ctf-ring" data-ct="" data-n="1"></button><p class="ctf-hint" id="ctf-hint" aria-live="polite"></p></div>
+            </div>
+            <div class="ctf-acts"><button class="d-btn d-btn-outline" type="button" id="ctf-again">Start again</button><button class="d-btn d-btn-primary" type="button" id="ctf-next">Next dua</button></div>
+        </div>
+    </dialog>
 
     <dialog class="fb" id="fb" aria-labelledby="fb-title">
         <form class="fb-form" id="fb-form" novalidate>
