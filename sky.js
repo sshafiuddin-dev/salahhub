@@ -242,7 +242,7 @@ function refresh() {
   let m = !allowed || want === 'off' ? 'off' : want;
   const freeze = m === 'real-still'; // Movement off: the realistic sky as one still frame
   if (freeze) m = 'real';
-  if (m === 'real' && scene && (scene.night !== dark || real.failed || tier() === 'print')) m = 'print'; // a dark sky needs the dark look, and the reverse
+  if (m === 'real' && scene && (scene.night !== dark || real.failed || tier() === 'print')) m = 'print'; // a night sky needs the dark look, and a day sky the light look (evenings stay a day sky until then, updateSky)
   if (m === 'print' && (calm.matches || freeze)) m = 'still';
   if (m === 'print' && dark) m = 'off'; // the printed sky is ink on paper; the dark look keeps a still page, as before
   if (m === 'real' && !realStart(freeze)) m = calm.matches || freeze ? 'still' : 'print';
@@ -257,6 +257,9 @@ calm.addEventListener?.('change', refresh);
 export function updateSky(p, setting, ok, isDark) {
   if (root.dataset.sky !== p.kind) root.dataset.sky = p.kind;
   root.toggleAttribute('data-night', p.night);
+  // After Maghrib, until the page turns to its dark look (Brightness at night: after Maghrib or after Isha), the
+  // realistic sky stays on as a late-evening sky, still light enough for ink, rather than giving way to the printed one
+  if (p.night && !isDark) p = { ...p, night: false, day: Math.max(p.day, .6), sun: null };
   scene = p;
   const key = JSON.stringify(p);
   if (key === sceneKey && setting === want && ok === allowed && isDark === dark) return;
