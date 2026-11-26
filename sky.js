@@ -81,6 +81,10 @@ void main(){
   gl_FragColor=vec4(col,1.);
 }`;
 const real = { cv: null, gl: null, U: null, raf: 0, start: null, last: 0, frames: [], nextFlash: 0, failed: false, still: false };
+// Rain, snow, hail and lightning are drawn by skyfx.js on a canvas above this one, loaded only for the realistic sky.
+// Until it has loaded (or if it cannot), the shader's own simple rain and snow stand in.
+let fx = null, fxLoad = null;
+const loadFx = () => (fxLoad ||= import('./skyfx.js').then(m => (fx = m)).catch(() => null));
 function realSetup() {
   if (real.gl || real.failed) return !!real.gl;
   const cv = document.createElement('canvas');
@@ -108,9 +112,12 @@ function realDraw(now) {
   if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; gl.viewport(0, 0, w, h); }
   if (real.start === null) real.start = now;
   const T = real.still ? 40 : (now - real.start) / 1000;
-  // storms: a soft glow behind the clouds every 10 to 20 seconds, two quick swells, never a white flash
+  // storms: skyfx.js throws the bolts and gives the glow they put in the clouds; without it, a soft glow behind the
+  // clouds every 10 to 20 seconds, two quick swells. Never a white flash either way.
+  const layer = fx?.fxMounted();
   let flash = 0;
-  if (p.storm && !real.still) {
+  if (layer) flash = fx.fxFlash();
+  else if (p.storm && !real.still) {
     if (!real.nextFlash) real.nextFlash = T + 4;
     const dt = T - real.nextFlash;
     if (dt > 0 && dt < .6) flash = .3 * Math.max(0, Math.sin(dt / .6 * Math.PI * 2)) ** 2;
@@ -118,9 +125,10 @@ function realDraw(now) {
   }
   const f1 = (n, v) => gl.uniform1f(U(n), v);
   gl.uniform2f(U('R'), w, h); f1('T', T); f1('DAY', p.day); f1('DAWN', p.dawn); f1('CLOUD', p.cover); f1('DARK', p.dark);
-  f1('RAIN', p.rain); f1('SNOW', p.snow); f1('FOG', p.fog); f1('FLASH', flash); f1('MOON', p.moon); f1('WIND', p.wind); f1('DIM', dark ? 1 : 0);
+  f1('RAIN', layer ? 0 : p.rain); f1('SNOW', layer ? 0 : p.snow); f1('FOG', p.fog); f1('FLASH', flash); f1('MOON', p.moon); f1('WIND', p.wind); f1('DIM', dark ? 1 : 0);
   gl.uniform2f(U('SUN'), p.sun ? p.sun[0] : -1, p.sun ? p.sun[1] : -1);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
+  if (layer) fx.fxFrame(now, p, real.still, dark);
 }
 function realLoop(now) {
   real.raf = requestAnimationFrame(realLoop);
@@ -140,13 +148,14 @@ function realLoop(now) {
 function realStart(freeze = false) {
   if (!realSetup()) return false;
   if (real.cv.parentElement !== box) box.append(real.cv);
+  loadFx().then(m => { if (m && real.cv?.parentElement === box) { m.fxMount(box); if (real.still) requestAnimationFrame(realDraw); } });
   real.still = calm.matches || freeze;
   cancelAnimationFrame(real.raf);
   if (real.still) requestAnimationFrame(realDraw); // a device set to reduce motion gets one still frame, redrawn when the scene changes
   else { real.last = 0; real.raf = requestAnimationFrame(realLoop); }
   return true;
 }
-function realStop() { cancelAnimationFrame(real.raf); real.cv?.remove(); }
+function realStop() { cancelAnimationFrame(real.raf); real.cv?.remove(); fx?.fxUnmount(); }
 
 // ---- printed motion: ink tiles moved with transform and opacity only, so the compositor does the work ----
 const svgTile = (w, h, body) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>${body}</svg>`)}")`;

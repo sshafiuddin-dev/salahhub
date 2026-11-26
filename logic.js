@@ -373,6 +373,7 @@ export function skyParams(w, t, hijriDay) {
   if (kind === 'storm') rain = Math.max(rain, .8);
   const snow = kind !== 'snow' ? 0 : sn == null || sn <= 0 ? .55 : sn < .5 ? .45 : sn < 2 ? .7 : 1;
   const fog = kind === 'fog' ? .8 : w?.vis != null && w.vis < 1000 ? .5 : 0;
+  const hail = kind === 'storm' && w?.sky?.hail ? .7 : 0;
   // the wind leans the rain and moves the clouds: east-west part of where it blows to, strongest at 40 km/h and over
   const speed = w?.sky?.wind ?? 0, dir = w?.dir ?? 270;
   const wind = +(Math.sin(((dir + 180) % 360) * Math.PI / 180) * clamp01(speed / 40)).toFixed(3);
@@ -381,7 +382,7 @@ export function skyParams(w, t, hijriDay) {
   const near = (m, before, after) => (now < m ? clamp01(1 - (m - now) / before) : clamp01(1 - (now - m) / after));
   const dawn = +Math.max(near(sunrise, 70, 40), near(maghrib, 45, 50)).toFixed(3);
   const sun = f >= -.04 && f <= 1.04 ? [+(.08 + .84 * clamp01(f)).toFixed(3), +(.35 + .55 * Math.sin(Math.PI * clamp01(f))).toFixed(3)] : null;
-  return { kind, cover: +cover.toFixed(3), dark, rain, snow, fog, storm: kind === 'storm', wind, day, dawn, sun,
+  return { kind, cover: +cover.toFixed(3), dark, rain, snow, hail, fog, storm: kind === 'storm', wind, day, dawn, sun,
     night: now >= maghrib || now < sunrise, moon: +(((hijriDay || 15) - .5) / 29.53).toFixed(3) };
 }
 
