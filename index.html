@@ -155,6 +155,14 @@
             </main>
 
             <main class="tab" id="tab-settings" aria-labelledby="tab-title" hidden>
+                <!-- Phones: Settings opens on this list; each row opens its section, with Back and "Settings / …" above (app.js route) -->
+                <nav class="set-hub" id="set-hub" aria-label="Settings sections" hidden>
+                    <a class="hub-tile" href="#settings/location"><span class="hub-name">Location</span><span class="hub-val" id="hub-location"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a>
+                    <a class="hub-tile" href="#settings/iqama"><span class="hub-name">Iqama times</span><span class="hub-val" id="hub-iqama"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a>
+                    <a class="hub-tile" href="#settings/alerts"><span class="hub-name">Adhan and alerts</span><span class="hub-val" id="hub-alerts"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a>
+                    <a class="hub-tile" href="#settings/display"><span class="hub-name">Display</span><span class="hub-val" id="hub-display"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a>
+                    <a class="hub-tile" href="#settings/about"><span class="hub-name">About</span><span class="hub-val" id="hub-about"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></a>
+                </nav>
                 <div class="seg d-tabs d-tabs-box" role="tablist" aria-label="Settings">
                     <button type="button" role="tab" class="d-tab" data-sub="location" id="st-location" aria-controls="sub-location">Location</button>
                     <button type="button" role="tab" class="d-tab" data-sub="iqama" id="st-iqama" aria-controls="sub-iqama">Iqama times</button>

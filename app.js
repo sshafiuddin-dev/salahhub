@@ -460,7 +460,7 @@ const monthTitle = () => (today ? new Intl.DateTimeFormat('en-US', { month: 'lon
 const TAB_IDS = ['today', 'weather', 'adhkar', 'quran', 'month', 'settings'];
 const MORE_TABS = ['adhkar', 'quran', 'month'];
 const TITLES = { today: 'Today', weather: 'Weather', adhkar: 'Adhkar audio', quran: 'Quran', settings: 'Settings' };
-let tab = 'today', sub = 'location', shownSub = sub, lastAddr = '', cameFrom = ''; // cameFrom: the screen before this one (its address)
+let tab = 'today', sub = 'location', shownSub = sub, shownHub = false, lastAddr = '', cameFrom = ''; // cameFrom: the screen before this one (its address)
 let feedback = null; // the feedback form, once set up
 function go(t, s) {
   if (s) sub = s;
@@ -469,6 +469,20 @@ function go(t, s) {
 }
 // The Help button opens the guide's chapter for the screen in view (guide/, built by scripts/guide/build.mjs)
 const HELP_TAB = { today: 'today', weather: 'weather', adhkar: 'adhkar', quran: 'quran', month: 'adhkar' };
+const PHONE_Q = '(max-width: 48rem)';
+const SUB_NAMES = { location: 'Location', iqama: 'Iqama times', alerts: 'Adhan and alerts', display: 'Display', about: 'About' };
+// The list of sections (phones): each row with what is set there now
+function fillHub() {
+  const on = PRAYERS.filter(k => settings.alerts[k].on).length;
+  const vals = {
+    location: placeKnown() ? place().name : 'Not set yet',
+    iqama: masjidTimes() && !masjid.failed ? `From ${masjidName()}` : 'Your own times',
+    alerts: settings.muted ? 'Off' : on === PRAYERS.length ? 'On for all five prayers' : on ? `On for ${on} of 5 prayers` : 'Off for every prayer',
+    display: `${CLOCKS[settings.clock] || ''} · ${LOOKS[settings.look] || ''}`,
+    about: 'What the app does, privacy and feedback',
+  };
+  for (const [k, v] of Object.entries(vals)) $(`hub-${k}`).textContent = v;
+}
 const HELP_SUB = { location: 'location', iqama: 'iqama', alerts: 'alerts', display: 'display', about: '' };
 function route() {
   const a = parseAddress(location.hash);
@@ -477,15 +491,18 @@ function route() {
   if (h === 'tour') { history.replaceState(null, '', '#today'); h = 'today'; setTimeout(runTour, 400); } // the guide links here
   if (h === 'feedback') { history.replaceState(null, '', `#${tab}`); h = tab; setTimeout(() => feedback?.open(), 0); } // the guide links here
   tab = TAB_IDS.includes(h) ? h : 'today';
-  if (tab === 'settings' && !a.sub) history.replaceState(history.state, '', `#settings/${sub}`); // plain #settings (the tab bar's link) records which section shows, so Back returns to it
+  // Phones: plain #settings (the tab bar's link) is a list of the sections. Wider screens keep the row of section tabs,
+  // and plain #settings records which section shows, so Back returns to it
+  const hub = tab === 'settings' && !a.sub && matchMedia(PHONE_Q).matches;
+  if (tab === 'settings' && !a.sub && !hub) history.replaceState(history.state, '', `#settings/${sub}`);
   if (!placeKnown() && (tab === 'month' || tab === 'weather')) tab = 'today'; // both need a place: Today asks for one
-  const moved = root.dataset.tab !== tab || (tab === 'settings' && sub !== shownSub);
+  const moved = root.dataset.tab !== tab || (tab === 'settings' && (sub !== shownSub || hub !== shownHub));
   if (root.dataset.tab !== tab) setTimeout(() => { applyLook(); tick(); }, 0); // the Weather tab has its own sky rules
   root.dataset.tab = tab; // the stylesheet lays out Today as one sheet
   for (const id of TAB_IDS) $(`tab-${id}`).hidden = id !== tab;
   // a tab (or a Settings section) always opens at its top, not where it was last left; Month then moves to today below
   if (moved) { $(`tab-${tab}`).scrollTop = 0; scrollTo(0, 0); }
-  shownSub = sub;
+  shownSub = sub; shownHub = hub;
   document.querySelectorAll('.tabbar a:not(.brand-link), .dockbar a').forEach(a => { // the mark links to Today too, but is not a tab
     const on = a.getAttribute('href') === `#${tab}`;
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -501,22 +518,32 @@ function route() {
     const d = m.matches('details') ? m : m.querySelector('details');
     if (d) d.open = false;
   });
-  $('tab-title').textContent = tab === 'month' ? monthTitle() : TITLES[tab];
-  // Back and the way here, above the title, on a screen that sits under another one: Month under Today
-  const way = $('crumbs'), up = tab === 'month' ? [{ label: 'Today', href: '#today' }] : null;
+  // a section of Settings on a phone sits under the list of sections: its own title, with Back and the way here
+  const inSub = tab === 'settings' && !hub && matchMedia(PHONE_Q).matches;
+  $('tab-title').textContent = tab === 'month' ? monthTitle() : inSub ? SUB_NAMES[sub] : TITLES[tab];
+  $('tab-title').classList.toggle('is-long', $('tab-title').textContent.length > 12); // a phone sets a long title smaller, beside the buttons
+  // Back and the way here, above the title, on a screen that sits under another one: Month under Today, a section under Settings
+  const way = $('crumbs'), up = tab === 'month' ? [{ label: 'Today', href: '#today' }] : inSub ? [{ label: 'Settings', href: '#settings' }] : null;
   way.hidden = !up;
   root.dataset.way = up ? 'on' : 'off'; // a phone gives the way here a row of its own, above the title
-  way.innerHTML = up ? crumbs(up, monthName()) : '';
-  const addr = addressOf(tab, tab === 'settings' ? sub : null);
+  way.innerHTML = up ? crumbs(up, tab === 'month' ? monthName() : SUB_NAMES[sub]) : '';
+  const was = lastAddr, addr = hub ? 'settings' : addressOf(tab, tab === 'settings' ? sub : null);
   if (addr !== lastAddr) { cameFrom = lastAddr; lastAddr = addr; } // route() also runs to redraw the same screen
-  const helpAt = `guide/${tab === 'settings' ? HELP_SUB[sub] : HELP_TAB[tab]}`;
+  const helpAt = `guide/${tab === 'settings' ? (hub ? '' : HELP_SUB[sub]) : HELP_TAB[tab]}`;
   for (const a of [$('help'), ...document.querySelectorAll('[data-help]')]) a.href = helpAt; // the top Help button, and Help in the phone's More menu
   document.querySelectorAll('[data-sub]').forEach(b => b.setAttribute('aria-selected', b.dataset.sub === sub));
   { const seg = document.querySelector('.seg'), on = seg?.querySelector('[aria-selected="true"]'); if (seg && on) seg.scrollLeft = on.offsetLeft - (seg.clientWidth - on.offsetWidth) / 2; } // a phone's tab row scrolls: keep the open section in view
-  document.querySelectorAll('.sub-pane').forEach(p => { p.hidden = p.id !== `sub-${sub}`; });
+  document.querySelectorAll('.sub-pane').forEach(p => { p.hidden = hub || p.id !== `sub-${sub}`; });
+  $('set-hub').hidden = !hub;
+  if (hub && was !== 'settings') {
+    fillHub();
+    rows($('set-hub').querySelectorAll('.hub-tile'));
+    $('set-hub').querySelector(`[href="#${was}"]`)?.focus({ preventScroll: true }); // back from a section: on its row again
+  }
   if (tab === 'month' && today) { renderMonth(); requestAnimationFrame(() => document.querySelector('#month tr.today')?.scrollIntoView({ block: 'center' })); } // open at today, not the 1st
 }
 addEventListener('hashchange', route);
+matchMedia(PHONE_Q).addEventListener('change', route); // turning a tablet or resizing a window across the phone width
 // Back, or a screen in the way here: when that is the screen just before this one, step back in the history (as the
 // phone's back gesture would), so Back and the gesture never pile up steps; otherwise go to it.
 $('crumbs').addEventListener('click', (e) => {
