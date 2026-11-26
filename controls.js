@@ -129,11 +129,12 @@ export function sheet(dlg, { history: steps = true, panel = dlg } = {}) {
   panel.prepend(grab);
   const phone = () => matchMedia(PHONE).matches;
   const id = dlg.id || 'sheet';
-  let popping = false, leaving = false;
+  let popping = false, leaving = false, openedAt = 0;
   const reset = () => { panel.style.translate = ''; panel.style.opacity = ''; };
   function open() {
     if (dlg.open) return;
     reset();
+    openedAt = performance.now();
     dlg.showModal();
     if (steps) history.pushState({ ...(history.state || {}), sheet: id }, '');
     if (phone()) sheetIn(panel); else fade(panel);
@@ -147,7 +148,9 @@ export function sheet(dlg, { history: steps = true, panel = dlg } = {}) {
   dlg.addEventListener('close', () => { if (steps && !popping && history.state?.sheet === id) history.back(); }); // its history step goes too
   if (steps) addEventListener('popstate', () => { if (dlg.open && history.state?.sheet !== id) { popping = true; dlg.close(); reset(); popping = false; } });
   dlg.addEventListener('cancel', (e) => { e.preventDefault(); close(); }); // Escape, or a TV remote's Back
-  dlg.addEventListener('click', (e) => { if (e.target === dlg) close(); }); // a tap on the dimmed page behind it
+  // a tap on the dimmed page behind it. Not in the first moment: a sheet opened on pointerup (the board's prayer columns)
+  // is followed by that same tap's click, which lands on the dimmed page now under the finger (iPhone)
+  dlg.addEventListener('click', (e) => { if (e.target === dlg && performance.now() - openedAt > 500) close(); });
   // Pull it down by the handle row: past a third of the way, or a quick flick, and it closes; otherwise it settles back
   let y0 = null, t0 = 0, dy = 0;
   panel.addEventListener('pointerdown', (e) => {
