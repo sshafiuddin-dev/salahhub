@@ -101,7 +101,7 @@ export function searchBox(input) {
   return { fold, box, button };
 }
 
-// Back and breadcrumb (DESIGN.md › Components): a round Back button, then the way here, as "Today / November".
+// Back and breadcrumb (DESIGN.md › Components): a round Back button, then the way here, as "Home / November".
 // `up` lists the screens above this one, the nearest last, each { label, href } (an address in the app) or { label, act }
 // (a data-act the page's own click handler knows); `here` names this screen. Back goes to the nearest screen above.
 const CRUMB_ESC = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
