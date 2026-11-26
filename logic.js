@@ -41,6 +41,15 @@ export function alertLogText(log, started) {
 
 export const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// The address after # names the screen: a tab, and for Settings its section (#settings/display), so the browser's Back,
+// a phone's back gesture and a TV remote's Back step through sections as they do through tabs. Old #alerts still works.
+export const SETTINGS_SUBS = ['location', 'iqama', 'alerts', 'display', 'about'];
+export function parseAddress(hash) {
+  const [t = '', s = ''] = String(hash || '').replace(/^#/, '').split('/');
+  if (t === 'alerts') return { tab: 'settings', sub: 'alerts' };
+  return { tab: t, sub: t === 'settings' && SETTINGS_SUBS.includes(s) ? s : null };
+}
+export const addressOf = (tab, sub) => (tab === 'settings' && sub ? `settings/${sub}` : tab);
 export function parseHM(s) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(s);
   return m && +m[1] < 24 && +m[2] < 60 ? m[1] * 60 + +m[2] : null;

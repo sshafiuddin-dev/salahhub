@@ -7,7 +7,7 @@ import { handle as feedbackHandle } from '../functions/api/feedback.js';
 import { where as whereFrom, handle as whereHandle } from '../functions/api/where.js';
 import { HISN, HISN_CATS } from '../hisn.js';
 import { normalizeItem, normalizeChapter, check, parseLoose, repairJson, parseChapterJson } from './fetch-hisn.mjs';
-import { MASJIDS, NEAR_MILES, NEAR_KM, nearestMasjid, wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf, bellState } from '../logic.js';
+import { parseAddress, addressOf, MASJIDS, NEAR_MILES, NEAR_KM, nearestMasjid, wallMs, safeToReload, PRAYERS, cardWindow, fridayRows, outlook, dayName, parseHM, iqamaAt, fmt, fmtSpan, nextEvent, km, alertsBetween, cleanStep, weatherKind, dayKind, uvLevel, aqiLevel, compass, clock, burnShift, prayerWeather, shareDayText, untilText, skyParams, esc, beepWav, alertLogText, cleanKhutbahTimes, pastKeys, prevEventAt, progressOf, bellState } from '../logic.js';
 
 // Page parser, against markup shaped like iscj.org's prayer times block
 const page = `<nav>Fajr Institute</nav><style>.x{}</style><div><span>Fajr</span><b>5:12 AM</b><i>Iqama</i> 5:45</div>
@@ -700,3 +700,13 @@ console.log('count day ok');
   for (const f of ['art/kaaba.webp', 'art/nabawi.webp']) assert.ok(fs.statSync(new URL('../' + f, import.meta.url)).size < 120000, `${f} stays small`);
   console.log('quran art ok');
 }
+
+// Addresses: each Settings section has its own, so Back steps through them; the old #alerts still opens Alerts
+assert.deepEqual(parseAddress('#settings/display'), { tab: 'settings', sub: 'display' });
+assert.deepEqual(parseAddress('#settings'), { tab: 'settings', sub: null });
+assert.deepEqual(parseAddress('#settings/nope'), { tab: 'settings', sub: null }, 'an unknown section is ignored');
+assert.deepEqual(parseAddress('#alerts'), { tab: 'settings', sub: 'alerts' }, 'the old address');
+assert.deepEqual(parseAddress('#month/x'), { tab: 'month', sub: null }, 'only Settings has sections');
+assert.deepEqual(parseAddress(''), { tab: '', sub: null });
+assert.equal(addressOf('settings', 'iqama'), 'settings/iqama');
+assert.equal(addressOf('month', 'iqama'), 'month');

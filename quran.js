@@ -6,7 +6,7 @@ import {
   cleanStore, hafsId, legacyTrack, retryWait, shouldRetry, nextRepeat, nextRate, toggle, cleanName, addList, renameList, removeList, addToList, removeFromList, moveInList, setListOrder,
 } from './quran-logic.js';
 import * as mo from './motion.js';
-import { bubble, searchBox } from './controls.js';
+import { bubble, searchBox, crumbs } from './controls.js';
 import { initOffline } from './quran-offline.js';
 import { tileArt, starArt, paintedArt, paintingOf, arNames, isMakki, SURAH_AR } from './quran-art.js';
 import { esc } from './logic.js';
@@ -876,29 +876,31 @@ export function initQuran({ say, stopOthers }) {
   }
 
   function renderDetail(animateIn) {
-    const back = `<button class="qp-ic qp-back" type="button" data-act="back" aria-label="Back to the list">${IC.left}</button>`;
+    // Back and the way here (one pane at a time; side by side the list is in view): the list tab you came from / this page
+    const VIEW_NAMES = { reciters: 'Reciters', surahs: 'Surahs', favorites: 'Favorites', playlists: 'Playlists', downloads: 'Downloads' };
+    const way = (here) => `<nav class="crumbs qp-crumbs" aria-label="Breadcrumb">${crumbs([{ label: 'Quran', act: 'back' }, { label: query ? 'Search' : VIEW_NAMES[view] || 'Quran', act: 'back' }], here)}</nav>`;
     let html = '';
     if (!cat || !detail) html = cat ? empty('Choose a reciter, a surah or a playlist to see what you can play.') : '';
     else if (detail.type === 'reciter') {
       const r = cat.reciters.find(x => x.id === detail.id), ms = r ? moshafOf(cat, r, store.riwaya) : [];
-      if (!ms.length) html = `<div class="qp-head">${back}<h3>${r ? esc(r.name) : 'Reciter'}</h3></div>${empty('This reciter has no recitation in the chosen riwayah. Choose “All riwayat” above to see the others.')}`;
+      if (!ms.length) html = `${way(r ? r.name : 'Reciter')}<div class="qp-head"><h3>${r ? esc(r.name) : 'Reciter'}</h3></div>${empty('This reciter has no recitation in the chosen riwayah. Choose “All riwayat” above to see the others.')}`;
       else {
         const m = ms.find(x => x.id === detail.m) || ms[0];
         detail.m = m.id;
-        html = `<div class="qp-head">${back}<h3>${esc(r.name)}</h3>${heart('fav-r', store.favR.includes(r.id), `Favorite reciter: ${r.name}`, `data-id="${r.id}"`)}</div>`
+        html = `${way(r.name)}<div class="qp-head"><h3>${esc(r.name)}</h3>${heart('fav-r', store.favR.includes(r.id), `Favorite reciter: ${r.name}`, `data-id="${r.id}"`)}</div>`
           + (ms.length > 1 ? `<div class="qp-chips" role="group" aria-label="Recitation">${ms.map(x => `<button class="d-btn d-btn-sm${x.id === m.id ? ' d-btn-primary' : ' d-btn-outline'}" type="button" data-act="moshaf" data-m="${x.id}" aria-pressed="${x.id === m.id}">${esc(x.style)}</button>`).join('')}</div>` : `<p class="qp-dlg-sub">${esc(m.style)}</p>`)
           + `<p class="qp-count">${count(m.surahs.length, 'surah')}</p>${dlAllBtn(m)}<ul class="qp-rows">${m.surahs.map(s => { const su = cat.surahs.get(s); return trackRow(trackId(m.id, s), s, su ? su.name : `Surah ${s}`, su ? (su.makki ? 'Makki' : 'Madani') : ''); }).join('')}</ul>`;
       }
     } else if (detail.type === 'surah') {
       const s = cat.surahs.get(detail.n);
       const ms = [...cat.moshaf.values()].filter(m => m.surahs.includes(detail.n) && (store.riwaya === 'all' || m.rewaya === store.riwaya)).sort((a, b) => a.reciter.localeCompare(b.reciter));
-      html = `<div class="qp-head">${back}<h3>${detail.n}. ${esc(s ? s.name : 'Surah')}</h3></div><p class="qp-count">${count(ms.length, 'recitation')}</p>`
+      html = `${way(`${detail.n}. ${s ? s.name : 'Surah'}`)}<div class="qp-head"><h3>${detail.n}. ${esc(s ? s.name : 'Surah')}</h3></div><p class="qp-count">${count(ms.length, 'recitation')}</p>`
         + (ms.length ? `<ul class="qp-rows">${ms.map(m => trackRow(trackId(m.id, detail.n), null, m.reciter, m.style)).join('')}</ul>` : empty('No recitation of this surah in the chosen riwayah.'));
     } else {
       const l = listById(detail.id);
       if (!l) { detail = null; return renderDetail(); }
       const grip = (title) => `<button class="qp-ic qp-grip" type="button" aria-label="Move ${esc(title)}: drag, or press the up and down arrow keys" title="Drag to reorder">${IC.grip}</button>`;
-      html = `<div class="qp-head">${back}<h3>${esc(l.name)}</h3></div><p class="qp-count">${count(l.tracks.length, 'surah')}</p>`
+      html = `${way(l.name)}<div class="qp-head"><h3>${esc(l.name)}</h3></div><p class="qp-count">${count(l.tracks.length, 'surah')}</p>`
         + `<div class="qp-chips"><button class="d-btn d-btn-sm d-btn-primary" type="button" data-act="play-all"${l.tracks.some(id => info(id)) ? '' : ' disabled'}>Play all</button><button class="d-btn d-btn-sm d-btn-outline" type="button" data-act="rename">Rename</button><button class="d-btn d-btn-sm d-btn-outline" type="button" data-act="delete">Delete</button></div>`
         + (l.tracks.length ? `<ul class="qp-rows qp-sortable">${l.tracks.map((id, k) => {
           const i = info(id);
@@ -908,7 +910,7 @@ export function initQuran({ say, stopOthers }) {
     }
     detailEl.innerHTML = html;
     markRows();
-    if (animateIn) { detailEl.scrollTop = 0; mo.fade(detailEl.querySelector('.qp-head')); mo.rows(detailEl.querySelectorAll('.qp-row')); }
+    if (animateIn) { detailEl.scrollTop = 0; mo.fade(detailEl.querySelector('.qp-crumbs')); mo.fade(detailEl.querySelector('.qp-head')); mo.rows(detailEl.querySelectorAll('.qp-row')); }
   }
   // "Download all" for one recitation: how many are saved already, or a cancel while they come in. The progress shows only after
   // Download all was asked for (dlAllOn): a surah saved because it was played, and the next one fetched ahead, is not a download of all
@@ -930,7 +932,7 @@ export function initQuran({ say, stopOthers }) {
     setPane('detail');
     renderList();
     renderDetail(true);
-    if (getComputedStyle(listEl).display === 'none') detailEl.querySelector('.qp-back')?.focus();
+    if (getComputedStyle(listEl).display === 'none') detailEl.querySelector('.crumb-back')?.focus();
     // side by side, the list is drawn again and the pressed row with it: the focus goes on to the first surah, not lost
     else if (!fromHistory && (document.activeElement === document.body || !document.activeElement)) detailEl.querySelector('li[data-track] .qp-main, li .qp-main')?.focus({ preventScroll: true });
   }
