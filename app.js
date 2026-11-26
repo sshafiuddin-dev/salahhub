@@ -37,7 +37,7 @@ const AUTO_DIM = ['isha', 'maghrib', 'off'];
 const DEFAULTS = {
   method: 'ISNA', asr: 'Standard', place: null, asked: false, iqama: {}, adhan: 'makkah', fajrAdhan: 'fajr-zahrani', muted: false, alerts: null,
   tune: {}, hijriShift: 0, hijriMaghrib: false, clock: 'board', look: 'paper', autoDim: 'isha', nightStart: 'isha', nightLevel: 3, level: 0, seconds: true, wxSky: 'real', wxMove: true, units: /-US$/i.test(navigator.language || '') ? 'F' : 'C',
-  defIqama: null, tableOpen: false, big: 'auto', adhkar: true, adhkarCat: 'all', translit: true, arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest',
+  defIqama: null, tableOpen: false, big: 'auto', adhkar: true, adhkarCat: 'all', translit: true, arSize: 'm', awake: false, dxLayout: 'auto', dxCard: 'rest', wxSound: false, wxVol: .5, wxPause: false,
 };
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -109,6 +109,9 @@ for (const k of ['wxBack', 'wxBackV', 'wxPic']) delete settings[k];
 if (!['real', 'print', 'off'].includes(settings.wxSky)) settings.wxSky = DEFAULTS.wxSky;
 settings.wxMove = settings.wxMove !== false;
 settings.wxGlass = settings.wxGlass === true; // rain on glass: off (open sky) unless chosen
+settings.wxSound = settings.wxSound === true; // weather sound: off unless chosen
+settings.wxPause = settings.wxPause === true;
+settings.wxVol = Number.isFinite(+settings.wxVol) ? Math.max(0, Math.min(1, +settings.wxVol)) : DEFAULTS.wxVol;
 settings.seconds = settings.seconds !== false;
 if (!['isha', 'maghrib'].includes(settings.nightStart)) settings.nightStart = settings.autoDim === 'maghrib' ? 'maghrib' : 'isha';
 settings.translit = settings.translit !== false;
@@ -433,6 +436,7 @@ function tick() {
   const skyOk = settings.look === 'paper' && (onWeather() ? dim < 3 || (skyStyle() === 'real' && sky.night)
     : dim < 2 || (skyStyle() === 'real' && (dim === 3 || !sky.night)));
   updateSky({ ...sky, glass: settings.wxGlass }, skyBack(dim), skyOk && root.dataset.black !== '1', root.dataset.theme === 'dark'); // nothing is drawn under the black cover
+  wxScene = { ...sky, glass: settings.wxGlass }; wxFeed(); // the weather sound follows the same weather, whatever is drawn
 
   // Alerts: only for moments crossed while the page is open
   if (placeKnown() && lastSec != null && c.sec > lastSec) for (const a of alertsBetween(alertRows(), settings.alerts, lastSec, c.sec)) fire(a);
@@ -693,7 +697,7 @@ function syncSound() {
 }
 // The Quran player has its own audio element. It steps aside for any sound played here and comes back when that sound is over.
 const quran = initQuran({ say, stopOthers: () => { pending = null; if (playing() && !audio.muted) audio.pause(); } }); // a muted sound is the silent unlock, which must finish
-const soundOver = () => { syncSound(); if (!playing()) quran.resume(); };
+const soundOver = () => { syncSound(); if (!playing()) quran.resume(); if (typeof wxFeed === 'function') wxFeed(); };
 audio.addEventListener('ended', soundOver);
 audio.addEventListener('pause', soundOver);
 // shortcut: on touch screens only the end of a tap counts as a user gesture (pointerdown does not), so listen for all of these
@@ -718,6 +722,28 @@ function unlockSound(e) {
   audio.play().then(() => { if (audio.muted) { audio.pause(); audio.muted = false; } markUnlocked(); }, () => {});
 }
 GESTURES.forEach(g => addEventListener(g, unlockSound, true));
+// Weather sound (wxsound.js, loaded only once it is turned on): the sound of today's weather, made on this device.
+// It keeps quiet while paused and while the adhan, an alert or the Quran plays, and comes back after.
+// Browsers hold sound back until the page is tapped: then "Tap to allow weather sound" asks for that tap.
+let wx = null, wxLoad = null, wxScene = null;
+const loadWx = () => (wxLoad ||= import('./wxsound.js').then(m => (wx = m)).catch(() => null));
+function wxFeed() {
+  if (wx && wxScene) wx.wxUpdate(wxScene, settings.wxPause || playing() || quran.isPlaying() || !!pending);
+  $('wx-allow').hidden = !(wx && settings.wxSound && !settings.wxPause && !soundLocked && wx.wxBlocked());
+}
+function syncWx() {
+  $('wx-snd').hidden = !settings.wxSound;
+  $('wx-snd').dataset.on = settings.wxPause ? '0' : '1';
+  $('wx-snd-label').textContent = settings.wxPause ? 'Play weather sound' : 'Pause weather sound';
+  $('set-wxsound').checked = settings.wxSound;
+  $('set-wxvol').disabled = !settings.wxSound;
+  if (settings.wxSound && !wx) loadWx().then(m => { if (m) syncWx(); });
+  if (wx) wx.wxSet(settings.wxSound, settings.wxVol);
+  wxFeed();
+}
+GESTURES.forEach(g => addEventListener(g, () => { if (wx && settings.wxSound && wx.wxBlocked()) wx.wxResume().then(wxFeed); }, true));
+addEventListener('wxsound:state', wxFeed);
+audio.addEventListener('play', wxFeed); // step aside at once for the adhan or an alert
 function play(file, label) {
   audio.pause();
   quran.interrupt();
@@ -1625,6 +1651,22 @@ $('set-adhkar').addEventListener('change', () => { settings.adhkar = $('set-adhk
 $('set-wxsky').addEventListener('change', () => { settings.wxSky = $('set-wxsky').value; $('set-wxmove').disabled = settings.wxSky === 'off'; $('set-wxglass').disabled = settings.wxSky !== 'real'; save(); applyLook(); tick(); });
 $('set-wxmove').addEventListener('change', () => { settings.wxMove = $('set-wxmove').checked; save(); applyLook(); tick(); });
 $('set-wxglass').addEventListener('change', () => { settings.wxGlass = $('set-wxglass').checked; save(); tick(); });
+const volText = (v) => `${Math.round(v * 100)}%`;
+$('set-wxvol').value = Math.round(settings.wxVol * 100);
+$('set-wxvol').setAttribute('aria-valuetext', volText(settings.wxVol));
+$('set-wxsound').addEventListener('change', () => {
+  settings.wxSound = $('set-wxsound').checked;
+  if (settings.wxSound) settings.wxPause = false;
+  save(); syncWx();
+  say(settings.wxSound ? 'Weather sound is on. It plays when there is rain, wind, hail or thunder.' : 'Weather sound is off.', null, settings.wxSound);
+});
+$('set-wxvol').addEventListener('input', () => { settings.wxVol = +$('set-wxvol').value / 100; $('set-wxvol').setAttribute('aria-valuetext', volText(settings.wxVol)); save(); syncWx(); });
+$('wx-snd').addEventListener('click', () => {
+  settings.wxPause = !settings.wxPause; save(); syncWx();
+  say(settings.wxPause ? 'Weather sound paused.' : wx && !wx.wxAudible() ? 'Weather sound plays when there is rain, wind, hail or thunder.' : 'Weather sound playing.');
+});
+$('wx-allow').addEventListener('click', () => { if (wx) wx.wxResume().then(wxFeed); });
+syncWx();
 $('set-seconds').addEventListener('change', () => { settings.seconds = $('set-seconds').checked; save(); tick(); });
 $('set-translit').addEventListener('change', () => { settings.translit = $('set-translit').checked; save(); tick(); });
 $('set-dxcard').value = settings.dxCard;
@@ -1636,6 +1678,7 @@ $('set-dxlayout').addEventListener('change', () => { settings.dxLayout = $('set-
 $('set-arsize').addEventListener('input', () => { const i = +$('set-arsize').value; settings.arSize = AR_SIZES[i]; $('set-arsize').setAttribute('aria-valuetext', AR_NAMES[i]); save(); tick(); });
 bubble($('set-dim'), 'rng-dim');
 bubble($('set-arsize'), 'rng-ar');
+bubble($('set-wxvol'), 'rng-vol');
 
 // Keep screen on (Screen Wake Lock); also held while full screen is open. The browser drops it when the app is hidden.
 let lock = null, locking = false, displayOpen = false;

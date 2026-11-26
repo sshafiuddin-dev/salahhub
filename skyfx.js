@@ -130,6 +130,7 @@ function strike() {
     }
   }
   L.next = 6 + rnd() * 10;
+  dispatchEvent(new CustomEvent('sky:strike', { detail: { bolt: !!L.lines } })); // wxsound.js answers with thunder
 }
 function drawBolt(f, k, light) {
   if (!L.lines || f < .02) return;

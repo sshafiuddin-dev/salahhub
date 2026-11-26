@@ -808,6 +808,10 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .tb-btn svg { width: 1.3rem; height: 1.3rem; }
   .tb-btn[data-short] { width: 4.6rem; height: auto; min-height: 2.75rem; flex-direction: column; gap: .15rem; padding: .35rem 0; }
   .tb-btn[data-short]::after { content: attr(data-short); font: 600 .75rem/1 var(--body); white-space: nowrap; letter-spacing: .02em; } /* the icon's name, in words, under it */
+  /* four named buttons (with weather Sound) still leave room for the screen's title */
+  .topbar-actions:has(#wx-snd:not([hidden])) { gap: .2rem; }
+  .topbar-actions:has(#wx-snd:not([hidden])) .tb-btn[data-short] { width: 4rem; }
+  .topbar-actions:has(#wx-snd:not([hidden])) .tb-btn[data-short]::after { font-size: .7rem; letter-spacing: 0; }
   .toast { bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
   .dk { padding: 1rem 1.1rem; }
   .dk-ar { font-size: 1.55rem; }
@@ -925,6 +929,10 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 /* The sound unlock button on the main page */
 .sound-lock { position: fixed; top: .75rem; left: 50%; transform: translateX(-50%); z-index: 50; animation: dx-sound-pulse 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .sound-lock { animation: none; } }
+/* the weather Sound button: waves while it plays, a cross while it is paused */
+#wx-snd .snd-off, #wx-snd[data-on="0"] .snd-on { display: none; }
+#wx-snd[data-on="0"] .snd-off { display: inline; }
+#set-wxvol:disabled { opacity: .45; }
 /* Stop button shown on every screen while an alert is sounding */
 .alert-stop { position: fixed; top: .75rem; left: 50%; transform: translateX(-50%); z-index: 45; max-width: calc(100vw - 2rem); box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .3); }
 /* Stop, while an alert sounds: it drops in, and its bell rings three times (each time it appears) */
