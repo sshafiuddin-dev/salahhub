@@ -30,7 +30,7 @@
 /* Handwritten: blue-black pen on a ruled sheet, red pen for what matters next */
 :root[data-palette="hand"] {
   --paper: #F6F1E4; --surface: #FCFAF3; --ink: #1F2B47; --muted: #4F5A74; --line: #C3CBDA; --clear: #B0302A; --risk: #9E1B1B; --margin: #E2A49C;
-  --ar: "Aref Ruqaa", "Amiri", serif;
+  --ar: "Marhey", "Amiri", serif;
 }
 :root[data-palette="hand"][data-dim="1"] { --paper: #DCD6C6; --surface: #E4DECF; --ink: #22304D; --muted: #46506A; --line: #AAB2C2; --clear: #8F2520; --margin: #C98E86; }
 :root[data-palette="hand"][data-dim="2"] { --paper: #BAA582; --surface: #C2AE8C; --ink: #1C2132; --muted: #3D3A38; --line: #A08B67; --clear: #6B1D10; --risk: #6B1D10; --margin: #8E4A3A; }
