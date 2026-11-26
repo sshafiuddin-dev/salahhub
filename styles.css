@@ -1234,6 +1234,36 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
 .fb { width: min(38rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 1px solid var(--line); border-radius: 1rem;
   background: var(--paper); color: var(--ink); box-shadow: 0 .75rem 2.5rem rgba(0, 0, 0, .35); overflow: auto; overscroll-behavior: contain; }
 .fb::backdrop { background: rgba(20, 16, 10, .45); }
+/* One prayer's sheet (app.js prayerSheet) and the Share sheet: a card in the middle on wider screens, a sheet on phones */
+.prs, .shs { width: min(27rem, calc(100vw - 2rem)); }
+.prs-in { display: grid; align-content: start; gap: .75rem; padding: 1.25rem clamp(1rem, 4vw, 1.5rem); }
+.prs-head { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+.prs h2, .shs h2 { font: 500 1.55rem/1.15 var(--display); }
+.prs-ar { margin-inline-start: .35rem; color: var(--muted); font-size: 1.1rem; }
+.prs-day { padding: .15rem .6rem; border-radius: 99px; background: var(--surface); color: var(--muted); font-size: .85rem; }
+.prs-times { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: .5rem; margin: 0; }
+.prs-times div { padding: .6rem .8rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--surface); }
+.prs-times dt { color: var(--muted); font-size: .85rem; }
+.prs-times dd { margin: 0; font: 600 1.35rem/1.25 var(--body); font-variant-numeric: tabular-nums; }
+.prs-wx { color: var(--muted); font-size: .92rem; margin-top: .5rem; }
+.prs-sec { display: grid; align-content: start; gap: .35rem; padding-top: .75rem; border-top: 1px solid var(--line); }
+.prs-al { display: flex; align-items: center; justify-content: space-between; min-height: 2.75rem; }
+.prs .iq-label { margin: 0; }
+.prs-row { min-height: 2.75rem; justify-content: space-between; }
+.prs-row > label { flex: 1; }
+.prs-row .tick { flex: none; }
+.prs .stp input[type="number"] { color: var(--ink); width: 3.4rem; min-height: 0; height: 2.5rem; padding: 0; border: 0; background: transparent; box-shadow: none; text-align: center;
+  font: 600 1.05rem/1 var(--body); font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.prs-snd { color: var(--muted); font-size: .85rem; }
+.prs-in.is-off [data-part] { opacity: .5; }
+.prs-note { color: var(--muted); font-size: .85rem; }
+.prs-foot { display: flex; justify-content: space-between; gap: .5rem; padding-top: .5rem; }
+.prs-foot .d-btn, .prs-done { min-height: 2.75rem; }
+.shs-list { display: grid; }
+.shs-list button { min-height: 3rem; padding: 0 .25rem; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--ink); font: 500 1.05rem/1.2 var(--body); text-align: start; cursor: pointer; }
+.shs-list button:last-child { border-bottom: 0; }
+.shs-list button[hidden] { display: none; }
+.sh-tt [data-pr] { cursor: pointer; }
 .fb-form { display: grid; gap: .55rem; padding: 1.25rem clamp(1rem, 4vw, 1.75rem) 1.25rem; }
 .fb h2 { font: 500 1.55rem/1.15 var(--display); }
 .fb-lead { color: var(--muted); font-size: .95rem; margin-bottom: .35rem; }
@@ -1497,4 +1527,6 @@ html { overflow-x: clip; } /* the page never slides sideways (a wide sky layer o
   .fb.sheet .sheet-grab { position: sticky; top: 0; z-index: 1; background: var(--paper); } /* the form scrolls under it */
   .fb.sheet .fb-form { padding-top: .25rem; }
   .ctf.sheet .ctf-in { padding-top: .25rem; }
+  .prs.sheet .prs-in, .shs.sheet .prs-in { padding-top: 0; padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px)); }
+  .prs.sheet .sheet-grab, .shs.sheet .sheet-grab { margin-inline: calc(-1 * clamp(1rem, 4vw, 1.5rem)); }
 }

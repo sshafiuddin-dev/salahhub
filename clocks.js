@@ -4,12 +4,12 @@
 import { NAMES, fmt, fmtSpan, fmtMins, esc, pastKeys, prevEventAt, progressOf } from './logic.js';
 
 // The bell beside each prayer on the board (Today only): one outline drawing, filled when an alert sounds, struck
-// through when off. A tap opens that prayer's card under Settings, Adhan and alerts (app.js).
+// through when off. A tap on it, or on any cell of that prayer's column, opens the prayer's sheet (app.js prayerSheet).
 const BELL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="b-body" d="M6 9a6 6 0 0 1 12 0c0 6.5 2.5 8.5 2.5 8.5h-17S6 15.5 6 9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/><path class="b-off" d="M3 3l18 18"/></svg>';
 const BELL_SAYS = { sound: 'sound', msg: 'message only', off: 'off' };
 const bell = (r, bells) => {
   const k = r.jumuah ? 'jumuah' : r.key, s = bells[k] || 'off';
-  return `<button class="sh-bell" type="button" data-bell="${k}" data-state="${s}" aria-label="${nameOf(r)} alerts: ${BELL_SAYS[s]}. Open alert settings">${BELL}</button>`;
+  return `<button class="sh-bell" type="button" data-bell="${k}" data-state="${s}" aria-label="${nameOf(r)} alerts: ${BELL_SAYS[s]}. Open ${nameOf(r)}">${BELL}</button>`;
 };
 
 export const CLOCKS = { board: 'Masjid board', dial: '24-hour dial', analog: 'Analog clock face', sun: 'Sun path', timeline: 'Day timeline', bedside: 'Bedside, low glare' };
@@ -96,8 +96,8 @@ function sun(d) {
 // English and Arabic names), then sunrise and Jumu'ah. When d.card holds a dua, the dua takes the timetable's place.
 // d.tomorrowFajr (a row) is used after Isha; d.wxNow ({ temp, unit, words, hi, lo, pop }) is the weather now, shown under the clock (d.wxLink makes it a button); d.wxAt the weather at the next prayer;
 // d.warn ({ event, until, more, sender }) an official warning, shown as a red-ruled line at the top while one is in force.
-const AR = { fajr: 'الفجر', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
-const AR_JUM = 'الجمعة';
+export const AR = { fajr: 'الفجر', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' };
+export const AR_JUM = 'الجمعة';
 const AR_RISE = 'الشروق';
 const arOf = (d) => { const r = d.next.at < 1440 && d.rows.find(x => x.key === d.next.key); return r?.jumuah ? AR_JUM : d.next.key === 'sunrise' ? AR_RISE : AR[d.next.key]; };
 const units = (t) => t.replace(/(\d)([hms])/g, '$1<i>$2</i>');
@@ -114,7 +114,7 @@ function sheetTable(d) {
   const nx = (r) => r.key === d.next.key && d.next.at < 1440;
   // the next prayer's column is marked on every cell (nx-col: the solid bar); the times already gone by are faded (is-past)
   const past = pastKeys(d.next, d.isAhead);
-  const cls = (r, own) => { const c = [own, nx(r) ? 'nx-col' : '', past.has(r.key) ? 'is-past' : ''].filter(Boolean).join(' '); return c ? ` class="${c}"` : ''; };
+  const cls = (r, own) => { const c = [own, nx(r) ? 'nx-col' : '', past.has(r.key) ? 'is-past' : ''].filter(Boolean).join(' '); return `${c ? ` class="${c}"` : ''}${d.bells ? ` data-pr="${r.jumuah ? 'jumuah' : r.key}"` : ''}`; }; // data-pr: a tap opens that prayer's sheet (Today only)
   const th = d.rows.map(r => `<th scope="col"${cls(r, nx(r) ? 'is-next' : '')}>${nameOf(r)}${d.bells ? bell(r, d.bells) : ''}<span class="sh-ar" lang="ar">${r.jumuah ? AR_JUM : AR[r.key]}</span></th>`).join('');
   const calledNow = d.next.kind === 'iqama' && d.next.at < 1440; // the adhan time has passed: the Iqama cell carries the mark
   const adhan = d.rows.map(r => `<td${cls(r, nx(r) ? (calledNow ? 'is-passed' : 'is-next') : '')}>${hm(r.adhan)}</td>`).join('');
