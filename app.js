@@ -624,8 +624,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') moreMenus(
 document.querySelectorAll('[data-sub]').forEach(b => b.addEventListener('click', () => go('settings', b.dataset.sub))); // each section has its own address
 // Phones: a sideways swipe in a Settings section opens the next or previous one, in place (Back still goes to the list)
 onSwipe($('tab-settings'), (dir) => {
-  const next = SETTINGS_SUBS[SETTINGS_SUBS.indexOf(sub) + dir];
-  if (!next) return;
+  const n = SETTINGS_SUBS.length, next = SETTINGS_SUBS[(SETTINGS_SUBS.indexOf(sub) + dir + n) % n]; // wraps round at both ends
   sideStep = true;
   location.replace(`#settings/${next}`);
   requestAnimationFrame(() => slideIn($(`sub-${next}`), dir));
@@ -824,9 +823,8 @@ $('au-cats').addEventListener('click', (e) => {
 $('au-search').addEventListener('input', filterAdhkar);
 // Phones: a sideways swipe on the list moves to the next or previous category
 onSwipe($('tab-adhkar'), (dir) => {
-  const cats = [...$('au-cats').children], next = cats[cats.findIndex(b => b.getAttribute('aria-selected') === 'true') + dir];
-  if (!next) return;
-  next.click();
+  const cats = [...$('au-cats').children], n = cats.length, i = cats.findIndex(b => b.getAttribute('aria-selected') === 'true');
+  cats[(i + dir + n) % n].click(); // wraps round at both ends
   slideIn($('adhkar-audio'), dir);
 }, () => matchMedia(PHONE_Q).matches);
 searchBox($('au-search')); // controls.js: behind a round magnifier, like the Quran tab's
@@ -1636,6 +1634,8 @@ function renderAdhkar(nowMin) {
 }
 let dxPeek = 0; // ms: until then the dua stays up in full screen
 const stepAdhkar = (by) => { const n = SETS[dk.key].items.length; dk.i = (dk.i + by + n) % n; renderAdhkar(clock(new Date(), place().zone).sec / 60); };
+// Phones: a sideways swipe on the Home dua moves to the next or previous one, round and round like the buttons
+onSwipe($('adhkar'), (dir) => { stepAdhkar(dir); slideIn($('adhkar'), dir); }, () => matchMedia(PHONE_Q).matches);
 $('dk-prev').addEventListener('click', () => stepAdhkar(-1));
 $('dk-next').addEventListener('click', () => stepAdhkar(1));
 $('dx-next').addEventListener('click', () => { dxPeek = Date.now() + 60e3; stepAdhkar(1); });
