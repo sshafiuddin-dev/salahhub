@@ -1357,12 +1357,14 @@ function dxCardFor(nowMin) {
   const w = cardWindow(nowMin, day.rows, day.sunrise);
   if (!w) return null;
   if (settings.dxCard === 'duas' && settings.adhkar && SETS[w].items[0].ar) { // the text has loaded
-    const set = SETS[w], i = (Math.floor(nowMin / 3) + duaTap) % set.items.length;
+    const set = SETS[w], n = set.items.length, i = (((Math.floor(nowMin / 3) + duaTap) % n) + n) % n; // duaTap goes negative on a swipe back
     return { kind: 'dua', title: set.title, item: set.items[i], pos: `${i + 1} / ${set.items.length}` };
   }
   return w === 'morning' ? { kind: 'rest' } : null;
 }
 $('dx-small').addEventListener('click', (e) => { if (e.target.closest('[data-dua]')) { duaTap++; tick(); } });
+// the same card also swipes: left for the next dua, right for the one before (round and round)
+onSwipe($('dx-small'), (dir) => { duaTap += dir; tick(); const c = $('dx-small').querySelector('[data-dua]'); if (c) slideIn(c, dir); }, (t) => !!t.closest('[data-dua]'));
 // Official warnings at the top of the Weather tab: each one's name and end time, opening to the full NWS text
 function warningsHtml() {
   if (!alerts.length) return '';
@@ -1636,6 +1638,8 @@ let dxPeek = 0; // ms: until then the dua stays up in full screen
 const stepAdhkar = (by) => { const n = SETS[dk.key].items.length; dk.i = (dk.i + by + n) % n; renderAdhkar(clock(new Date(), place().zone).sec / 60); };
 // Phones: a sideways swipe on the Home dua moves to the next or previous one, round and round like the buttons
 onSwipe($('adhkar'), (dir) => { stepAdhkar(dir); slideIn($('adhkar'), dir); }, () => matchMedia(PHONE_Q).matches);
+// Full screen: the same swipe; like Next, it keeps the dua up for a minute. No size check: it is touch-only, and tablets use full screen too
+onSwipe($('dx-dhikr'), (dir) => { dxPeek = Date.now() + 60e3; stepAdhkar(dir); slideIn($('dx-dhikr'), dir); });
 $('dk-prev').addEventListener('click', () => stepAdhkar(-1));
 $('dk-next').addEventListener('click', () => stepAdhkar(1));
 $('dx-next').addEventListener('click', () => { dxPeek = Date.now() + 60e3; stepAdhkar(1); });
