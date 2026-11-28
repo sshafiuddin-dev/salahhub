@@ -929,9 +929,9 @@ export function initQuran({ say, stopOthers }) {
   const setPane = (p) => { tabEl.dataset.pane = p; };
   // Phones: a sideways swipe on the library moves to the next or previous tab (Reciters, Surahs, Favorites, Playlists, Downloads)
   onSwipe(listEl, (dir) => {
-    const tabs = [...tabEl.querySelectorAll('.qp-tabs [data-view]')], i = tabs.findIndex(b => b.getAttribute('aria-selected') === 'true'), next = tabs[i + dir];
-    if (i < 0 || !next) return; // searching (no tab is on), or already at the end
-    next.click();
+    const tabs = [...tabEl.querySelectorAll('.qp-tabs [data-view]')], i = tabs.findIndex(b => b.getAttribute('aria-selected') === 'true');
+    if (i < 0) return; // searching (no tab is on)
+    tabs[(i + dir + tabs.length) % tabs.length].click(); // wraps round at both ends
     slideIn(listEl, dir);
   }, () => matchMedia('(max-width: 48rem)').matches && tabEl.dataset.pane === 'list');
   function openDetail(d, fromHistory = false) {
